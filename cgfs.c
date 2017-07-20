@@ -180,14 +180,15 @@ int cgfs_open(const char *path, struct fuse_file_info *fi)
 	struct file *f = cgfs_get_open_file_by_path(path);;
 
 	if (!f) {
-		MALLOC(struct file, f, 1);
 		// TODO: Get data from server
+		MALLOC(struct file, f, 1);
+		// TODO: Put data in file struct
 	}
 
 	fi->fh = fh;
 	open_files[fh] = f;
 
-	return 0;
+	return fh;
 }
 
 int cgfs_release(const char *path, struct fuse_file_info *fi)
