@@ -81,7 +81,7 @@ int cgfs_getattr(const char *path, struct stat *st)
 	st->st_atime = time(NULL);
 	st->st_mtime = time(NULL);
 
-	// Get other info from server
+	// TODO: Get other info from server
 
 	return 0;
 }
@@ -90,7 +90,7 @@ int cgfs_mkdir(const char *path, mode_t mode)
 {
 	(void) path; (void) mode;
 
-	// Send mkdir request to server
+	// TODO: Send mkdir request to server
 
 	return 0;
 }
@@ -99,7 +99,7 @@ int cgfs_rmdir(const char *path)
 {
 	(void) path;
 
-	// Send rmdir request to server
+	// TODO: Send rmdir request to server
 
 	return 0;
 }
@@ -116,7 +116,6 @@ int cgfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 	// - One '/': top level, get assignments
 	// - Two '/': in assignment, get submissions for assignment
 	// - Otherwise: in submission, get submission directory
-	// Paths begin with '/'
 	int nparts = 0;
 	int path_parts[3] = { -1, -1, -1, };
 	for (; nparts < 3; nparts++) {
@@ -129,15 +128,15 @@ int cgfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 
 	switch (nparts) {
 	case 1:
-		// Get assignments
+		// TODO: Get assignments
 		break;
 	case 2:
-		// Get assignment id
-		// Get Submissions
+		// TODO: Get assignment id
+		// TODO: Get Submissions
 		break;
 	default:
-		// Get submission id
-		// Get submission files
+		// TODO: Get submission id
+		// TODO: Get submission files
 		break;
 	}
 
@@ -153,7 +152,7 @@ int cgfs_open(const char *path, struct fuse_file_info *fi)
 
 	if (!f) {
 		MALLOC(struct file, f, 1);
-		// Get data from server
+		// TODO: Get data from server
 	}
 
 	fi->fh = fh;
@@ -248,7 +247,7 @@ int cgfs_flush(const char *path, struct fuse_file_info *fi)
 		return 0;
 	}
 
-	// Send f->buf to server
+	// TODO: Send f->buf to server
 
 	f->dirty = false;
 
@@ -259,7 +258,7 @@ int cgfs_unlink(const char *path)
 {
 	(void) path;
 
-	// Send unlink request to server
+	// TODO: Send unlink request to server
 
 	return 0;
 }
