@@ -86,6 +86,25 @@ int cgfs_getattr(const char *path, struct stat *st)
 	return 0;
 }
 
+int cgfs_access(const char *path, int mask)
+{
+	(void) path;
+
+	char flags[5] = {
+		mask & F_OK ? 'f' : '-',
+		mask & R_OK ? 'r' : '-',
+		mask & W_OK ? 'w' : '-',
+		mask & X_OK ? 'x' : '-',
+		0
+	};
+
+	(void) flags;
+
+	// TODO: Send access request to server
+
+	return 0;
+}
+
 int cgfs_mkdir(const char *path, mode_t mode)
 {
 	(void) path; (void) mode;
