@@ -41,6 +41,15 @@ do { \
 free(var); \
 var = NULL;
 
+#define GET_FILE_BY_FH(var, fh) \
+do { \
+	if (fh < 0 || fh >= MAX_OPEN_FILES || \
+	    open_files[fh] == NULL) { \
+		return EBADF; \
+	} \
+	var = open_files[fh]; \
+} while (0)
+
 struct file {
 	int id;
 	char path[PATH_MAX];
@@ -185,10 +194,8 @@ int cgfs_release(const char *path, struct fuse_file_info *fi)
 {
 	(void) path;
 
-	struct file *f = open_files[fi->fh];
-	if (f == NULL) {
-		return EBADF;
-	}
+	struct file *f;
+	GET_FILE_BY_FH(f, fi->fh);
 
 	f->nlinks--;
 	if (f->nlinks == 0) {
@@ -205,10 +212,8 @@ int cgfs_read(const char *path, char *buf, size_t buflen,
 {
 	(void) path;
 
-	struct file *f = open_files[fi->fh];
-	if (f == NULL) {
-		return EBADF;
-	}
+	struct file *f;
+	GET_FILE_BY_FH(f, fi->fh);
 
 	if ((size_t) offset > f->buflen) {
 		return EFAULT;
@@ -228,10 +233,8 @@ int cgfs_write(const char *path, const char *buf, size_t buflen,
 {
 	(void) path;
 
-	struct file *f = open_files[fi->fh];
-	if (f == NULL) {
-		return EBADF;
-	}
+	struct file *f;
+	GET_FILE_BY_FH(f, fi->fh);
 
 	REALLOC(char, f->buf, f->buflen + buflen);
 	memmove(f->buf + offset + buflen, f->buf + offset, f->buflen - offset);
@@ -243,14 +246,16 @@ int cgfs_write(const char *path, const char *buf, size_t buflen,
 	return buflen;
 }
 
-int cgfs_truncate(const char *path, off_t offset)
+int cgfs_ftruncate(const char *path, off_t offset,
+                   struct fuse_file_info *fi)
 {
-	struct file *f = cgfs_get_open_file_by_path(path);
-	if (f == NULL) {
-		return ENOENT;
-	}
+	(void) path;
+
+	struct file *f;
+	GET_FILE_BY_FH(f, fi->fh);
 
 	REALLOC(char, f->buf, offset);
+
 	return 0;
 }
 
@@ -258,10 +263,8 @@ int cgfs_flush(const char *path, struct fuse_file_info *fi)
 {
 	(void) path;
 
-	struct file *f = open_files[fi->fh];
-	if (f == NULL) {
-		return EBADF;
-	}
+	struct file *f;
+	GET_FILE_BY_FH(f, fi->fh);
 
 	if (!f->dirty) {
 		return 0;
@@ -286,18 +289,18 @@ int cgfs_unlink(const char *path)
 int main(int argc, char *argv[argc])
 {
         static struct fuse_operations fuse_ops = {
-		.getattr  = cgfs_getattr,
-		.access   = cgfs_access,
-		.mkdir    = cgfs_mkdir,
-		.rmdir    = cgfs_rmdir,
-		.readdir  = cgfs_readdir,
-		.open     = cgfs_open,
-		.release  = cgfs_release,
-		.read     = cgfs_read,
-		.write    = cgfs_write,
-		.truncate = cgfs_truncate,
-		.flush    = cgfs_flush,
-		.unlink   = cgfs_unlink,
+		.getattr   = cgfs_getattr,
+		.access    = cgfs_access,
+		.mkdir     = cgfs_mkdir,
+		.rmdir     = cgfs_rmdir,
+		.readdir   = cgfs_readdir,
+		.open      = cgfs_open,
+		.release   = cgfs_release,
+		.read      = cgfs_read,
+		.write     = cgfs_write,
+		.ftruncate = cgfs_ftruncate,
+		.flush     = cgfs_flush,
+		.unlink    = cgfs_unlink,
 	};
 
 	return fuse_main(argc, argv, &fuse_ops, NULL);
