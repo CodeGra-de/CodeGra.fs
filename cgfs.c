@@ -265,18 +265,19 @@ int cgfs_unlink(const char *path)
 
 int main(int argc, char *argv[argc])
 {
-        struct fuse_operations fuse_ops = {
-		.getattr = cgfs_getattr,
-		.mkdir = cgfs_mkdir,
-		.rmdir = cgfs_rmdir,
-		.readdir = cgfs_readdir,
-		.open = cgfs_open,
-		.release = cgfs_release,
-		.read = cgfs_read,
-		.write = cgfs_write,
+        static struct fuse_operations fuse_ops = {
+		.getattr  = cgfs_getattr,
+		.access   = cgfs_access,
+		.mkdir    = cgfs_mkdir,
+		.rmdir    = cgfs_rmdir,
+		.readdir  = cgfs_readdir,
+		.open     = cgfs_open,
+		.release  = cgfs_release,
+		.read     = cgfs_read,
+		.write    = cgfs_write,
 		.truncate = cgfs_truncate,
-		.flush = cgfs_flush,
-		.unlink = cgfs_unlink,
+		.flush    = cgfs_flush,
+		.unlink   = cgfs_unlink,
 	};
 
 	return fuse_main(argc, argv, &fuse_ops, NULL);
