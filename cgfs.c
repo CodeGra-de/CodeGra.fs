@@ -42,6 +42,7 @@ free(var); \
 var = NULL;
 
 struct file {
+	int id;
 	char path[PATH_MAX];
 	size_t nlinks;
 	size_t buflen;
