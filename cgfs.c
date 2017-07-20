@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +46,7 @@ struct file {
 	size_t nlinks;
 	size_t buflen;
 	char *buf;
-	int dirty : 1;
+	bool dirty;
 };
 
 struct file *open_files[MAX_OPEN_FILES];
@@ -183,16 +184,18 @@ int cgfs_release(const char *path, struct fuse_file_info *fi)
 int cgfs_read(const char *path, char *buf, size_t buflen,
 		off_t offset, struct fuse_file_info *fi)
 {
+	(void) path;
+
 	struct file *f = open_files[fi->fh];
 	if (f == NULL) {
 		return EBADF;
 	}
 
-	if (offset > f->buflen) {
+	if ((size_t) offset > f->buflen) {
 		return EFAULT;
 	}
 
-	if (f->buflen - offset < buflen) {
+	if (buflen > f->buflen - offset) {
 		buflen = f->buflen - offset;
 	}
 
@@ -204,6 +207,8 @@ int cgfs_read(const char *path, char *buf, size_t buflen,
 int cgfs_write(const char *path, const char *buf, size_t buflen,
 	       off_t offset, struct fuse_file_info *fi)
 {
+	(void) path;
+
 	struct file *f = open_files[fi->fh];
 	if (f == NULL) {
 		return EBADF;
@@ -212,7 +217,7 @@ int cgfs_write(const char *path, const char *buf, size_t buflen,
 	REALLOC(char, f->buf, f->buflen + buflen);
 	memmove(f->buf + offset + buflen, f->buf + offset, f->buflen - offset);
 	memcpy(f->buf + offset, buf, buflen);
-	f->dirty = 1;
+	f->dirty = true;
 
 	// flush?
 
@@ -232,6 +237,8 @@ int cgfs_truncate(const char *path, off_t offset)
 
 int cgfs_flush(const char *path, struct fuse_file_info *fi)
 {
+	(void) path;
+
 	struct file *f = open_files[fi->fh];
 	if (f == NULL) {
 		return EBADF;
@@ -243,13 +250,15 @@ int cgfs_flush(const char *path, struct fuse_file_info *fi)
 
 	// Send f->buf to server
 
-	f->dirty = 0;
+	f->dirty = false;
 
 	return 0;
 }
 
 int cgfs_unlink(const char *path)
 {
+	(void) path;
+
 	// Send unlink request to server
 
 	return 0;
