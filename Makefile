@@ -9,3 +9,6 @@ LDLIBS += $(shell pkg-config --libs fuse)
 all: cgfs
 
 cgfs: dict.o cgapi.o
+
+format:
+	clang-format -i *.[ch]

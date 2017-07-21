@@ -10,8 +10,8 @@ struct cgapi_submission {
 };
 
 struct cgapi_file {
-	size_t buflen;
-	char *buf;
+        size_t buflen;
+        char *buf;
 };
 
 struct cgapi_file_meta {
