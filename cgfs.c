@@ -150,11 +150,9 @@ int cgfs_open(const char *path, struct fuse_file_info *fi)
 	struct file *f = dict_get(&open_files, path);
 
 	if (!f) {
-		// TODO: Get data from server
 		MALLOC(struct file, f, 1);
+		// TODO: Get data from server
 		dict_set(&open_files, path, f);
-		memcpy(f->path, path, strlen(path));
-		// TODO: Put data in file struct
 	}
 
 	return 0;
