@@ -29,15 +29,21 @@ void cgapi_init(void)
 	// Do global curl setup
 }
 
-static CURL *cgapi_init_request(enum req_type type, const char *url)
+static CURL *cgapi_init_request(const char *url)
 {
 	CURL *curl = curl_easy_init();
 	if (!curl) return NULL;
 
+#ifndef NDEBUG
+	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+	// Output headers with response body
+	curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
+#endif
+
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-	// Set headers & do auth stuff
+	// Set default headers & auth stuff
 
 	return curl;
 }

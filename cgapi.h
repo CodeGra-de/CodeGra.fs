@@ -17,6 +17,8 @@ struct cgapi_file {
 struct cgapi_file_meta {
 };
 
+int cgapi_init(void);
+
 int cgapi_login(char *username, char *password);
 
 int cgapi_mkdir(int submission_id, const char *path);
