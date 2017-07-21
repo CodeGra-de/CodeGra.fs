@@ -7,3 +7,5 @@ CFLAGS += $(shell pkg-config --cflags fuse)
 LDLIBS += $(shell pkg-config --libs fuse)
 
 all: cgfs
+
+cgfs: dict.o

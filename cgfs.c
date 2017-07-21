@@ -1,3 +1,5 @@
+#include "dict.h"
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -13,10 +15,6 @@
 #include <fuse.h>
 
 #include <curl/curl.h>
-
-#ifndef MAX_OPEN_FILES
-#define MAX_OPEN_FILES 1 << 10
-#endif
 
 // Be careful! This macro RETURNs if malloc fails.
 // Make sure this doesn't cause any leaks!
@@ -49,41 +47,12 @@ struct file {
 	int id;
 	char path[PATH_MAX];
 	size_t nlinks;
+	bool dirty;
 	size_t buflen;
 	char *buf;
-	bool dirty;
 };
 
-struct file *open_files[MAX_OPEN_FILES];
-
-int cgfs_get_free_fh(void)
-{
-	int fh = 0;
-	while (fh < MAX_OPEN_FILES && open_files[fh]) fh++;
-	return fh < MAX_OPEN_FILES ? fh : ENFILE;
-}
-
-struct file *cgfs_get_open_file_by_path(const char *path)
-{
-	for (int i = 0; i < MAX_OPEN_FILES; i++) {
-		if (!open_files[i]) {
-			continue;
-		}
-		if (strncmp(open_files[i]->path, path, PATH_MAX) == 0) {
-			return open_files[i];
-		}
-	}
-	return NULL;
-}
-
-int cgfs_get_file(unsigned fh, struct file **f)
-{
-	if (fh >= MAX_OPEN_FILES || open_files[fh] == NULL) {
-		return EBADF;
-	}
-	*f = open_files[fh];
-	return 0;
-}
+struct dict open_files;
 
 int cgfs_getattr(const char *path, struct stat *st)
 {
@@ -178,36 +147,32 @@ int cgfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 
 int cgfs_open(const char *path, struct fuse_file_info *fi)
 {
-        int fh = cgfs_get_free_fh();
-	if (fh < 0) return fh;
+	(void) fi;
 
-	struct file *f = cgfs_get_open_file_by_path(path);;
+	struct file *f = dict_get(&open_files, path);
 
 	if (!f) {
 		// TODO: Get data from server
 		MALLOC(struct file, f, 1);
+		dict_set(&open_files, path, f);
+		memcpy(f->path, path, strlen(path));
 		// TODO: Put data in file struct
 	}
 
-	fi->fh = fh;
-	open_files[fh] = f;
-
-	return fh;
+	return 0;
 }
 
 int cgfs_release(const char *path, struct fuse_file_info *fi)
 {
-	(void) path;
+	(void) fi;
 
-	struct file *f;
-	int ret = cgfs_get_file(fi->fh, &f);
-	if (ret < 0) return ret;
+	struct file *f = dict_get(&open_files, path);
+	if (!f) return EBADF;
 
 	f->nlinks--;
 	if (f->nlinks == 0) {
-		FREE(f->buf);
+		dict_unset(&open_files, path);
 		FREE(f);
-		open_files[fi->fh] = NULL;
 	}
 
 	return 0;
@@ -216,11 +181,10 @@ int cgfs_release(const char *path, struct fuse_file_info *fi)
 int cgfs_read(const char *path, char *buf, size_t buflen,
 		off_t offset, struct fuse_file_info *fi)
 {
-	(void) path;
+	(void) fi;
 
-	struct file *f;
-	int ret = cgfs_get_file(fi->fh, &f);
-	if (ret < 0) return ret;
+	struct file *f = dict_get(&open_files, path);
+	if (!f) return EBADF;
 
 	if ((size_t) offset > f->buflen) {
 		return EFAULT;
@@ -238,11 +202,10 @@ int cgfs_read(const char *path, char *buf, size_t buflen,
 int cgfs_write(const char *path, const char *buf, size_t buflen,
 	       off_t offset, struct fuse_file_info *fi)
 {
-	(void) path;
+	(void) fi;
 
-	struct file *f;
-	int ret = cgfs_get_file(fi->fh, &f);
-	if (ret < 0) return ret;
+	struct file *f = dict_get(&open_files, path);
+	if (!f) return EBADF;
 
 	REALLOC(char, f->buf, f->buflen + buflen);
 	memmove(f->buf + offset + buflen, f->buf + offset, f->buflen - offset);
@@ -257,11 +220,10 @@ int cgfs_write(const char *path, const char *buf, size_t buflen,
 int cgfs_ftruncate(const char *path, off_t offset,
                    struct fuse_file_info *fi)
 {
-	(void) path;
+	(void) fi;
 
-	struct file *f;
-	int ret = cgfs_get_file(fi->fh, &f);
-	if (ret < 0) return ret;
+	struct file *f = dict_get(&open_files, path);
+	if (!f) return EBADF;
 
 	REALLOC(char, f->buf, offset);
 
@@ -270,11 +232,10 @@ int cgfs_ftruncate(const char *path, off_t offset,
 
 int cgfs_flush(const char *path, struct fuse_file_info *fi)
 {
-	(void) path;
+	(void) fi;
 
-	struct file *f;
-	int ret = cgfs_get_file(fi->fh, &f);
-	if (ret < 0) return ret;
+	struct file *f = dict_get(&open_files, path);;
+	if (!f) return EBADF;
 
 	if (!f->dirty) {
 		return 0;
@@ -296,33 +257,24 @@ int cgfs_unlink(const char *path)
 	return 0;
 }
 
+static struct fuse_operations fuse_ops = {
+	.getattr   = cgfs_getattr,
+	.access    = cgfs_access,
+	.mkdir     = cgfs_mkdir,
+	.rmdir     = cgfs_rmdir,
+	.readdir   = cgfs_readdir,
+	.open      = cgfs_open,
+	.release   = cgfs_release,
+	.read      = cgfs_read,
+	.write     = cgfs_write,
+	.ftruncate = cgfs_ftruncate,
+	.flush     = cgfs_flush,
+	.unlink    = cgfs_unlink,
+};
+
 int main(int argc, char *argv[argc])
 {
-        static struct fuse_operations fuse_ops = {
-		.getattr   = cgfs_getattr,
-		.access    = cgfs_access,
-		.mkdir     = cgfs_mkdir,
-		.rmdir     = cgfs_rmdir,
-		.readdir   = cgfs_readdir,
-		.open      = cgfs_open,
-		.release   = cgfs_release,
-		.read      = cgfs_read,
-		.write     = cgfs_write,
-		.ftruncate = cgfs_ftruncate,
-		.flush     = cgfs_flush,
-		.unlink    = cgfs_unlink,
-	};
+        dict_init(&open_files, 1 << 8);
 
-	int fuse_argc = argc;
-	for (char **arg = argv + 1; arg; arg++) {
-		if (strcmp(*arg, "--")) {
-			fuse_argc--;
-			break;
-		} else {
-			break;
-		}
-		fuse_argc--;
-	}
-
-	return fuse_main(fuse_argc, argv + argc - fuse_argc, &fuse_ops, NULL);
+	return fuse_main(argc, argv, &fuse_ops, NULL);
 }
