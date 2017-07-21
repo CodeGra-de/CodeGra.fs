@@ -18,6 +18,8 @@
 #define MAX_OPEN_FILES 1 << 10
 #endif
 
+// Be careful! This macro RETURNs if malloc fails.
+// Make sure this doesn't cause any leaks!
 #define MALLOC(type, var, nitems) \
 do { \
 	var = malloc((nitems) * sizeof(type)); \
@@ -27,6 +29,8 @@ do { \
 	} \
 } while (0)
 
+// Be careful! This macro RETURNs if realloc fails.
+// Make sure this doesn't cause any leaks!
 #define REALLOC(type, var, nitems) \
 do { \
 	type *tmp = realloc((var), (nitems) * sizeof(type)); \
@@ -40,15 +44,6 @@ do { \
 #define FREE(var) \
 free(var); \
 var = NULL;
-
-#define GET_FILE_BY_FH(var, fh) \
-do { \
-	if (fh < 0 || fh >= MAX_OPEN_FILES || \
-	    open_files[fh] == NULL) { \
-		return EBADF; \
-	} \
-	var = open_files[fh]; \
-} while (0)
 
 struct file {
 	int id;
@@ -79,6 +74,15 @@ struct file *cgfs_get_open_file_by_path(const char *path)
 		}
 	}
 	return NULL;
+}
+
+int cgfs_get_file(unsigned fh, struct file **f)
+{
+	if (fh >= MAX_OPEN_FILES || open_files[fh] == NULL) {
+		return EBADF;
+	}
+	*f = open_files[fh];
+	return 0;
 }
 
 int cgfs_getattr(const char *path, struct stat *st)
@@ -196,7 +200,8 @@ int cgfs_release(const char *path, struct fuse_file_info *fi)
 	(void) path;
 
 	struct file *f;
-	GET_FILE_BY_FH(f, fi->fh);
+	int ret = cgfs_get_file(fi->fh, &f);
+	if (ret < 0) return ret;
 
 	f->nlinks--;
 	if (f->nlinks == 0) {
@@ -214,7 +219,8 @@ int cgfs_read(const char *path, char *buf, size_t buflen,
 	(void) path;
 
 	struct file *f;
-	GET_FILE_BY_FH(f, fi->fh);
+	int ret = cgfs_get_file(fi->fh, &f);
+	if (ret < 0) return ret;
 
 	if ((size_t) offset > f->buflen) {
 		return EFAULT;
@@ -235,7 +241,8 @@ int cgfs_write(const char *path, const char *buf, size_t buflen,
 	(void) path;
 
 	struct file *f;
-	GET_FILE_BY_FH(f, fi->fh);
+	int ret = cgfs_get_file(fi->fh, &f);
+	if (ret < 0) return ret;
 
 	REALLOC(char, f->buf, f->buflen + buflen);
 	memmove(f->buf + offset + buflen, f->buf + offset, f->buflen - offset);
@@ -253,7 +260,8 @@ int cgfs_ftruncate(const char *path, off_t offset,
 	(void) path;
 
 	struct file *f;
-	GET_FILE_BY_FH(f, fi->fh);
+	int ret = cgfs_get_file(fi->fh, &f);
+	if (ret < 0) return ret;
 
 	REALLOC(char, f->buf, offset);
 
@@ -265,7 +273,8 @@ int cgfs_flush(const char *path, struct fuse_file_info *fi)
 	(void) path;
 
 	struct file *f;
-	GET_FILE_BY_FH(f, fi->fh);
+	int ret = cgfs_get_file(fi->fh, &f);
+	if (ret < 0) return ret;
 
 	if (!f->dirty) {
 		return 0;
@@ -304,5 +313,16 @@ int main(int argc, char *argv[argc])
 		.unlink    = cgfs_unlink,
 	};
 
-	return fuse_main(argc, argv, &fuse_ops, NULL);
+	int fuse_argc = argc;
+	for (char **arg = argv + 1; arg; arg++) {
+		if (strcmp(*arg, "--")) {
+			fuse_argc--;
+			break;
+		} else {
+			break;
+		}
+		fuse_argc--;
+	}
+
+	return fuse_main(fuse_argc, argv + argc - fuse_argc, &fuse_ops, NULL);
 }
