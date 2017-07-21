@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <linux/limits.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -45,7 +44,6 @@ var = NULL;
 
 struct file {
 	int id;
-	char path[PATH_MAX];
 	size_t nlinks;
 	bool dirty;
 	size_t buflen;
