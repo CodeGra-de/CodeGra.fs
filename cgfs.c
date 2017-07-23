@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #define FUSE_USE_VERSION 30
@@ -48,6 +49,13 @@ struct file {
         int id;
         size_t nlinks;
         bool dirty;
+
+        // Stat data
+        struct timespec mtime;
+        struct timespec deadline;
+        bool is_writable;
+
+        // Buffer data
         size_t buflen;
         char *buf;
 };
@@ -63,9 +71,15 @@ int cgfs_getattr(const char *path, struct stat *st)
         st->st_uid = fc->uid;
         st->st_gid = fc->gid;
         st->st_atime = time(NULL);
-        st->st_mtime = time(NULL);
 
         // TODO: Get other info from server
+
+        struct file *f = dict_get(&open_files, path);
+        if (f) {
+                st->st_mtim = f->mtime;
+        } else {
+                // st->st_mtime = api_data->mtime;
+        }
 
         return 0;
 }
