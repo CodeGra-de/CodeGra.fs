@@ -180,6 +180,8 @@ int cgfs_open(const char *path, struct fuse_file_info *fi)
                 dict_set(&open_files, path, f);
         }
 
+        f->nlinks++;
+
         return 0;
 }
 
