@@ -42,6 +42,8 @@
         free(var);                                                             \
         var = NULL;
 
+#define UNUSED(x) (void)(x);
+
 struct file {
         int id;
         size_t nlinks;
@@ -54,7 +56,8 @@ struct dict open_files;
 
 int cgfs_getattr(const char *path, struct stat *st)
 {
-        (void)path;
+        UNUSED(path);
+
         struct fuse_context *fc = fuse_get_context();
 
         st->st_uid = fc->uid;
@@ -69,7 +72,7 @@ int cgfs_getattr(const char *path, struct stat *st)
 
 int cgfs_access(const char *path, int mask)
 {
-        (void)path;
+        struct file *f = dict_get(&open_files, path);
 
         char flags[5] = {mask & F_OK ? 'f' : '-', mask & R_OK ? 'r' : '-',
                          mask & W_OK ? 'w' : '-', mask & X_OK ? 'x' : '-', 0};
@@ -83,8 +86,8 @@ int cgfs_access(const char *path, int mask)
 
 int cgfs_mkdir(const char *path, mode_t mode)
 {
-        (void)path;
-        (void)mode;
+        UNUSED(path);
+        UNUSED(mode);
 
         // TODO: Send mkdir request to server
 
@@ -93,7 +96,7 @@ int cgfs_mkdir(const char *path, mode_t mode)
 
 int cgfs_rmdir(const char *path)
 {
-        (void)path;
+        UNUSED(path);
 
         // TODO: Send rmdir request to server
 
@@ -103,8 +106,8 @@ int cgfs_rmdir(const char *path)
 int cgfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
                  off_t offset, struct fuse_file_info *fi)
 {
-        (void)offset;
-        (void)fi;
+        UNUSED(offset);
+        UNUSED(fi);
 
         filler(buffer, ".", NULL, 0);
         filler(buffer, "..", NULL, 0);
@@ -144,7 +147,7 @@ int cgfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
 
 int cgfs_open(const char *path, struct fuse_file_info *fi)
 {
-        (void)fi;
+        UNUSED(fi);
 
         struct file *f = dict_get(&open_files, path);
 
@@ -159,7 +162,7 @@ int cgfs_open(const char *path, struct fuse_file_info *fi)
 
 int cgfs_release(const char *path, struct fuse_file_info *fi)
 {
-        (void)fi;
+        UNUSED(fi);
 
         struct file *f = dict_get(&open_files, path);
         if (!f) return EBADF;
@@ -176,7 +179,7 @@ int cgfs_release(const char *path, struct fuse_file_info *fi)
 int cgfs_read(const char *path, char *buf, size_t buflen, off_t offset,
               struct fuse_file_info *fi)
 {
-        (void)fi;
+        UNUSED(fi);
 
         struct file *f = dict_get(&open_files, path);
         if (!f) return EBADF;
@@ -197,7 +200,7 @@ int cgfs_read(const char *path, char *buf, size_t buflen, off_t offset,
 int cgfs_write(const char *path, const char *buf, size_t buflen, off_t offset,
                struct fuse_file_info *fi)
 {
-        (void)fi;
+        UNUSED(fi);
 
         struct file *f = dict_get(&open_files, path);
         if (!f) return EBADF;
@@ -207,14 +210,12 @@ int cgfs_write(const char *path, const char *buf, size_t buflen, off_t offset,
         memcpy(f->buf + offset, buf, buflen);
         f->dirty = true;
 
-        // flush?
-
         return buflen;
 }
 
 int cgfs_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
 {
-        (void)fi;
+        UNUSED(fi);
 
         struct file *f = dict_get(&open_files, path);
         if (!f) return EBADF;
@@ -226,7 +227,7 @@ int cgfs_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
 
 int cgfs_flush(const char *path, struct fuse_file_info *fi)
 {
-        (void)fi;
+        UNUSED(fi);
 
         struct file *f = dict_get(&open_files, path);
         ;
@@ -245,7 +246,7 @@ int cgfs_flush(const char *path, struct fuse_file_info *fi)
 
 int cgfs_unlink(const char *path)
 {
-        (void)path;
+        UNUSED(path);
 
         // TODO: Send unlink request to server
 
