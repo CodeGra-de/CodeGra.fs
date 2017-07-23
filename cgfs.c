@@ -40,8 +40,10 @@
         } while (0)
 
 #define FREE(var)                                                              \
-        free(var);                                                             \
-        var = NULL;
+        do {                                                                   \
+                free(var);                                                     \
+                var = NULL;                                                    \
+        } while (0)
 
 #define UNUSED(x) (void)(x);
 
