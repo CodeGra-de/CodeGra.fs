@@ -255,7 +255,6 @@ int cgfs_flush(const char *path, struct fuse_file_info *fi)
         UNUSED(fi);
 
         struct file *f = dict_get(&open_files, path);
-        ;
         if (!f) return EBADF;
 
         if (!f->dirty) {
