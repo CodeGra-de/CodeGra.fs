@@ -6,6 +6,9 @@ LDLIBS += $(shell curl-config --libs)
 CFLAGS += $(shell pkg-config --cflags fuse)
 LDLIBS += $(shell pkg-config --libs fuse)
 
+CFLAGS += $(shell pkg-config --cflags jansson)
+LDLIBS += $(shell pkg-config --libs jansson)
+
 all: cgfs
 
 cgfs: dict.o cgapi.o

@@ -14,8 +14,6 @@
 #define FUSE_USE_VERSION 30
 #include <fuse.h>
 
-#include <curl/curl.h>
-
 // Be careful! This macro RETURNs if malloc fails.
 // Make sure this doesn't cause any leaks!
 #define MALLOC(type, var, nitems)                                              \
@@ -78,7 +76,7 @@ int cgfs_getattr(const char *path, struct stat *st)
 
         struct file *f = dict_get(&open_files, path);
         if (f) {
-                st->st_mtim = f->mtime;
+                // st->st_mtime = f->mtime;
         } else {
                 // st->st_mtime = api_data->mtime;
         }
