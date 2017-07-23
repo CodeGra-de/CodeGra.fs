@@ -89,13 +89,20 @@ int cgfs_getattr(const char *path, struct stat *st)
 int cgfs_access(const char *path, int mask)
 {
         struct file *f = dict_get(&open_files, path);
+        if (!f) {
+                // Get file from server
+                if (!f) {
+                        return EACCES;
+                }
+        }
 
-        char flags[5] = {mask & F_OK ? 'f' : '-', mask & R_OK ? 'r' : '-',
-                         mask & W_OK ? 'w' : '-', mask & X_OK ? 'x' : '-', 0};
+        if (mask == F_OK) {
+                return 0;
+        }
 
-        (void)flags;
-
-        // TODO: Send access request to server
+        if (mask & W_OK) {
+                return f->is_writable ? 0 : EACCES;
+        }
 
         return 0;
 }
