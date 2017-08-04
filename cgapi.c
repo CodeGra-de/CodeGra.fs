@@ -42,6 +42,40 @@ struct buf {
         char *str;
 };
 
+/*
+ * Serialization functions to serialize common data
+ */
+
+static const char *serialize_user(const char *email, const char *password)
+{
+        const char *json = NULL;
+        json_t *j_user;
+        json_t *j_email;
+        json_t *j_password;
+
+        if ((j_email = json_string(email)) == NULL)
+                goto email_failed;
+        if ((j_password = json_string(password)) == NULL)
+                goto password_failed;
+        if ((j_user = json_object()) == NULL)
+                goto user_failed;
+        if (json_object_set(j_user, "email", j_email) < 0)
+                goto serialize_failed;
+        if (json_object_set(j_user, "password", j_password) < 0)
+                goto serialize_failed;
+
+        json = json_dumps(j_user, JSON_COMPACT);
+
+serialize_failed:
+        json_decref(j_user);
+user_failed:
+        json_decref(j_password);
+password_failed:
+        json_decref(j_email);
+email_failed:
+        return json;
+}
+
 int cgapi_init(void)
 {
         // Do global curl setup
@@ -103,7 +137,8 @@ static size_t cgapi_write_response(char *ptr, size_t size, size_t nmemb, void *u
         }
 
         memcpy(b->str, ptr, size * nmemb);
-        return b->pos += size * nmemb;
+        b->pos += size * nmemb;
+        return size * nmemb;
 }
 
 // Returns response string.
@@ -128,43 +163,34 @@ static char *cgapi_do_request(CURL *curl)
                 free(res.str);
                 res.str = NULL;
         }
-        curl_easy_cleanup(curl);
 
         return res.str;
 }
 
 cgapi_token cgapi_login(const char *email, const char *password)
 {
-        const char *url = api_routes[REQ_LOGIN];
-        CURL *curl = cgapi_init_request(url);
-        if (curl == NULL)
-                return NULL;
-
         cgapi_token tok = NULL;
 
-        json_t *j_user;
-        json_t *j_email;
-        json_t *j_password;
+        CURL *curl = cgapi_init_request(api_routes[REQ_LOGIN]);
+        if (curl == NULL)
+                goto curl_init_failed;
 
-        if ((j_email = json_string(email)) == NULL)
-                goto email_failed;
-        if ((j_password = json_string(password)) == NULL)
-                goto password_failed;
-        if ((j_user = json_object()) == NULL)
-                goto user_failed;
-        if (json_object_set(j_user, "email", j_email) == 0)
-                goto serialize_failed;
-        if (json_object_set(j_user, "password", j_password) < 0)
-                goto serialize_failed;
-
-        char *user = json_dumps(j_user, JSON_COMPACT);
+        const char *user = serialize_user(email, password);
         if (user == NULL)
                 goto serialize_failed;
-        curl_easy_setopt(curl, CURLOPT_READDATA, user);
+
+        curl_easy_setopt(curl, CURLOPT_POST, 1);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, user);
+
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
         char *res = cgapi_do_request(curl);
         if (res == NULL)
                 goto request_failed;
+
+        curl_slist_free_all(headers);
 
         json_error_t err;
         json_t *j_res = json_loads(res, 0, &err);
@@ -172,15 +198,15 @@ cgapi_token cgapi_login(const char *email, const char *password)
                 goto parse_res_failed;
 
         // validate j_res (is it an object, does it have correct keys etc.)
-        json_t *token = json_object_get(j_res, "token");
+        json_t *token = json_object_get(j_res, "access_token");
         if (token == NULL || !json_is_string(token))
                 goto invalid_json;
-        const char *data = json_string_value(json_object_get(j_res, "token"));
+        const char *data = json_string_value(token);
         if (data == NULL)
                 goto invalid_json;
 
         size_t toklen = json_string_length(token);
-        tok = malloc(toklen + 1);
+        tok = malloc(sizeof(*tok) + toklen + 1);
         if (tok != NULL) {
                 memcpy(tok->str, data, toklen);
                 tok->str[toklen] = '\0';
@@ -192,14 +218,10 @@ invalid_json:
 parse_res_failed:
         free(res);
 request_failed:
-        free(user);
+        free((char *) user);
 serialize_failed:
-        json_decref(j_user);
-user_failed:
-        json_decref(j_password);
-password_failed:
-        json_decref(j_email);
-email_failed:
+        curl_easy_cleanup(curl);
+curl_init_failed:
         return tok;
 }
 
