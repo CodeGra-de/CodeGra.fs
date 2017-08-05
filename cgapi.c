@@ -58,12 +58,9 @@ static const char *serialize_user(const char *email, const char *password)
         json_t *j_email;
         json_t *j_password;
 
-        if ((j_email = json_string(email)) == NULL)
-                goto email_failed;
-        if ((j_password = json_string(password)) == NULL)
-                goto password_failed;
-        if ((j_user = json_object()) == NULL)
-                goto user_failed;
+        if ((j_email = json_string(email)) == NULL) goto email_failed;
+        if ((j_password = json_string(password)) == NULL) goto password_failed;
+        if ((j_user = json_object()) == NULL) goto user_failed;
         if (json_object_set(j_user, "email", j_email) < 0)
                 goto serialize_failed;
         if (json_object_set(j_user, "password", j_password) < 0)
@@ -91,13 +88,11 @@ static void cgapi_cleanup_request(struct cgapi_handle h)
 static struct cgapi_handle cgapi_init_request(const char *url)
 {
         struct cgapi_handle h = {
-                .curl = NULL,
-                .headers = NULL,
+                .curl = NULL, .headers = NULL,
         };
 
         h.curl = curl_easy_init();
-        if (!h.curl)
-                return h;
+        if (!h.curl) return h;
 
         curl_easy_setopt(h.curl, CURLOPT_HEADER, 1L);
         curl_easy_setopt(h.curl, CURLOPT_URL, url);
@@ -106,14 +101,15 @@ static struct cgapi_handle cgapi_init_request(const char *url)
         curl_easy_setopt(h.curl, CURLOPT_VERBOSE, 1L);
 #endif
 
-#define ADD_DEFAULT_HEADER(handle, header) \
-        do { \
-                struct curl_slist *tmplist = curl_slist_append(handle.headers, header); \
-                if (tmplist == NULL) { \
-                        cgapi_cleanup_request(handle); \
-                        return handle; \
-                } \
-                handle.headers = tmplist; \
+#define ADD_DEFAULT_HEADER(handle, header)                                     \
+        do {                                                                   \
+                struct curl_slist *tmplist =                                   \
+                        curl_slist_append(handle.headers, header);             \
+                if (tmplist == NULL) {                                         \
+                        cgapi_cleanup_request(handle);                         \
+                        return handle;                                         \
+                }                                                              \
+                handle.headers = tmplist;                                      \
         } while (0)
 
         ADD_DEFAULT_HEADER(h, "Content-Type: application/json");
@@ -123,11 +119,13 @@ static struct cgapi_handle cgapi_init_request(const char *url)
         return h;
 }
 
-static size_t cgapi_write_response(char *ptr, size_t size, size_t nmemb, void *udata)
+static size_t cgapi_write_response(char *ptr, size_t size, size_t nmemb,
+                                   void *udata)
 {
         struct buf *b = udata;
         if (b->pos + size * nmemb > b->len) {
-                char *rstr = realloc(b->str, MAX(2 * b->len, b->pos + size * nmemb));
+                char *rstr =
+                        realloc(b->str, MAX(2 * b->len, b->pos + size * nmemb));
                 if (rstr == NULL) {
                         return 0;
                 }
@@ -143,9 +141,7 @@ static size_t cgapi_write_response(char *ptr, size_t size, size_t nmemb, void *u
 static char *cgapi_do_request(struct cgapi_handle h)
 {
         struct buf res = {
-                .len = 0,
-                .pos = 0,
-                .str = NULL,
+                .len = 0, .pos = 0, .str = NULL,
         };
 
         curl_easy_setopt(h.curl, CURLOPT_HTTPHEADER, h.headers);
@@ -202,7 +198,7 @@ invalid_json:
 parse_res_failed:
         free(res);
 request_failed:
-        free((char *) user);
+        free((char *)user);
 serialize_failed:
         cgapi_cleanup_request(h);
 curl_init_failed:

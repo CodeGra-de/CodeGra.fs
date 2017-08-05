@@ -4,7 +4,8 @@ size_t failures = 0;
 
 void test_login()
 {
-        cgapi_token_t tok = cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
+        cgapi_token_t tok =
+                cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
         if (tok) {
                 printf("Token: %s\n", tok->str);

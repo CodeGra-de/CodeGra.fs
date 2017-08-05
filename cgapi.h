@@ -36,11 +36,14 @@ int cgapi_rmdir(cgapi_token_t tok, int submission_id, const char *path);
 
 int cgapi_get_assignments(cgapi_token_t tok, struct cgapi_assignment *ass);
 
-int cgapi_get_submissions(cgapi_token_t tok, int assignment_id, struct cgapi_submission *subs);
+int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
+                          struct cgapi_submission *subs);
 
-int cgapi_get_submission_files(cgapi_token_t tok, int submission_id, struct cgapi_file *files);
+int cgapi_get_submission_files(cgapi_token_t tok, int submission_id,
+                               struct cgapi_file *files);
 
-int cgapi_get_file_meta(cgapi_token_t tok, int file_id, struct cgapi_file_meta *fm);
+int cgapi_get_file_meta(cgapi_token_t tok, int file_id,
+                        struct cgapi_file_meta *fm);
 
 int cgapi_get_file_buf(cgapi_token_t tok, int file_id, struct cgapi_file *f);
 
