@@ -42,6 +42,11 @@ struct buf {
         char *str;
 };
 
+struct cgapi_handle {
+        CURL *curl;
+        struct curl_slist *headers;
+};
+
 /*
  * Serialization functions to serialize common data
  */
@@ -76,53 +81,46 @@ email_failed:
         return json;
 }
 
-int cgapi_init(void)
+static void cgapi_cleanup_request(struct cgapi_handle h)
 {
-        // Do global curl setup
-        return 0;
+        curl_slist_free_all(h.headers);
+        curl_easy_cleanup(h.curl);
+        h.headers = h.curl = NULL;
 }
 
-int cgapi_deinit(void)
+static struct cgapi_handle cgapi_init_request(const char *url)
 {
-        // Do global curl cleanup
-        return 0;
-}
+        struct cgapi_handle h = {
+                .curl = NULL,
+                .headers = NULL,
+        };
 
-static size_t cgapi_read_data(char *ptr, size_t size, size_t nmemb, void *udata)
-{
-        struct buf *b = udata;
-        if (b->pos >= b->len) {
-                return 0;
-        }
+        h.curl = curl_easy_init();
+        if (!h.curl)
+                return h;
 
-        size_t nbytes = MIN(size * nmemb, b->len - b->pos);
-        memcpy(ptr, b->str + b->pos, nbytes);
-        b->pos += nbytes;
-
-        return nbytes;
-}
-
-static CURL *cgapi_init_request(const char *url)
-{
-        CURL *curl = curl_easy_init();
-        if (!curl) {
-                return NULL;
-        }
-
-        curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(h.curl, CURLOPT_HEADER, 1L);
+        curl_easy_setopt(h.curl, CURLOPT_URL, url);
+        curl_easy_setopt(h.curl, CURLOPT_FOLLOWLOCATION, 1L);
 #ifndef NDEBUG
-        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+        curl_easy_setopt(h.curl, CURLOPT_VERBOSE, 1L);
 #endif
-        curl_easy_setopt(curl, CURLOPT_READFUNCTION, cgapi_read_data);
-        // May be overridden, in which case it should be a pointer to
-        // a `struct buf` whose `pos` is equal to `0`
-        curl_easy_setopt(curl, CURLOPT_READDATA, NULL);
 
-        // Set default headers & auth stuff
+#define ADD_DEFAULT_HEADER(handle, header) \
+        do { \
+                struct curl_slist *tmplist = curl_slist_append(handle.headers, header); \
+                if (tmplist == NULL) { \
+                        cgapi_cleanup_request(handle); \
+                        return handle; \
+                } \
+                handle.headers = tmplist; \
+        } while (0)
 
-        return curl;
+        ADD_DEFAULT_HEADER(h, "Content-Type: application/json");
+
+#undef ADD_HEADER
+
+        return h;
 }
 
 static size_t cgapi_write_response(char *ptr, size_t size, size_t nmemb, void *udata)
@@ -142,22 +140,20 @@ static size_t cgapi_write_response(char *ptr, size_t size, size_t nmemb, void *u
 }
 
 // Returns response string.
-static char *cgapi_do_request(CURL *curl)
+static char *cgapi_do_request(struct cgapi_handle h)
 {
         struct buf res = {
                 .len = 0,
                 .pos = 0,
-                .str = malloc(1 << 16),
+                .str = NULL,
         };
 
-        if (res.str == NULL) {
-                return NULL;
-        }
+        curl_easy_setopt(h.curl, CURLOPT_HTTPHEADER, h.headers);
+        curl_easy_setopt(h.curl, CURLOPT_WRITEFUNCTION, cgapi_write_response);
+        curl_easy_setopt(h.curl, CURLOPT_WRITEDATA, &res);
 
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cgapi_write_response);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res);
+        CURLcode code = curl_easy_perform(h.curl);
 
-        CURLcode code = curl_easy_perform(curl);
         if (code != CURLE_OK) {
                 // handle errors
                 free(res.str);
@@ -167,43 +163,31 @@ static char *cgapi_do_request(CURL *curl)
         return res.str;
 }
 
-cgapi_token cgapi_login(const char *email, const char *password)
+cgapi_token_t cgapi_login(const char *email, const char *password)
 {
-        cgapi_token tok = NULL;
+        cgapi_token_t tok = NULL;
 
-        CURL *curl = cgapi_init_request(api_routes[REQ_LOGIN]);
-        if (curl == NULL)
-                goto curl_init_failed;
+        struct cgapi_handle h = cgapi_init_request(api_routes[REQ_LOGIN]);
+        if (h.curl == NULL) goto curl_init_failed;
 
         const char *user = serialize_user(email, password);
-        if (user == NULL)
-                goto serialize_failed;
+        if (user == NULL) goto serialize_failed;
 
-        curl_easy_setopt(curl, CURLOPT_POST, 1);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, user);
+        curl_easy_setopt(h.curl, CURLOPT_POST, 1);
+        curl_easy_setopt(h.curl, CURLOPT_POSTFIELDS, user);
 
-        struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-        char *res = cgapi_do_request(curl);
-        if (res == NULL)
-                goto request_failed;
-
-        curl_slist_free_all(headers);
+        char *res = cgapi_do_request(h);
+        if (res == NULL) goto request_failed;
 
         json_error_t err;
         json_t *j_res = json_loads(res, 0, &err);
-        if (j_res == NULL)
-                goto parse_res_failed;
+        if (j_res == NULL) goto parse_res_failed;
 
         // validate j_res (is it an object, does it have correct keys etc.)
         json_t *token = json_object_get(j_res, "access_token");
-        if (token == NULL || !json_is_string(token))
-                goto invalid_json;
+        if (token == NULL || !json_is_string(token)) goto invalid_json;
         const char *data = json_string_value(token);
-        if (data == NULL)
-                goto invalid_json;
+        if (data == NULL) goto invalid_json;
 
         size_t toklen = json_string_length(token);
         tok = malloc(sizeof(*tok) + toklen + 1);
@@ -220,13 +204,13 @@ parse_res_failed:
 request_failed:
         free((char *) user);
 serialize_failed:
-        curl_easy_cleanup(curl);
+        cgapi_cleanup_request(h);
 curl_init_failed:
         return tok;
 }
 
 // TODO: Send mkdir request to server
-int cgapi_mkdir(cgapi_token tok, int submission_id, const char *path)
+int cgapi_mkdir(cgapi_token_t tok, int submission_id, const char *path)
 {
         UNUSED(tok);
         UNUSED(submission_id);
@@ -235,7 +219,7 @@ int cgapi_mkdir(cgapi_token tok, int submission_id, const char *path)
 }
 
 // TODO: Send rmdir request to server
-int cgapi_rmdir(cgapi_token tok, int submission_id, const char *path)
+int cgapi_rmdir(cgapi_token_t tok, int submission_id, const char *path)
 {
         UNUSED(tok);
         UNUSED(submission_id);
@@ -244,7 +228,7 @@ int cgapi_rmdir(cgapi_token tok, int submission_id, const char *path)
 }
 
 // TODO: Get assignments
-int cgapi_get_assignments(cgapi_token tok, struct cgapi_assignment *ass)
+int cgapi_get_assignments(cgapi_token_t tok, struct cgapi_assignment *ass)
 {
         UNUSED(tok);
         UNUSED(ass);
@@ -252,7 +236,7 @@ int cgapi_get_assignments(cgapi_token tok, struct cgapi_assignment *ass)
 }
 
 // TODO: Get Submissions
-int cgapi_get_submissions(cgapi_token tok, int assignment_id,
+int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
                           struct cgapi_submission *subs)
 {
         UNUSED(tok);
@@ -262,7 +246,7 @@ int cgapi_get_submissions(cgapi_token tok, int assignment_id,
 }
 
 // TODO: Get submission files
-int cgapi_get_submission_files(cgapi_token tok, int submission_id,
+int cgapi_get_submission_files(cgapi_token_t tok, int submission_id,
                                struct cgapi_file *files)
 {
         UNUSED(tok);
@@ -272,7 +256,7 @@ int cgapi_get_submission_files(cgapi_token tok, int submission_id,
 }
 
 // TODO: Get other info from server
-int cgapi_get_file_meta(cgapi_token tok, int file_id,
+int cgapi_get_file_meta(cgapi_token_t tok, int file_id,
                         struct cgapi_file_meta *fm)
 {
         UNUSED(tok);
@@ -282,7 +266,7 @@ int cgapi_get_file_meta(cgapi_token tok, int file_id,
 }
 
 // TODO: Get data from server
-int cgapi_get_file_buf(cgapi_token tok, int file_id, struct cgapi_file *f)
+int cgapi_get_file_buf(cgapi_token_t tok, int file_id, struct cgapi_file *f)
 {
         UNUSED(tok);
         UNUSED(file_id);
@@ -292,7 +276,7 @@ int cgapi_get_file_buf(cgapi_token tok, int file_id, struct cgapi_file *f)
 }
 
 // TODO: Send f->buf to server
-int cgapi_put_file_buf(cgapi_token tok, struct cgapi_file *f)
+int cgapi_put_file_buf(cgapi_token_t tok, struct cgapi_file *f)
 {
         UNUSED(tok);
         UNUSED(f);
@@ -300,7 +284,7 @@ int cgapi_put_file_buf(cgapi_token tok, struct cgapi_file *f)
 }
 
 // TODO: Send unlink request to server
-int cgapi_unlink_file(cgapi_token tok, struct cgapi_file *f)
+int cgapi_unlink_file(cgapi_token_t tok, struct cgapi_file *f)
 {
         UNUSED(tok);
         UNUSED(f);

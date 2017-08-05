@@ -14,7 +14,7 @@ all: cgfs
 cgfs: dict.o cgapi.o
 
 test: cgapi_test
-	./cgapi_test
+	valgrind ./cgapi_test
 
 cgapi_test: CFLAGS += -O0 -g -DBASE_URL='"http://localhost:5000/api/v1"'
 
