@@ -14,9 +14,9 @@ all: cgfs
 cgfs: dict.o cgapi.o
 
 test: cgapi_test
-	valgrind ./cgapi_test
+	./cgapi_test
 
-cgapi_test: CFLAGS += -O0 -g -DBASE_URL='"http://localhost:5000/api/v1"'
+cgapi_test: CFLAGS += -O0 -g -fsanitize=address -fsanitize=leak -fsanitize=undefined -DBASE_URL='"http://localhost:5000/api/v1"'
 
 format:
 	clang-format -i *.[ch]
