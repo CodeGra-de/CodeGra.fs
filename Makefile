@@ -13,10 +13,16 @@ all: cgfs
 
 cgfs: dict.o cgapi.o
 
-test: cgapi_test
-	./cgapi_test
+test: CFLAGS += -O0 -g -fsanitize=address -fsanitize=leak -fsanitize=undefined
+test: $(patsubst %_test.c,%_test,$(wildcard *_test.c))
+	@for tester in *_test; do $$tester; done
 
-cgapi_test: CFLAGS += -O0 -g -fsanitize=address -fsanitize=leak -fsanitize=undefined -DBASE_URL='"http://localhost:5000/api/v1"'
+cgapi_test: CFLAGS += -DBASE_URL='"http://localhost:5000/api/v1"'
 
 format:
 	clang-format -i *.[ch]
+
+clean:
+	rm -f *_test *.o cgfs
+
+.PHONY: all test format clean
