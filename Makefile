@@ -1,4 +1,4 @@
-CFLAGS = -std=c11 -Werror -Wall -Wextra -Wimplicit-fallthrough=2 -pedantic
+CFLAGS = -std=c11 -Werror -Wall -Wextra -pedantic
 
 CFLAGS += $(shell curl-config --cflags)
 LDLIBS += $(shell curl-config --libs)
