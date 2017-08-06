@@ -15,6 +15,7 @@ addons:
     - pkg-config
     - libfuse-dev
     - curl
+    - libjansson-dev
 
 matrix:
   include:
