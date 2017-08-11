@@ -189,7 +189,7 @@ cgapi_token_t cgapi_login(const char *email, const char *password)
 
         // validate j_res (is it an object, does it have correct keys etc.)
         json_t *token = json_object_get(j_res, "access_token");
-        if (token == NULL || !json_is_string(token)) goto invalid_json;
+        if (token == NULL) goto invalid_json;
         const char *data = json_string_value(token);
         if (data == NULL) goto invalid_json;
 
