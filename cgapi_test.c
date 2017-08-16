@@ -4,13 +4,13 @@ size_t failures = 0;
 
 void test_serialize_user()
 {
-	const char *json = serialize_user("test", "test");
-	const char *expect = "{\"email\":\"test\",\"password\":\"test\"}";
+        const char *json = serialize_user("test", "test");
+        const char *expect = "{\"email\":\"test\",\"password\":\"test\"}";
 
-	if (!json || strcmp(json, expect)) {
-		printf("Failed to serialize user\n");
-		failures++;
-	}
+        if (!json || strcmp(json, expect)) {
+                printf("Failed to serialize user\n");
+                failures++;
+        }
 }
 
 void test_login()
