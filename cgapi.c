@@ -203,16 +203,13 @@ cgapi_token_t cgapi_login(const char *email, const char *password)
         if (data == NULL) goto invalid_response;
 
         // Store as HTTP header: Jwt: <token>
-        const char *prefix = "Jwt: ";
-        size_t prefixlen = strlen(prefix);
-        size_t toklen = json_string_length(token);
-        tok = malloc(sizeof(*tok) + prefixlen + toklen + 1);
+#define JWT_HEADER "Jwt: "
+        size_t toklen = strlen(JWT_HEADER) + json_string_length(token) + 1;
+        tok = malloc(sizeof(*tok) + toklen);
         if (tok != NULL) {
-                memcpy(tok->str, prefix, prefixlen);
-                memcpy(tok->str + prefixlen, data, toklen);
-                tok->str[prefixlen + toklen] = '\0';
-                tok->len = prefixlen + toklen;
+                tok->len = snprintf(tok->str, toklen, JWT_HEADER "%s", data);
         }
+#undef JWT_HEADER
 
 invalid_response:
         json_decref(j_res);
