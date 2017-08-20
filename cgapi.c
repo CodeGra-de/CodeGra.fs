@@ -152,7 +152,8 @@ static int deserialize_submission(json_t *j_data,
         submission->namelen = json_string_length(j_date);
         submission->name = malloc(submission->namelen);
         if (submission->name == NULL) return -1;
-        snprintf(submission->name, submission->namelen, "%s", json_string_value(j_date));
+        snprintf(submission->name, submission->namelen, "%s",
+                 json_string_value(j_date));
 
         return 0;
 }
@@ -175,7 +176,7 @@ static int deserialize_submissions(struct buf *data,
 
         for (size_t i = 0; i < nsub; i++) {
                 deserialize_submission(json_array_get(j_data, i),
-                                *submissions + i);
+                                       *submissions + i);
         }
 
 array_empty:
@@ -393,7 +394,8 @@ int cgapi_get_assignments(cgapi_token_t tok,
 {
         int ret = -1;
 
-        struct cgapi_handle h = cgapi_init_request(tok, api_routes[REQ_ASSIGNMENTS]);
+        struct cgapi_handle h =
+                cgapi_init_request(tok, api_routes[REQ_ASSIGNMENTS]);
         if (h.curl == NULL) goto curl_init_failed;
 
         struct buf res;

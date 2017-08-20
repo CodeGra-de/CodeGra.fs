@@ -1,4 +1,5 @@
 #include "cgapi.c"
+#include <stdio.h>
 
 size_t failures = 0;
 
