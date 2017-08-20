@@ -84,6 +84,63 @@ email_failed:
         return json;
 }
 
+static int deserialize_assignment(json_t *j_data, struct cgapi_assignment *assignment)
+{
+        if (!json_is_object(j_data)) return -1;
+
+        json_t *j_id = json_object_get(j_data, "id");
+        // ...
+
+        assignment->id = json_integer_value(j_id);
+        // ...
+
+        return 0;
+}
+
+// Deserialize an assignments array as returned by the server and store in newly allocated
+// memory in *assignments. Returns the size of the array, or a negative int when an error
+// occurred.
+static int deserialize_assignments(struct buf *data, struct cgapi_assignment **assignments)
+{
+        int ret = -1;
+        *assignments = NULL;
+
+        json_error_t err;
+        json_t *j_data = json_loads(data->str + data->pos, 0, &err);
+        if (j_data == NULL || !json_is_array(j_data)) goto parse_json_failed;
+
+        size_t nass = json_array_size(j_data);
+        if (nass == 0) goto array_empty;
+
+        *assignments = malloc(nass * sizeof(**assignments));
+        if (*assignments == NULL) goto malloc_failed;
+
+        for (size_t i = 0; i < nass; i++) {
+                deserialize_assignment(json_array_get(j_data, i), *assignments + i);
+        }
+
+array_empty:
+        ret = nass;
+malloc_failed:
+        json_decref(j_data);
+parse_json_failed:
+        return ret;
+}
+
+static int deserialize_submissions(struct buf *data, struct cgapi_submission **submissions)
+{
+        UNUSED(data);
+        UNUSED(submissions);
+        return 0;
+}
+
+static int deserialize_files(struct buf *data, struct cgapi_file **files)
+{
+        UNUSED(data);
+        UNUSED(files);
+        return 0;
+}
+
 static void cgapi_cleanup_request(struct cgapi_handle h)
 {
         curl_slist_free_all(h.headers);
@@ -203,7 +260,7 @@ cgapi_token_t cgapi_login(const char *email, const char *password)
         const char *data = json_string_value(token);
         if (data == NULL) goto invalid_response;
 
-        // Store as HTTP header: Jwt: <token>
+// Store as HTTP header: Jwt: <token>
 #define JWT_HEADER "Jwt: "
         size_t toklen = strlen(JWT_HEADER) + json_string_length(token) + 1;
         tok = malloc(sizeof(*tok) + toklen);
@@ -269,6 +326,7 @@ int cgapi_get_assignments(cgapi_token_t tok,
         if (ret) goto request_failed;
 
         // TODO: Parse response
+        deserialize_assignments(&res, assignments);
 
         ret = 0;
 
@@ -298,6 +356,7 @@ int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
         if (ret) goto request_failed;
 
         // TODO: Parse response
+        deserialize_submissions(&res, submissions);
 
         ret = 0;
 
@@ -327,6 +386,7 @@ int cgapi_get_submission_files(cgapi_token_t tok, int submission_id,
         if (ret) goto request_failed;
 
         // TODO: Parse response
+        deserialize_files(&res, files);
 
         ret = 0;
 
