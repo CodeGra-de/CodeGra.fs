@@ -61,7 +61,7 @@ struct dict_node **dict_find(struct dict *dict, const char *key, int *cmpptr)
         size_t hash = dict_hash(key, dict->size);
         struct dict_node **n = &dict->nodes[hash];
 
-        int cmp;
+        int cmp = -1;
         while (*n && (cmp = strcmp((*n)->key, key)) < 0) {
                 n = &(*n)->next;
         }

@@ -26,10 +26,13 @@ test: $(patsubst %.c, %, $(wildcard *_test.c))
 
 cgapi_test: CFLAGS += -DBASE_URL='"http://localhost:5000/api/v1"'
 
+analyze:
+	clang-check -analyze *.[ch] -- $(CFLAGS)
+
 format:
 	clang-format -i *.[ch]
 
 clean:
-	rm -f cgfs *_test *.o
+	rm -f cgfs *_test *.o *.plist
 
 .PHONY: all test analyze format clean
