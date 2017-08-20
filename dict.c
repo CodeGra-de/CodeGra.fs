@@ -6,13 +6,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-void dict_init(struct dict *dict, size_t size)
+struct dict *dict_create(size_t size)
 {
-        dict->size = size;
-        dict->count = 0;
-        for (size_t i = 0; i < size; i++) {
-                dict->nodes[i] = 0;
+        struct dict *dict = malloc(sizeof(*dict) + size * sizeof(*dict->nodes));
+
+        if (dict != NULL) {
+                dict->size = size;
+                dict->count = 0;
+                for (size_t i = 0; i < size; i++) {
+                        dict->nodes[i] = 0;
+                }
         }
+
+        return dict;
 }
 
 // Hash a string for a particular hash table using

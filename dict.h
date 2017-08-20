@@ -16,7 +16,7 @@ struct dict {
         struct dict_node *nodes[];
 };
 
-void dict_init(struct dict *dict, size_t size);
+struct dict *dict_create(size_t size);
 
 // dict_foreach & dict_destroy execute `block` with all
 // items in the dict. In the `block` the variables
@@ -30,7 +30,7 @@ void dict_init(struct dict *dict, size_t size);
                                 void *val = n->val;                            \
                                 const char *key = n->key;                      \
                                 (void)val, (void)key;                          \
-                                (block);                                       \
+                                block;                                         \
                         }                                                      \
                 }                                                              \
         } while (0)
@@ -38,12 +38,12 @@ void dict_init(struct dict *dict, size_t size);
 #define dict_destroy(dict, block)                                              \
         do {                                                                   \
                 dict_foreach((dict), {                                         \
-                        (block);                                               \
+                        block;                                                 \
                         free(n);                                               \
                 });                                                            \
+                free(dict);                                                    \
         } while (0)
 
-//
 void *dict_set(struct dict *dict, const char *key, void *val);
 void *dict_get(struct dict *dict, const char *key);
 void *dict_unset(struct dict *dict, const char *key);
