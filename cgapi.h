@@ -6,17 +6,16 @@
 struct cgapi_token;
 typedef struct cgapi_token *cgapi_token_t;
 
-struct cgapi_user {
-        char *email;
-        char *password;
-};
-
 struct cgapi_assignment {
         int id;
+        size_t namelen;
+        char *name;
 };
 
 struct cgapi_submission {
         int id;
+        size_t namelen;
+        char *name;
 };
 
 struct cgapi_file {
@@ -30,10 +29,11 @@ struct cgapi_file_meta {
 
 cgapi_token_t cgapi_login(const char *email, const char *password);
 
-int cgapi_get_assignments(cgapi_token_t tok, struct cgapi_assignment **ass);
+int cgapi_get_assignments(cgapi_token_t tok,
+                          struct cgapi_assignment **assignments);
 
 int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
-                          struct cgapi_submission **subs);
+                          struct cgapi_submission **submissions);
 
 int cgapi_get_submission_files(cgapi_token_t tok, int submission_id,
                                const char *path, struct cgapi_file **files);
