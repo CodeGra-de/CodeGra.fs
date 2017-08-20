@@ -148,33 +148,33 @@ static size_t cgapi_write_response(char *ptr, size_t size, size_t nmemb,
 
 // Returns response string as a `struct buf` with `pos` set to the start of
 // the response body.
-static struct buf cgapi_do_request(struct cgapi_handle h)
+int cgapi_do_request(struct cgapi_handle h, struct buf *res)
 {
-        struct buf res = {
+        *res = (struct buf){
                 .len = 0, .pos = 0, .str = NULL,
         };
 
         curl_easy_setopt(h.curl, CURLOPT_HTTPHEADER, h.headers);
         curl_easy_setopt(h.curl, CURLOPT_WRITEFUNCTION, cgapi_write_response);
-        curl_easy_setopt(h.curl, CURLOPT_WRITEDATA, &res);
+        curl_easy_setopt(h.curl, CURLOPT_WRITEDATA, res);
 
         CURLcode code = curl_easy_perform(h.curl);
 
         if (code != CURLE_OK) {
                 // handle errors
-                free(res.str);
-                res.str = NULL;
+                free(res->str);
+                res->str = NULL;
                 goto request_failed;
         }
 
-        res.len = res.pos;
+        res->len = res->pos;
 
         // Find start of response body (i.e. two consecutive newlines).
-        char *match = strstr(res.str, "\r\n\r\n");
-        if (match) res.pos = match - res.str + 4;
+        char *match = strstr(res->str, "\r\n\r\n");
+        if (match) res->pos = match - res->str + 4;
 
 request_failed:
-        return res;
+        return -code;
 }
 
 cgapi_token_t cgapi_login(const char *email, const char *password)
@@ -190,8 +190,9 @@ cgapi_token_t cgapi_login(const char *email, const char *password)
         curl_easy_setopt(h.curl, CURLOPT_POST, 1L);
         curl_easy_setopt(h.curl, CURLOPT_POSTFIELDS, user);
 
-        struct buf res = cgapi_do_request(h);
-        if (res.str == NULL) goto request_failed;
+        struct buf res;
+        int code = cgapi_do_request(h, &res);
+        if (code) goto request_failed;
 
         json_error_t err;
         json_t *j_res = json_loads(res.str + res.pos, 0, &err);
@@ -237,8 +238,9 @@ int cgapi_make_submission(cgapi_token_t tok, unsigned assignment_id)
         struct cgapi_handle h = cgapi_init_request(tok, url);
         if (h.curl == NULL) goto curl_init_failed;
 
-        struct buf res = cgapi_do_request(h);
-        if (res.str == NULL) goto request_failed;
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
 
         ret = 0;
 
@@ -262,8 +264,9 @@ int cgapi_get_assignments(cgapi_token_t tok,
         struct cgapi_handle h = cgapi_init_request(tok, url);
         if (h.curl == NULL) goto curl_init_failed;
 
-        struct buf res = cgapi_do_request(h);
-        if (res.str == NULL) goto request_failed;
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
 
         // TODO: Parse response
 
@@ -290,8 +293,9 @@ int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
         struct cgapi_handle h = cgapi_init_request(tok, url);
         if (h.curl == NULL) goto curl_init_failed;
 
-        struct buf res = cgapi_do_request(h);
-        if (res.str == NULL) goto request_failed;
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
 
         // TODO: Parse response
 
@@ -318,8 +322,9 @@ int cgapi_get_submission_files(cgapi_token_t tok, int submission_id,
         struct cgapi_handle h = cgapi_init_request(tok, url);
         if (h.curl == NULL) goto curl_init_failed;
 
-        struct buf res = cgapi_do_request(h);
-        if (res.str == NULL) goto request_failed;
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
 
         // TODO: Parse response
 
@@ -346,8 +351,9 @@ int cgapi_get_file_meta(cgapi_token_t tok, unsigned submission_id,
         struct cgapi_handle h = cgapi_init_request(tok, url);
         if (h.curl == NULL) goto curl_init_failed;
 
-        struct buf res = cgapi_do_request(h);
-        if (res.str == NULL) goto request_failed;
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
 
         json_error_t err;
         json_t *j_res = json_loads(res.str + res.pos, 0, &err);
@@ -386,8 +392,9 @@ int cgapi_get_file_buf(cgapi_token_t tok, unsigned submission_id,
         struct cgapi_handle h = cgapi_init_request(tok, url);
         if (h.curl == NULL) goto curl_init_failed;
 
-        struct buf res = cgapi_do_request(h);
-        if (res.str == NULL) goto request_failed;
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
 
         size_t buflen = res.len - res.pos;
         f->buf = malloc(buflen + 1);
@@ -422,8 +429,9 @@ int cgapi_put_file_buf(cgapi_token_t tok, unsigned submission_id,
         curl_easy_setopt(h.curl, CURLOPT_CUSTOMREQUEST, "PUT");
         curl_easy_setopt(h.curl, CURLOPT_POSTFIELDS, f->buf);
 
-        struct buf res = cgapi_do_request(h);
-        if (res.str == NULL) goto request_failed;
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
 
         ret = 0;
 
