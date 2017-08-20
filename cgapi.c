@@ -84,7 +84,8 @@ email_failed:
         return json;
 }
 
-static int deserialize_assignment(json_t *j_data, struct cgapi_assignment *assignment)
+static int deserialize_assignment(json_t *j_data,
+                                  struct cgapi_assignment *assignment)
 {
         if (!json_is_object(j_data)) return -1;
 
@@ -97,10 +98,13 @@ static int deserialize_assignment(json_t *j_data, struct cgapi_assignment *assig
         return 0;
 }
 
-// Deserialize an assignments array as returned by the server and store in newly allocated
-// memory in *assignments. Returns the size of the array, or a negative int when an error
+// Deserialize an assignments array as returned by the server and store in newly
+// allocated
+// memory in *assignments. Returns the size of the array, or a negative int when
+// an error
 // occurred.
-static int deserialize_assignments(struct buf *data, struct cgapi_assignment **assignments)
+static int deserialize_assignments(struct buf *data,
+                                   struct cgapi_assignment **assignments)
 {
         int ret = -1;
         *assignments = NULL;
@@ -116,7 +120,8 @@ static int deserialize_assignments(struct buf *data, struct cgapi_assignment **a
         if (*assignments == NULL) goto malloc_failed;
 
         for (size_t i = 0; i < nass; i++) {
-                deserialize_assignment(json_array_get(j_data, i), *assignments + i);
+                deserialize_assignment(json_array_get(j_data, i),
+                                       *assignments + i);
         }
 
 array_empty:
@@ -127,7 +132,8 @@ parse_json_failed:
         return ret;
 }
 
-static int deserialize_submissions(struct buf *data, struct cgapi_submission **submissions)
+static int deserialize_submissions(struct buf *data,
+                                   struct cgapi_submission **submissions)
 {
         UNUSED(data);
         UNUSED(submissions);
