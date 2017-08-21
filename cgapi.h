@@ -1,52 +1,37 @@
 #ifndef CGAPI_H
 #define CGAPI_H
 
+#include <jansson.h>
+
 #include <stddef.h>
 
 struct cgapi_token;
 typedef struct cgapi_token *cgapi_token_t;
 
-struct cgapi_assignment {
-        int id;
-        size_t namelen;
-        char *name;
-};
-
-struct cgapi_submission {
-        int id;
-        size_t namelen;
-        char *name;
-};
-
-struct cgapi_file {
-        size_t buflen;
-        char *buf;
-};
-
-struct cgapi_file_meta {
-        int id;
-};
-
 cgapi_token_t cgapi_login(const char *email, const char *password);
 
-int cgapi_get_assignments(cgapi_token_t tok,
-                          struct cgapi_assignment **assignments);
+int cgapi_get_courses(cgapi_token_t tok, json_t **courses);
+
+int cgapi_get_assignments(cgapi_token_t tok, unsigned course_id,
+                          json_t **assignments);
 
 int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
-                          struct cgapi_submission **submissions);
+                          json_t **submissions);
 
 int cgapi_get_submission_files(cgapi_token_t tok, int submission_id,
-                               const char *path, struct cgapi_file **files);
+                               json_t **files);
 
 int cgapi_get_file_meta(cgapi_token_t tok, unsigned submission_id,
-                        const char *path, struct cgapi_file_meta *fm);
+                        const char *path, json_t *file);
 
 int cgapi_get_file_buf(cgapi_token_t tok, unsigned submission_id,
-                       const char *path, struct cgapi_file *f);
+                       const char *path, json_t *file);
 
-int cgapi_put_file_buf(cgapi_token_t tok, unsigned submission_id,
-                       const char *path, struct cgapi_file *f);
+int cgapi_patch_file_buf(cgapi_token_t tok, json_t *file);
 
-int cgapi_unlink_file(cgapi_token_t tok, struct cgapi_file *f);
+int cgapi_post_file(cgapi_token_t tok, unsigned submission_id, const char *path,
+                    int is_directory, const char *buf);
+
+int cgapi_unlink_file(cgapi_token_t tok, json_t *file);
 
 #endif /* CGAPI_H */

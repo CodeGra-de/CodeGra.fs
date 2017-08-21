@@ -21,6 +21,7 @@
 
 enum req_type {
         REQ_LOGIN,
+        REQ_COURSES,
         REQ_ASSIGNMENTS,
         REQ_SUBMISSIONS,
         REQ_FILES,
@@ -30,11 +31,13 @@ enum req_type {
 
 static const char *api_routes[] = {
                 [REQ_LOGIN] = BASE_URL "/login",
-                [REQ_ASSIGNMENTS] = BASE_URL "/assignments/",
+                [REQ_COURSES] = BASE_URL "/courses/",
+                [REQ_ASSIGNMENTS] = BASE_URL "/courses/%u/assignments/",
                 [REQ_SUBMISSIONS] = BASE_URL "/assignments/%u/submissions/",
-                [REQ_FILES] = BASE_URL "/submissions/%u/files/",
-                [REQ_FILE] = BASE_URL "/submissions/%u/files/%s?revision=auto",
-                [REQ_FILE_META] = BASE_URL "/submissions/%u/files/%s?type=stat",
+                [REQ_FILES] = BASE_URL
+                "/submissions/%u/files/?path=%s&is_directory=%s&owner=auto",
+                [REQ_FILE_META] = BASE_URL "/submissions/%u/files/?path=%s",
+                [REQ_FILE] = BASE_URL "/code/%u",
 };
 
 struct cgapi_token {
@@ -53,11 +56,7 @@ struct cgapi_handle {
         struct curl_slist *headers;
 };
 
-/*
- * Serialization functions to serialize common data
- */
-
-static const char *serialize_user(const char *email, const char *password)
+static const char *cgapi_serialize_user(const char *email, const char *password)
 {
         const char *json = NULL;
         json_t *j_user;
@@ -84,141 +83,25 @@ email_failed:
         return json;
 }
 
-static int deserialize_assignment(json_t *j_data,
-                                  struct cgapi_assignment *assignment)
+static int cgapi_is_array(json_t *j) { return !!json_is_array(j); }
+
+static int cgapi_is_object(json_t *j) { return !!json_is_object(j); }
+
+static int cgapi_deserialize_json(const char *json, json_t **dest,
+                                  int is_type(json_t *))
 {
-        if (!json_is_object(j_data)) return -1;
-        json_t *j_id = json_object_get(j_data, "id");
-        if (!json_is_integer(j_id)) return -1;
-        json_t *j_assignment = json_object_get(j_data, "name");
-        if (!json_is_string(j_assignment)) return -1;
-        json_t *j_course =
-                json_object_get(json_object_get(j_data, "course"), "name");
-        if (!json_is_string(j_course)) return -1;
-
-        assignment->id = json_integer_value(j_id);
-        assignment->namelen = json_string_length(j_assignment) + strlen(" - ") +
-                              json_string_length(j_course) + 1;
-        assignment->name = malloc(assignment->namelen);
-        if (assignment->name == NULL) return -1;
-        snprintf(assignment->name, assignment->namelen, "%s - %s",
-                 json_string_value(j_assignment), json_string_value(j_course));
-
-        return 0;
-}
-
-// Deserialize an assignments array as returned by the server and store in newly
-// allocated memory in *assignments. Returns the size of the array, or a
-// negative int when an error occurred.
-static int deserialize_assignments(struct buf *data,
-                                   struct cgapi_assignment **assignments)
-{
-        int ret = -1;
-        *assignments = NULL;
-
         json_error_t err;
-        json_t *j_data = json_loads(data->str + data->pos, 0, &err);
-        if (j_data == NULL || !json_is_array(j_data)) goto parse_json_failed;
+        *dest = json_loads(json, 0, &err);
 
-        size_t nass = json_array_size(j_data);
-        if (nass == 0) goto array_empty;
+        if (*dest == NULL) return -1;
 
-        *assignments = malloc(nass * sizeof(**assignments));
-        if (*assignments == NULL) goto malloc_failed;
-
-        for (size_t i = 0; i < nass; i++) {
-                deserialize_assignment(json_array_get(j_data, i),
-                                       *assignments + i);
+        if (!is_type(*dest)) {
+                json_decref(*dest);
+                *dest = NULL;
+                return -1;
         }
 
-array_empty:
-        ret = nass;
-malloc_failed:
-        json_decref(j_data);
-parse_json_failed:
-        return ret;
-}
-
-static int deserialize_submission(json_t *j_data,
-                                  struct cgapi_submission *submission)
-{
-        if (!json_is_object(j_data)) return -1;
-        json_t *j_id = json_object_get(j_data, "id");
-        if (!json_is_integer(j_id)) return -1;
-        json_t *j_date = json_object_get(j_data, "created_at");
-        if (!json_is_string(j_date)) return -1;
-
-        submission->id = json_integer_value(j_id);
-        submission->namelen = json_string_length(j_date);
-        submission->name = malloc(submission->namelen);
-        if (submission->name == NULL) return -1;
-        snprintf(submission->name, submission->namelen, "%s",
-                 json_string_value(j_date));
-
         return 0;
-}
-
-static int deserialize_submissions(struct buf *data,
-                                   struct cgapi_submission **submissions)
-{
-        int ret = -1;
-        *submissions = NULL;
-
-        json_error_t err;
-        json_t *j_data = json_loads(data->str + data->pos, 0, &err);
-        if (j_data == NULL || !json_is_array(j_data)) goto parse_json_failed;
-
-        size_t nsub = json_array_size(j_data);
-        if (nsub == 0) goto array_empty;
-
-        *submissions = malloc(nsub * sizeof(**submissions));
-        if (*submissions == NULL) goto malloc_failed;
-
-        for (size_t i = 0; i < nsub; i++) {
-                deserialize_submission(json_array_get(j_data, i),
-                                       *submissions + i);
-        }
-
-array_empty:
-        ret = nsub;
-malloc_failed:
-        json_decref(j_data);
-parse_json_failed:
-        return ret;
-}
-
-static int deserialize_file(json_t *j_data, struct cgapi_file *file)
-{
-        UNUSED(j_data);
-        UNUSED(file);
-        return 0;
-}
-
-static int deserialize_files(struct buf *data, struct cgapi_file **files)
-{
-        int ret = -1;
-        *files = NULL;
-
-        json_error_t err;
-        json_t *j_data = json_loads(data->str + data->pos, 0, &err);
-        if (j_data == NULL || !json_is_array(j_data)) goto parse_json_failed;
-
-        size_t nfiles = json_array_size(j_data);
-        if (nfiles == 0) goto array_empty;
-
-        *files = malloc(nfiles * sizeof(**files));
-        if (*files == NULL) goto malloc_failed;
-
-        for (size_t i = 0; i < nfiles; i++) {
-                deserialize_file(json_array_get(j_data, i), *files + i);
-        }
-
-array_empty:
-        ret = nfiles;
-malloc_failed:
-        json_decref(j_data);
-parse_json_failed:
-        return ret;
 }
 
 static void cgapi_cleanup_request(struct cgapi_handle h)
@@ -292,8 +175,12 @@ int cgapi_do_request(struct cgapi_handle h, struct buf *res)
         };
 
         curl_easy_setopt(h.curl, CURLOPT_HTTPHEADER, h.headers);
-        curl_easy_setopt(h.curl, CURLOPT_WRITEFUNCTION, cgapi_write_response);
-        curl_easy_setopt(h.curl, CURLOPT_WRITEDATA, res);
+
+        if (res != NULL) {
+                curl_easy_setopt(h.curl, CURLOPT_WRITEFUNCTION,
+                                 cgapi_write_response);
+                curl_easy_setopt(h.curl, CURLOPT_WRITEDATA, res);
+        }
 
         CURLcode code = curl_easy_perform(h.curl);
 
@@ -321,7 +208,7 @@ cgapi_token_t cgapi_login(const char *email, const char *password)
         struct cgapi_handle h = cgapi_init_request(NULL, api_routes[REQ_LOGIN]);
         if (h.curl == NULL) goto curl_init_failed;
 
-        const char *user = serialize_user(email, password);
+        const char *user = cgapi_serialize_user(email, password);
         if (user == NULL) goto serialize_failed;
 
         curl_easy_setopt(h.curl, CURLOPT_POST, 1L);
@@ -363,6 +250,7 @@ curl_init_failed:
 
 void cgapi_logout(cgapi_token_t tok) { free(tok); }
 
+#if 0
 int cgapi_make_submission(cgapi_token_t tok, unsigned assignment_id)
 {
         int ret = -1;
@@ -388,22 +276,21 @@ curl_init_failed:
 print_url_failed:
         return ret;
 }
+#endif
 
-int cgapi_get_assignments(cgapi_token_t tok,
-                          struct cgapi_assignment **assignments)
+int cgapi_get_courses(cgapi_token_t tok, json_t **courses)
 {
         int ret = -1;
 
         struct cgapi_handle h =
-                cgapi_init_request(tok, api_routes[REQ_ASSIGNMENTS]);
+                cgapi_init_request(tok, api_routes[REQ_COURSES]);
         if (h.curl == NULL) goto curl_init_failed;
 
         struct buf res;
         ret = cgapi_do_request(h, &res);
         if (ret) goto request_failed;
 
-        // TODO: Parse response
-        deserialize_assignments(&res, assignments);
+        cgapi_deserialize_json(res.str + res.pos, courses, cgapi_is_array);
 
         ret = 0;
 
@@ -414,8 +301,37 @@ curl_init_failed:
         return ret;
 }
 
+int cgapi_get_assignments(cgapi_token_t tok, unsigned course_id,
+                          json_t **assignments)
+{
+        int ret = -1;
+
+        char url[URL_MAX];
+        size_t urllen =
+                snprintf(url, URL_MAX, api_routes[REQ_ASSIGNMENTS], course_id);
+        if (urllen >= URL_MAX) goto print_url_failed;
+
+        struct cgapi_handle h = cgapi_init_request(tok, url);
+        if (h.curl == NULL) goto curl_init_failed;
+
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
+
+        cgapi_deserialize_json(res.str + res.pos, assignments, cgapi_is_array);
+
+        ret = 0;
+
+        free(res.str);
+request_failed:
+        cgapi_cleanup_request(h);
+curl_init_failed:
+print_url_failed:
+        return ret;
+}
+
 int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
-                          struct cgapi_submission **submissions)
+                          json_t **submissions)
 {
         int ret = -1;
 
@@ -431,8 +347,7 @@ int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
         ret = cgapi_do_request(h, &res);
         if (ret) goto request_failed;
 
-        // TODO: Parse response
-        deserialize_submissions(&res, submissions);
+        cgapi_deserialize_json(res.str + res.pos, submissions, cgapi_is_array);
 
         ret = 0;
 
@@ -445,13 +360,13 @@ print_url_failed:
 }
 
 int cgapi_get_submission_files(cgapi_token_t tok, int submission_id,
-                               const char *path, struct cgapi_file **files)
+                               json_t **files)
 {
         int ret = -1;
 
         char url[URL_MAX];
         size_t urllen = snprintf(url, URL_MAX, api_routes[REQ_FILES],
-                                 submission_id, path);
+                                 submission_id, "", "");
         if (urllen >= URL_MAX) goto print_url_failed;
 
         struct cgapi_handle h = cgapi_init_request(tok, url);
@@ -461,8 +376,7 @@ int cgapi_get_submission_files(cgapi_token_t tok, int submission_id,
         ret = cgapi_do_request(h, &res);
         if (ret) goto request_failed;
 
-        // TODO: Parse response
-        deserialize_files(&res, files);
+        cgapi_deserialize_json(res.str + res.pos, files, cgapi_is_object);
 
         ret = 0;
 
@@ -475,7 +389,7 @@ print_url_failed:
 }
 
 int cgapi_get_file_meta(cgapi_token_t tok, unsigned submission_id,
-                        const char *path, struct cgapi_file_meta *fm)
+                        const char *path, json_t *f)
 {
         int ret = -1;
 
@@ -496,14 +410,11 @@ int cgapi_get_file_meta(cgapi_token_t tok, unsigned submission_id,
         if (j_res == NULL) goto parse_json_failed;
 
         json_t *j_id = json_object_get(j_res, "id");
-        if (j_id == NULL) goto invalid_response;
-        fm->id = json_integer_value(j_id);
-        if (fm->id == 0) goto invalid_id;
+        if (j_id == NULL || !json_is_integer(j_id)) goto invalid_response;
+        json_object_set(f, "id", j_id);
 
         ret = 0;
 
-invalid_id:
-        json_decref(j_id);
 invalid_response:
         json_decref(j_res);
 parse_json_failed:
@@ -516,7 +427,7 @@ print_url_failed:
 }
 
 int cgapi_get_file_buf(cgapi_token_t tok, unsigned submission_id,
-                       const char *path, struct cgapi_file *f)
+                       const char *path, json_t *f)
 {
         int ret = -1;
 
@@ -532,15 +443,16 @@ int cgapi_get_file_buf(cgapi_token_t tok, unsigned submission_id,
         ret = cgapi_do_request(h, &res);
         if (ret) goto request_failed;
 
-        size_t buflen = res.len - res.pos;
-        f->buf = malloc(buflen + 1);
-        if (f->buf == NULL) goto malloc_failed;
-        memcpy(f->buf, res.str + res.pos, buflen);
-        f->buf[buflen] = '\0';
+        json_t *j_buf = json_stringn(res.str + res.pos, res.len - res.pos + 1);
+        if (j_buf == NULL) goto json_stringify_failed;
+        if (json_object_set(f, "buf", j_buf) < 0) {
+                json_decref(j_buf);
+                goto json_stringify_failed;
+        }
 
         ret = 0;
 
-malloc_failed:
+json_stringify_failed:
         free(res.str);
 request_failed:
         cgapi_cleanup_request(h);
@@ -549,21 +461,67 @@ print_url_failed:
         return ret;
 }
 
-int cgapi_put_file_buf(cgapi_token_t tok, unsigned submission_id,
-                       const char *path, struct cgapi_file *f)
+int cgapi_patch_file_buf(cgapi_token_t tok, json_t *f)
 {
         int ret = -1;
 
+        json_t *j_id = json_object_get(f, "id");
+        json_t *j_buf = json_object_get(f, "buf");
+        if (!json_is_integer(j_id) || !json_is_string(j_buf)) goto invalid_file;
+
         char url[URL_MAX];
-        size_t urllen = snprintf(url, URL_MAX, api_routes[REQ_FILES],
-                                 submission_id, path);
+        size_t urllen = snprintf(url, URL_MAX, api_routes[REQ_FILE],
+                                 json_integer_value(j_id));
         if (urllen >= URL_MAX) goto print_url_failed;
 
         struct cgapi_handle h = cgapi_init_request(tok, url);
         if (h.curl == NULL) goto curl_init_failed;
 
-        curl_easy_setopt(h.curl, CURLOPT_CUSTOMREQUEST, "PUT");
-        curl_easy_setopt(h.curl, CURLOPT_POSTFIELDS, f->buf);
+        curl_easy_setopt(h.curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+        curl_easy_setopt(h.curl, CURLOPT_POSTFIELDS, json_string_value(j_buf));
+
+        struct buf res;
+        ret = cgapi_do_request(h, &res);
+        if (ret) goto request_failed;
+
+        json_error_t err;
+        json_t *j_res = json_loads(res.str + res.pos, 0, &err);
+        if (j_res == NULL) goto parse_json_failed;
+
+        json_t *j_new_id = json_object_get(j_res, "id");
+        if (j_new_id == NULL || !json_is_integer(j_new_id)) goto invalid_json;
+        json_object_set(f, "id", j_new_id);
+
+        ret = 0;
+
+invalid_json:
+        json_decref(j_res);
+parse_json_failed:
+        free(res.str);
+request_failed:
+        cgapi_cleanup_request(h);
+curl_init_failed:
+print_url_failed:
+invalid_file:
+        return ret;
+}
+
+// for making file/directory
+int cgapi_post_file(cgapi_token_t tok, unsigned submission_id, const char *path,
+                    int is_directory, const char *buf)
+{
+        int ret = -1;
+
+        char url[URL_MAX];
+        size_t urllen = snprintf(url, URL_MAX, api_routes[REQ_FILES],
+                                 submission_id, path, is_directory);
+        if (urllen > URL_MAX) goto print_url_failed;
+
+        struct cgapi_handle h = cgapi_init_request(tok, url);
+        if (h.curl == NULL) goto curl_init_failed;
+
+        curl_easy_setopt(h.curl, CURLOPT_POST, 1l);
+        curl_easy_setopt(h.curl, CURLOPT_POSTFIELDS, buf);
 
         struct buf res;
         ret = cgapi_do_request(h, &res);
@@ -579,10 +537,32 @@ print_url_failed:
         return ret;
 }
 
-// TODO: Send unlink request to server
-int cgapi_unlink_file(cgapi_token_t tok, struct cgapi_file *f)
+int cgapi_unlink_file(cgapi_token_t tok, json_t *f)
 {
-        UNUSED(tok);
-        UNUSED(f);
-        return 0;
+        int ret = -1;
+
+        json_t *j_id = json_object_get(f, "id");
+        if (!json_is_integer(j_id)) goto invalid_file;
+
+        char url[URL_MAX];
+        size_t urllen = snprintf(url, URL_MAX, api_routes[REQ_FILE],
+                                 json_integer_value(j_id));
+        if (urllen >= URL_MAX) goto print_url_failed;
+
+        struct cgapi_handle h = cgapi_init_request(tok, url);
+        if (h.curl == NULL) goto curl_init_failed;
+
+        curl_easy_setopt(h.curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+
+        ret = cgapi_do_request(h, NULL);
+        if (ret) goto request_failed;
+
+        ret = 0;
+
+request_failed:
+        cgapi_cleanup_request(h);
+curl_init_failed:
+print_url_failed:
+invalid_file:
+        return ret;
 }
