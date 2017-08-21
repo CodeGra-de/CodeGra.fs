@@ -20,7 +20,7 @@ cgfs: dict.o cgapi.o
 test: CFLAGS += -O0 -g -fsanitize=leak -fsanitize=undefined
 test: $(patsubst %.c, %, $(wildcard *_test.c))
 
-%_test: %.h %.c
+%_test: test.h %.h %.c %_test.c
 	$(CC) $(CFLAGS) $(LDLIBS) $@.c -o $@
 	$@
 

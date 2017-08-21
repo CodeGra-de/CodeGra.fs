@@ -1,17 +1,15 @@
+#include "test.h"
 #include "cgapi.c"
-#include <stdio.h>
-
-size_t failures = 0;
 
 void test_serialize_user()
 {
         const char *json = serialize_user("test", "test");
-        const char *expect = "{\"email\":\"test\",\"password\":\"test\"}";
+        const char *expected = "{\"email\":\"test\",\"password\":\"test\"}";
 
-        if (!json || strcmp(json, expect)) {
-                printf("Failed to serialize user\n");
-                failures++;
-        }
+        EXPECT(json != NULL);
+        EXPECT(strcmp(json, expected) == 0);
+
+        free((char *)json);
 }
 
 void test_login()
@@ -19,19 +17,15 @@ void test_login()
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
-        if (!tok) {
-                printf("Failed to login\n");
-                failures++;
-        }
+        EXPECT(tok != NULL);
 
         free(tok);
 }
 
 int main(void)
 {
+        test_serialize_user();
         test_login();
 
-        printf("%lu tests failed\n", failures);
-
-        return failures != 0;
+        RESULTS();
 }
