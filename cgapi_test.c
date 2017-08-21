@@ -40,6 +40,9 @@ void test_cgapi_login()
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
         EXPECT(tok != NULL);
+#define JWT_HEADER "Authorization: Bearer "
+        EXPECT(strncmp(tok->str, JWT_HEADER, strlen(JWT_HEADER)) == 0);
+#undef JWT_HEADER
 
         cgapi_logout(tok);
 }
