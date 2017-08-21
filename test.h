@@ -7,7 +7,8 @@ size_t failures = 0;
         do {                                                                   \
                 numtests++;                                                    \
                 if (!(expr)) {                                                 \
-                        fprintf(stderr, "test failed: %s\n", #expr);           \
+                        fprintf(stderr, "%s:%d: test failed: %s\n", __FILE__,  \
+                                __LINE__, #expr);                              \
                         failures++;                                            \
                 }                                                              \
         } while (0)
