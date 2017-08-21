@@ -1,9 +1,9 @@
-#include "test.h"
 #include "cgapi.c"
+#include "test.h"
 
-void test_serialize_user()
+void test_cgapi_serialize_user()
 {
-        const char *json = serialize_user("test", "test");
+        const char *json = cgapi_serialize_user("test", "test");
         const char *expected = "{\"email\":\"test\",\"password\":\"test\"}";
 
         EXPECT(json != NULL);
@@ -12,7 +12,7 @@ void test_serialize_user()
         free((char *)json);
 }
 
-void test_login()
+void test_cgapi_login()
 {
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
@@ -24,8 +24,8 @@ void test_login()
 
 int main(void)
 {
-        test_serialize_user();
-        test_login();
+        test_cgapi_serialize_user();
+        test_cgapi_login();
 
         RESULTS();
 }

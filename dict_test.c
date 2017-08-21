@@ -1,5 +1,5 @@
-#include "test.h"
 #include "dict.c"
+#include "test.h"
 
 void test_dict_create(void)
 {
