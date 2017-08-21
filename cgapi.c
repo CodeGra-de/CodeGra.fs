@@ -250,34 +250,6 @@ curl_init_failed:
 
 void cgapi_logout(cgapi_token_t tok) { free(tok); }
 
-#if 0
-int cgapi_make_submission(cgapi_token_t tok, unsigned assignment_id)
-{
-        int ret = -1;
-
-        char url[URL_MAX];
-        size_t urllen = snprintf(url, URL_MAX, api_routes[REQ_SUBMISSIONS],
-                                 assignment_id);
-        if (urllen >= URL_MAX) goto print_url_failed;
-
-        struct cgapi_handle h = cgapi_init_request(tok, url);
-        if (h.curl == NULL) goto curl_init_failed;
-
-        struct buf res;
-        ret = cgapi_do_request(h, &res);
-        if (ret) goto request_failed;
-
-        ret = 0;
-
-        free(res.str);
-request_failed:
-        cgapi_cleanup_request(h);
-curl_init_failed:
-print_url_failed:
-        return ret;
-}
-#endif
-
 int cgapi_get_courses(cgapi_token_t tok, json_t **courses)
 {
         int ret = -1;
@@ -298,35 +270,6 @@ int cgapi_get_courses(cgapi_token_t tok, json_t **courses)
 request_failed:
         cgapi_cleanup_request(h);
 curl_init_failed:
-        return ret;
-}
-
-int cgapi_get_assignments(cgapi_token_t tok, unsigned course_id,
-                          json_t **assignments)
-{
-        int ret = -1;
-
-        char url[URL_MAX];
-        size_t urllen =
-                snprintf(url, URL_MAX, api_routes[REQ_ASSIGNMENTS], course_id);
-        if (urllen >= URL_MAX) goto print_url_failed;
-
-        struct cgapi_handle h = cgapi_init_request(tok, url);
-        if (h.curl == NULL) goto curl_init_failed;
-
-        struct buf res;
-        ret = cgapi_do_request(h, &res);
-        if (ret) goto request_failed;
-
-        cgapi_deserialize_json(res.str + res.pos, assignments, cgapi_is_array);
-
-        ret = 0;
-
-        free(res.str);
-request_failed:
-        cgapi_cleanup_request(h);
-curl_init_failed:
-print_url_failed:
         return ret;
 }
 
@@ -506,7 +449,6 @@ invalid_file:
         return ret;
 }
 
-// for making file/directory
 int cgapi_post_file(cgapi_token_t tok, unsigned submission_id, const char *path,
                     int is_directory, const char *buf)
 {

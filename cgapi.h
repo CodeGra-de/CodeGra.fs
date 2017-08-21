@@ -12,9 +12,6 @@ cgapi_token_t cgapi_login(const char *email, const char *password);
 
 int cgapi_get_courses(cgapi_token_t tok, json_t **courses);
 
-int cgapi_get_assignments(cgapi_token_t tok, unsigned course_id,
-                          json_t **assignments);
-
 int cgapi_get_submissions(cgapi_token_t tok, int assignment_id,
                           json_t **submissions);
 
