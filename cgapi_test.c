@@ -187,14 +187,14 @@ int main(void)
         test_cgapi_serialize_user();
         test_cgapi_deserialize_json();
         test_cgapi_login();
-        test_cgapi_get_courses();
-        test_cgapi_get_submissions();
-        test_cgapi_get_submission_files();
-        test_cgapi_get_file_meta();
-        test_cgapi_get_file_buf();
-        test_cgapi_patch_file_buf();
-        test_cgapi_post_file();
-        test_cgapi_unlink_file();
+        // test_cgapi_get_courses();
+        // test_cgapi_get_submissions();
+        // test_cgapi_get_submission_files();
+        // test_cgapi_get_file_meta();
+        // test_cgapi_get_file_buf();
+        // test_cgapi_patch_file_buf();
+        // test_cgapi_post_file();
+        // test_cgapi_unlink_file();
 
         RESULTS();
 }
