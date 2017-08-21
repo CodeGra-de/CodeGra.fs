@@ -31,8 +31,7 @@ enum req_type {
 
 static const char *api_routes[] = {
                 [REQ_LOGIN] = BASE_URL "/login",
-                [REQ_COURSES] = BASE_URL "/courses/",
-                [REQ_ASSIGNMENTS] = BASE_URL "/courses/%u/assignments/",
+                [REQ_COURSES] = BASE_URL "/courses/?extended=true",
                 [REQ_SUBMISSIONS] = BASE_URL "/assignments/%u/submissions/",
                 [REQ_FILES] = BASE_URL
                 "/submissions/%u/files/?path=%s&is_directory=%s&owner=auto",

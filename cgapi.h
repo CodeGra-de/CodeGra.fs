@@ -2,7 +2,6 @@
 #define CGAPI_H
 
 #include <jansson.h>
-
 #include <stddef.h>
 
 struct cgapi_token;
