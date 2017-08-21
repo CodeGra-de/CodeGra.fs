@@ -11,6 +11,7 @@ LDLIBS += $(shell pkg-config --libs jansson)
 
 all: cgfs
 
+cgfs: CFLAGS += -DNDEBUG
 cgfs: dict.o cgapi.o
 
 # FIXME: Temporarily disabled -fsanitize=address as it is broken on the latest
