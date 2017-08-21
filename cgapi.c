@@ -167,7 +167,7 @@ static size_t cgapi_write_response(char *ptr, size_t size, size_t nmemb,
 
 // Returns response string as a `struct buf` with `pos` set to the start of
 // the response body.
-int cgapi_do_request(struct cgapi_handle h, struct buf *res)
+static int cgapi_do_request(struct cgapi_handle h, struct buf *res)
 {
         *res = (struct buf){
                 .len = 0, .pos = 0, .str = NULL,
