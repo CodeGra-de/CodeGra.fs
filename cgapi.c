@@ -124,7 +124,7 @@ static struct cgapi_handle cgapi_init_request(cgapi_token_t tok,
         curl_easy_setopt(h.curl, CURLOPT_URL, url);
         curl_easy_setopt(h.curl, CURLOPT_FOLLOWLOCATION, 1L);
 #ifndef NDEBUG
-        curl_easy_setopt(h.curl, CURLOPT_VERBOSE, 0L);
+        curl_easy_setopt(h.curl, CURLOPT_VERBOSE, 1L);
 #endif
 
 #define ADD_DEFAULT_HEADER(handle, header)                                     \
