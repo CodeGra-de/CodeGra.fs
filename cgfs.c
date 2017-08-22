@@ -47,6 +47,13 @@
 
 #define UNUSED(x) (void)(x);
 
+enum cgfs_file_type {
+        CGFS_COURSE,
+        CGFS_ASSIGNMENT,
+        CGFS_SUBMISSION,
+        CGFS_FILE,
+};
+
 struct cgfs_context {
         cgapi_token_t login_token;
         json_t *file_tree;
@@ -81,12 +88,79 @@ static int cgfs_is_directory(json_t *dir)
 static int cgfs_is_empty_path(const char *path)
 {
         return path[0] == '\0' || (path[0] == '/' && path[1] == '\0');
+}
+
+static int cgfs_mark_dir_entries(json_t *dir, enum cgfs_file_type type, int recursive)
+{
+        if (!cgfs_is_directory(dir)) return -1;
+
+        json_t *entries = json_object_get(dir, "entries");
+
+        size_t idx;
+        json_t *entry;
+
+        json_array_foreach(dir, idx, entry) {
+                json_object_set(entry, "type", json_integer(type));
+
+                if (recursive && cgfs_is_directory(entry)) {
+                        int err = cgfs_mark_dir_entries(entry, type, recursive);
+                        if (err) return err;
+                }
+        }
+
+        return 0;
+}
+
+static int cgfs_get_assignment_submissions(json_t *assignment)
+{
+        if (!json_is_object(assignment)) return -1;
+
+        json_t *j_id = json_object_get(assignment, "id");
+        if (!json_is_integer(j_id)) return -1;
+
+        unsigned id = json_integer_value(j_id);
+
+        json_t *submissions;
+        int err = cgapi_get_submissions(CGFS_CONTEXT->login_token, id, &submissions);
+        if (err) return err;
+
+        if (json_object_set(assignment, "entries", submissions) < 0) {
+                json_decref(submissions);
+                return -1;
+        }
+
+        return cgfs_mark_dir_entries(assignment, CGFS_SUBMISSION, 0);
+}
+
+static int cgfs_get_submission_files(json_t *submission)
+{
+        if (!json_is_object(submission)) return -1;
+
+        json_t *j_id = json_object_get(submission, "id");
+        if (!json_is_integer(j_id)) return -1;
+
+        unsigned id = json_integer_value(j_id);
+
+        json_t *files;
+        int err = cgapi_get_submission_files(CGFS_CONTEXT->login_token, id, &files);
+        if (err) return err;
+
+        if (json_object_set(submission, "entries", files) < 0) {
+                json_decref(files);
+                return -1;
+        }
+
+        return cgfs_mark_dir_entries(submission, CGFS_FILE, 1);
+}
 
 static int cgfs_get_file_in_dir(json_t *dir, const char *name, json_t **dest)
 {
         *dest = NULL;
 
         if (!cgfs_is_directory(dir)) return ENOTDIR;
+
+        size_t idx;
+        json_t *entry;
 
         json_array_foreach(entries, idx, entry) {
                 if (!json_is_object(entry)) continue;
