@@ -318,13 +318,14 @@ int main(int argc, char *argv[argc])
                 exit(EXIT_FAILURE);
         } 
 
-        char *email = argv[--argc];
-        argv[argc] = NULL;
-
-        char password[128];
-        get_password(128, password);
-
         static struct cgfs_context context;
+
+        // Pop email from argv
+        char *email = argv[argc - 1];
+
+        size_t pass_max = 128;
+        char password[pass_max];
+        get_password(pass_max, password);
 
         context.login_token = cgapi_login(email, password);
         if (context.login_token == NULL) {
@@ -332,10 +333,11 @@ int main(int argc, char *argv[argc])
                 exit(EXIT_FAILURE);
         }
 
-        context.open_files = dict_create(1 << 8);
-        if (context.open_files == NULL) {
-                printf("%s: ", argv[0]);
-                perror("dict_create");
+        // Clear memory
+        memset(password, 0, pass_max);
+
+        if (cgapi_get_courses(context.login_token, &context.file_tree) < 0) {
+                fprintf(stderr, "%s: couldn't load courses", argv[0]);
                 exit(EXIT_FAILURE);
         }
 
@@ -353,6 +355,10 @@ int main(int argc, char *argv[argc])
                 .flush = cgfs_flush,
                 .unlink = cgfs_unlink,
         };
+
+        // Disable multithreaded FUSE, overriding the email address in argv.
+        argv[argc - 1] = argv[argc - 2];
+        argv[argc - 2] = "-s";
 
         return fuse_main(argc, argv, &fuse_ops, &context);
 }
