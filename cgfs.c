@@ -1,5 +1,4 @@
 #include "cgapi.h"
-#include "dict.h"
 
 #include <errno.h>
 #include <stdbool.h>
@@ -15,6 +14,7 @@
 
 #define FUSE_USE_VERSION 30
 #include <fuse.h>
+#include <jansson.h>
 
 // Be careful! This macro RETURNs if malloc fails.
 // Make sure this doesn't cause any leaks!
@@ -49,7 +49,7 @@
 
 struct cgfs_context {
         cgapi_token_t login_token;
-        struct dict *open_files;
+        json_t *file_tree;
 };
 
 #define CGFS_CONTEXT ((struct cgfs_context *) fuse_get_context()->private_data)

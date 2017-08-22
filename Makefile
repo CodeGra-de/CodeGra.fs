@@ -14,7 +14,7 @@ CGFS_BASE_URL ?= https://codegra.de/api/v1
 all: cgfs
 
 cgfs: CFLAGS += -DNDEBUG -DCGFS_BASE_URL='"$(CGFS_BASE_URL)"'
-cgfs: dict.o cgapi.o
+cgfs: cgapi.o
 
 # FIXME: Temporarily disabled -fsanitize=address as it is broken on the latest
 # version of Linux. A patch has been mergeerd in the Linux kernel but it hasn't
