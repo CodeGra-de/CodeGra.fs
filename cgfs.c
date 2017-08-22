@@ -69,6 +69,108 @@ struct file {
         char *buf;
 };
 
+static int cgfs_is_directory(json_t *dir)
+{
+        if (!json_is_object(dir)) return 0;
+
+        json_t *entries = json_object_get(dir, "entries");
+
+        return entries != NULL && json_is_array(entries);
+}
+
+static int cgfs_is_empty_path(const char *path)
+{
+        return path[0] == '\0' || (path[0] == '/' && path[1] == '\0');
+
+static int cgfs_get_file_in_dir(json_t *dir, const char *name, json_t **dest)
+{
+        *dest = NULL;
+
+        if (!cgfs_is_directory(dir)) return ENOTDIR;
+
+        json_array_foreach(entries, idx, entry) {
+                if (!json_is_object(entry)) continue;
+
+                json_t *j_name = json_object_get(entry, "name");
+                if (j_name == NULL || !json_is_string(j_name)) continue;
+
+                if (strcmp(json_string_value(j_name), name) == 0) {
+                        *dest = entry;
+                        return 0;
+                }
+        }
+
+        return ENOENT;
+}
+
+static int cgfs_next_part_in_path(json_t *dir, const char **path, json_t **dest)
+{
+        *dest = NULL;
+
+        if (path[0] == '/') (*path)++;
+
+        const char *sep = strchr(*path, '/');
+        if (sep == NULL) {
+                sep = strchr(*path, '\0');
+                if (sep == NULL) return ENOENT;
+        }
+
+        size_t len = sep - *path;
+        char name[len];
+        memcpy(name, *path, len);
+        part[len] = '\0';
+
+        int status = cgfs_get_file_in_dir(dir, course_name, dest);
+
+        if (status == 0) *path = sep;
+
+        return status;
+}
+
+static int cgfs_get_file_by_path(const char *path, json_t **dest)
+{
+        *dest = CGFS_CONTEXT->file_tree;
+
+        if (cgfs_is_empty_path(path)) return 0;
+
+        int err;
+
+        err = cgfs_next_part_in_path(*dest, &path, dest);
+        if (err) return err;
+        if (cgfs_is_empty_path(path)) return 0;
+
+        err = cgfs_next_part_in_path(*dest, &path, dest);
+        if (err) return err;
+        if (cgfs_is_empty_path(path)) return 0;
+
+        json_t *submission;
+        err = cgfs_next_part_in_path(*dest, &path, &submission);
+        if (err) {
+                cgfs_get_assignment_submissions(*dest);
+                err = cgfs_next_part_in_path(*dest, &path, &submission);
+                if (err) return err;
+        }
+        *dest = submission;
+
+        if (cgfs_is_empty_path(path)) return 0;
+        if (!cgfs_is_directory(*dest)) return ENOTDIR;
+
+        json_t *entry;
+        err = cgfs_next_part_in_path(*dest, &path, &entry);
+        if (err) {
+                cgfs_get_submission_files(*dest);
+                err = cgfs_next_part_in_path(*dest, &path, &entry);
+                if (err) return err;
+        }
+        *dest = entry;
+
+        if (cgfs_is_empty_path(path)) return 0;
+
+        while ((err = cgfs_next_part_in_path(*dest, &path, dest)) == 0 && path[0] != '\0');
+
+        return 0;
+}
+
 int cgfs_getattr(const char *path, struct stat *st)
 {
         UNUSED(path);
