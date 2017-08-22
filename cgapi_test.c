@@ -130,6 +130,8 @@ void test_cgapi_get_courses(void)
                 }
         }
 
+        json_decref(courses);
+
         cgapi_logout(tok);
 }
 
@@ -194,7 +196,7 @@ int main(void)
         test_cgapi_serialize_user();
         test_cgapi_deserialize_json();
         test_cgapi_login();
-        // test_cgapi_get_courses();
+        test_cgapi_get_courses();
         // test_cgapi_get_submissions();
         // test_cgapi_get_submission_files();
         // test_cgapi_get_file_meta();
