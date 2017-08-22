@@ -15,8 +15,8 @@
 
 #define URL_MAX 1024
 
-#ifndef BASE_URL
-#define BASE_URL "https://codegra.de/api/v1"
+#ifndef CGFS_BASE_URL
+#define CGFS_BASE_URL "https://codegra.de/api/v1"
 #endif
 
 enum req_type {
@@ -30,13 +30,13 @@ enum req_type {
 };
 
 static const char *api_routes[] = {
-                [REQ_LOGIN] = BASE_URL "/login",
-                [REQ_COURSES] = BASE_URL "/courses/?extended=true",
-                [REQ_SUBMISSIONS] = BASE_URL "/assignments/%u/submissions/",
-                [REQ_FILES] = BASE_URL
+                [REQ_LOGIN] = CGFS_BASE_URL "/login",
+                [REQ_COURSES] = CGFS_BASE_URL "/courses/?extended=true",
+                [REQ_SUBMISSIONS] = CGFS_BASE_URL "/assignments/%u/submissions/",
+                [REQ_FILES] = CGFS_BASE_URL
                 "/submissions/%u/files/?path=%s&is_directory=%s&owner=auto",
-                [REQ_FILE_META] = BASE_URL "/submissions/%u/files/?path=%s",
-                [REQ_FILE] = BASE_URL "/code/%u",
+                [REQ_FILE_META] = CGFS_BASE_URL "/submissions/%u/files/?path=%s",
+                [REQ_FILE] = CGFS_BASE_URL "/code/%u",
 };
 
 struct cgapi_token {
