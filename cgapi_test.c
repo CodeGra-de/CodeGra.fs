@@ -133,49 +133,56 @@ void test_cgapi_get_courses(void)
         cgapi_logout(tok);
 }
 
-void test_cgapi_get_submissions(void) {
+void test_cgapi_get_submissions(void)
+{
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
         cgapi_logout(tok);
 }
 
-void test_cgapi_get_submission_files(void) {
+void test_cgapi_get_submission_files(void)
+{
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
         cgapi_logout(tok);
 }
 
-void test_cgapi_get_file_meta(void) {
+void test_cgapi_get_file_meta(void)
+{
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
         cgapi_logout(tok);
 }
 
-void test_cgapi_get_file_buf(void) {
+void test_cgapi_get_file_buf(void)
+{
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
         cgapi_logout(tok);
 }
 
-void test_cgapi_patch_file_buf(void) {
+void test_cgapi_patch_file_buf(void)
+{
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
         cgapi_logout(tok);
 }
 
-void test_cgapi_post_file(void) {
+void test_cgapi_post_file(void)
+{
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
         cgapi_logout(tok);
 }
 
-void test_cgapi_unlink_file(void) {
+void test_cgapi_unlink_file(void)
+{
         cgapi_token_t tok =
                 cgapi_login("thomas_schaper@example.com", "Thomas Schaper");
 
