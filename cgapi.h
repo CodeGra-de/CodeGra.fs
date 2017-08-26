@@ -28,6 +28,6 @@ int cgapi_patch_file_buf(cgapi_token_t tok, json_t *file);
 int cgapi_post_file(cgapi_token_t tok, unsigned submission_id, const char *path,
                     int is_directory, const char *buf);
 
-int cgapi_unlink_file(cgapi_token_t tok, json_t *file);
+int cgapi_delete_file(cgapi_token_t tok, json_t *file);
 
 #endif /* CGAPI_H */

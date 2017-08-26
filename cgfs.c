@@ -59,12 +59,14 @@ struct cgfs_context {
         json_t *file_tree;
 };
 
-#define CGFS_CONTEXT ((struct cgfs_context *) fuse_get_context()->private_data)
+#define CGFS_CONTEXT ((struct cgfs_context *)fuse_get_context()->private_data)
 
 struct file {
-        int id;
+        unsigned id;
         size_t nlinks;
         bool dirty;
+
+        unsigned submission_id;
 
         // Stat data
         struct timespec mtime;
@@ -90,7 +92,8 @@ static int cgfs_is_empty_path(const char *path)
         return path[0] == '\0' || (path[0] == '/' && path[1] == '\0');
 }
 
-static int cgfs_mark_dir_entries(json_t *dir, enum cgfs_file_type type, int recursive)
+static int cgfs_mark_dir_entries(json_t *dir, enum cgfs_file_type type,
+                                 int recursive)
 {
         if (!cgfs_is_directory(dir)) return -1;
 
@@ -99,7 +102,8 @@ static int cgfs_mark_dir_entries(json_t *dir, enum cgfs_file_type type, int recu
         size_t idx;
         json_t *entry;
 
-        json_array_foreach(dir, idx, entry) {
+        json_array_foreach(entries, idx, entry)
+        {
                 json_object_set(entry, "type", json_integer(type));
 
                 if (recursive && cgfs_is_directory(entry)) {
@@ -121,7 +125,8 @@ static int cgfs_get_assignment_submissions(json_t *assignment)
         unsigned id = json_integer_value(j_id);
 
         json_t *submissions;
-        int err = cgapi_get_submissions(CGFS_CONTEXT->login_token, id, &submissions);
+        int err = cgapi_get_submissions(CGFS_CONTEXT->login_token, id,
+                                        &submissions);
         if (err) return err;
 
         if (json_object_set(assignment, "entries", submissions) < 0) {
@@ -142,7 +147,8 @@ static int cgfs_get_submission_files(json_t *submission)
         unsigned id = json_integer_value(j_id);
 
         json_t *files;
-        int err = cgapi_get_submission_files(CGFS_CONTEXT->login_token, id, &files);
+        int err = cgapi_get_submission_files(CGFS_CONTEXT->login_token, id,
+                                             &files);
         if (err) return err;
 
         if (json_object_set(submission, "entries", files) < 0) {
@@ -162,7 +168,8 @@ static int cgfs_get_file_in_dir(json_t *dir, const char *name, json_t **dest)
         size_t idx;
         json_t *entry;
 
-        json_array_foreach(entries, idx, entry) {
+        json_array_foreach(json_object_get(dir, "entries"), idx, entry)
+        {
                 if (!json_is_object(entry)) continue;
 
                 json_t *j_name = json_object_get(entry, "name");
@@ -181,7 +188,7 @@ static int cgfs_next_part_in_path(json_t *dir, const char **path, json_t **dest)
 {
         *dest = NULL;
 
-        if (path[0] == '/') (*path)++;
+        if (*path[0] == '/') (*path)++;
 
         const char *sep = strchr(*path, '/');
         if (sep == NULL) {
@@ -192,9 +199,9 @@ static int cgfs_next_part_in_path(json_t *dir, const char **path, json_t **dest)
         size_t len = sep - *path;
         char name[len];
         memcpy(name, *path, len);
-        part[len] = '\0';
+        name[len] = '\0';
 
-        int status = cgfs_get_file_in_dir(dir, course_name, dest);
+        int status = cgfs_get_file_in_dir(dir, name, dest);
 
         if (status == 0) *path = sep;
 
@@ -240,49 +247,59 @@ static int cgfs_get_file_by_path(const char *path, json_t **dest)
 
         if (cgfs_is_empty_path(path)) return 0;
 
-        while ((err = cgfs_next_part_in_path(*dest, &path, dest)) == 0 && path[0] != '\0');
+        while ((err = cgfs_next_part_in_path(*dest, &path, dest)) == 0 &&
+               path[0] != '\0')
+                ;
 
         return 0;
 }
 
 int cgfs_getattr(const char *path, struct stat *st)
 {
-        UNUSED(path);
-
         struct fuse_context *fc = fuse_get_context();
 
-        st->st_uid = fc->uid;
-        st->st_gid = fc->gid;
-        st->st_atime = time(NULL);
+        json_t *f;
+        int err = cgfs_get_file_by_path(path, &f);
+        if (err) return err;
 
-        // TODO: Get other info from server
+        json_t *j_submission_id = json_object_get(f, "submission_id");
+        if (j_submission_id == NULL) return EACCES;
+        unsigned submission_id = json_integer_value(j_submission_id);
 
-        struct file *f = dict_get(CGFS_CONTEXT->open_files, path);
-        if (f) {
-                // st->st_mtime = f->mtime;
-        } else {
-                // st->st_mtime = api_data->mtime;
+        json_t *j_mtime = json_object_get(f, "mtime");
+        if (j_mtime == NULL) {
+                int ret = cgapi_get_file_meta(CGFS_CONTEXT->login_token,
+                                              submission_id, path, f);
+                if (ret < 0) return EACCES;
         }
+
+        *st = (struct stat){
+                // .st_dev =
+                // .st_ino =
+                // .st_mode =
+                .st_nlink = 1,
+                .st_uid = fc->uid,
+                .st_gid = fc->gid,
+                // .st_rdev =
+                // .st_size =
+                // .st_blksize =
+                // .st_blocks =
+                .st_atime = time(NULL),
+                .st_mtime = json_integer_value(j_mtime),
+                .st_ctime = time(NULL),
+        };
 
         return 0;
 }
 
 int cgfs_access(const char *path, int mask)
 {
-        struct file *f = dict_get(CGFS_CONTEXT->open_files, path);
-        if (!f) {
-                // Get file from server
-                if (!f) {
-                        return EACCES;
-                }
-        }
+        json_t *f;
+        int err = cgfs_get_file_by_path(path, &f);
+        if (err) return err;
 
         if (mask == F_OK) {
                 return 0;
-        }
-
-        if (mask & W_OK) {
-                return f->is_writable ? 0 : EACCES;
         }
 
         return 0;
@@ -300,11 +317,11 @@ int cgfs_mkdir(const char *path, mode_t mode)
 
 int cgfs_rmdir(const char *path)
 {
-        UNUSED(path);
+        json_t *f;
+        int err = cgfs_get_file_by_path(path, &f);
+        if (err) return err;
 
-        // TODO: Send rmdir request to server
-
-        return 0;
+        return cgapi_delete_file(CGFS_CONTEXT->login_token, f);
 }
 
 int cgfs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler,
@@ -458,41 +475,45 @@ int cgfs_unlink(const char *path)
         return 0;
 }
 
+int sync_all(void) {}
+
 // Read a nul-terminated password into the buffer
 void get_password(size_t len, char pass[len])
 {
         printf("Enter password: ");
 
-	struct termios oflags, nflags;
-	tcgetattr(fileno(stdin), &oflags);
-	nflags = oflags;
-	nflags.c_lflag &= ~ECHO;
-	nflags.c_lflag |= ECHONL;
+        struct termios oflags, nflags;
+        tcgetattr(fileno(stdin), &oflags);
+        nflags = oflags;
+        nflags.c_lflag &= ~ECHO;
+        nflags.c_lflag |= ECHONL;
 
-	if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
-		perror("tcsetattr");
-		exit(EXIT_FAILURE);
-	}
+        if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
+                perror("tcsetattr");
+                exit(EXIT_FAILURE);
+        }
 
-	size_t i = 0;
-	int c;
-	while ((c = getchar()) != EOF && c != '\n' && i < len - 1)
-		pass[i++] = c;
+        size_t i = 0;
+        int c;
+        while ((c = getchar()) != EOF && c != '\n' && i < len - 1)
+                pass[i++] = c;
 
-	pass[i] = '\0';
+        pass[i] = '\0';
 
-	if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
-		perror("tcsetattr");
-		exit(EXIT_FAILURE);
-	}
+        if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
+                perror("tcsetattr");
+                exit(EXIT_FAILURE);
+        }
 }
 
 int main(int argc, char *argv[argc])
 {
         if (argc < 3 || argv[argc - 2][0] == '-' || argv[argc - 1][0] == '-') {
-                fprintf(stderr, "%s: last 2 arguments must be mountpoint and email, respectively\n", argv[0]);
+                fprintf(stderr, "%s: last 2 arguments must be mountpoint and "
+                                "email, respectively\n",
+                        argv[0]);
                 exit(EXIT_FAILURE);
-        } 
+        }
 
         static struct cgfs_context context;
 

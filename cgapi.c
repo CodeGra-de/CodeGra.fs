@@ -32,10 +32,12 @@ enum req_type {
 static const char *api_routes[] = {
                 [REQ_LOGIN] = CGFS_BASE_URL "/login",
                 [REQ_COURSES] = CGFS_BASE_URL "/courses/?extended=true",
-                [REQ_SUBMISSIONS] = CGFS_BASE_URL "/assignments/%u/submissions/",
+                [REQ_SUBMISSIONS] =
+                        CGFS_BASE_URL "/assignments/%u/submissions/",
                 [REQ_FILES] = CGFS_BASE_URL
                 "/submissions/%u/files/?path=%s&is_directory=%s&owner=auto",
-                [REQ_FILE_META] = CGFS_BASE_URL "/submissions/%u/files/?path=%s",
+                [REQ_FILE_META] =
+                        CGFS_BASE_URL "/submissions/%u/files/?path=%s",
                 [REQ_FILE] = CGFS_BASE_URL "/code/%u",
 };
 
@@ -478,7 +480,7 @@ print_url_failed:
         return ret;
 }
 
-int cgapi_unlink_file(cgapi_token_t tok, json_t *f)
+int cgapi_delete_file(cgapi_token_t tok, json_t *f)
 {
         int ret = -1;
 
