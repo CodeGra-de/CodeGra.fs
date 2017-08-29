@@ -1,30 +1,57 @@
-from enum import Enum
+# -*- coding: utf-8 -*-
+
+from enum import IntEnum
+from os import getenv
 
 import requests
 
-CGFS_BASE_URL = getenv('CGFS_BASE_URL', 'https://codegra.de/api/v1')
+CGAPI_BASE_URL = getenv('CGAPI_BASE_URL', 'https://codegra.de/api/v1')
 
-class APIRoutes(Enum):
-    LOGIN       = CGFS_BASE_URL + '/login'
-    COURSES     = CGFS_BASE_URL + '/courses/?extended=true'
-    SUBMISSIONS = CGFS_BASE_URL + '/assignments/%u/submissions/'
-    FILES       = CGFS_BASE_URL + '/submissions/%u/files/?path=%s&is_directory=%s&owner=auto'
-    FILE_META   = CGFS_BASE_URL + '/submissions/%u/files/?path=%s'
-    FILE        = CGFS_BASE_URL + '/code/%u'
+class APIRoutes():
+    LOGIN       = CGAPI_BASE_URL + '/login'
+    COURSES     = CGAPI_BASE_URL + '/courses/?extended=true'
+    SUBMISSIONS = CGAPI_BASE_URL + '/assignments/%u/submissions/'
+    FILES       = CGAPI_BASE_URL + '/submissions/%u/files/?owner=auto'
+    FILE        = CGAPI_BASE_URL + '/submissions/%u/files/?path=%s&is_directory=%s&owner=auto'
+    FILE_META   = CGAPI_BASE_URL + '/submissions/%u/files/?path=%s&owner=auto'
+    FILE_BUF    = CGAPI_BASE_URL + '/code/%u'
+
+
+class APICodes(IntEnum):
+    """Internal API codes that are used by :class:`APIException` objects.
+    """
+    INCORRECT_PERMISSION = 0
+    NOT_LOGGED_IN = 1
+    OBJECT_ID_NOT_FOUND = 2
+    OBJECT_WRONG_TYPE = 3
+    MISSING_REQUIRED_PARAM = 4
+    INVALID_PARAM = 5
+    REQUEST_TOO_LARGE = 6
+    LOGIN_FAILURE = 7
+    INACTIVE_USER = 8
+    INVALID_URL = 9
+    OBJECT_NOT_FOUND = 10
+    BLOCKED_ASSIGNMENT = 11
+    INVALID_CREDENTIALS = 12
+    INVALID_STATE = 13
+    INVALID_OAUTH_REQUEST = 14
+    DISABLED_FEATURE = 15
 
 
 class CGAPIException(Exception):
-    pass
+    def __init__(self, response):
+        super(CGAPIException, self).__init__(response.json())
+
 
 class CGAPI():
-    def __init__(self, user, password):
+    def __init__(self, username, password):
         r = requests.post(APIRoutes.LOGIN, json={
-            'email': user,
+            'username': username,
             'password': password,
         })
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
 
         json = r.json()
         self.access_token = r.json()['access_token']
@@ -38,7 +65,7 @@ class CGAPI():
         r = requests.get(APIRoutes.COURSES, headers=self.get_default_headers())
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
 
         return r.json()
 
@@ -47,7 +74,7 @@ class CGAPI():
         r = requests.get(url, headers=self.get_default_headers())
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
 
         return r.json()
 
@@ -56,7 +83,7 @@ class CGAPI():
         r = requests.get(url, headers=self.get_default_headers())
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
 
         return r.json()
 
@@ -65,40 +92,39 @@ class CGAPI():
         r = requests.get(url, headers=self.get_default_headers())
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
 
         return r.json()
 
-    def create_file(self, submission_id, path, is_directory, buf):
-        url = APIRoutes.FILES % (submission_id, path, is_directory)
+    def create_file(self, submission_id, path, is_directory=False, buf=None):
+        url = APIRoutes.FILE % (submission_id, path, is_directory)
         headers = self.get_default_headers()
-        del headers['Content-Type']
-        r = requests.post(url, headers=headers, data=buf)
+        r = requests.post(url, headers=self.get_default_headers(), data=buf)
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
 
         return r.json()
 
     def get_file(self, file_id):
-        url = APIRoutes.FILE % (file_id)
+        url = APIRoutes.FILE_BUF % (file_id)
         r = requests.get(url, headers=self.get_default_headers())
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
 
         return r.text
 
-    def patch_file(self, file_id):
-        url = APIRoutes.FILE % (file_id)
-        r = request.patch(url, headers=self.get_default_headers())
+    def patch_file(self, file_id, buf):
+        url = APIRoutes.FILE_BUF % (file_id)
+        r = requests.patch(url, headers=self.get_default_headers(), data=buf)
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
 
     def delete_file(self, file_id):
-        url = APIRoutes.FILE % (file_id)
-        r = request.delete(url, headers=self.get_default_headers())
+        url = APIRoutes.FILE_BUF % (file_id)
+        r = requests.delete(url, headers=self.get_default_headers())
 
         if r.status_code >= 400:
-            raise CGAPIException(r.response.data.message)
+            raise CGAPIException(r)
