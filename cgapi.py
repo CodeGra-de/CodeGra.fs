@@ -12,7 +12,7 @@ class APIRoutes():
     COURSES     = CGAPI_BASE_URL + '/courses/?extended=true'
     SUBMISSIONS = CGAPI_BASE_URL + '/assignments/%u/submissions/'
     FILES       = CGAPI_BASE_URL + '/submissions/%u/files/?owner=auto'
-    FILE        = CGAPI_BASE_URL + '/submissions/%u/files/?path=%s&is_directory=%s&owner=auto'
+    FILE        = CGAPI_BASE_URL + '/submissions/%u/files/?path=%s&owner=auto'
     FILE_META   = CGAPI_BASE_URL + '/submissions/%u/files/?path=%s&owner=auto'
     FILE_BUF    = CGAPI_BASE_URL + '/code/%u'
 
@@ -40,7 +40,11 @@ class APICodes(IntEnum):
 
 class CGAPIException(Exception):
     def __init__(self, response):
-        super(CGAPIException, self).__init__(response.json())
+        data = response.json()
+        super(CGAPIException, self).__init__(data['message'])
+
+        self.message = data['message']
+        self.code = data['code']
 
 
 class CGAPI():
@@ -96,9 +100,8 @@ class CGAPI():
 
         return r.json()
 
-    def create_file(self, submission_id, path, is_directory=False, buf=None):
-        url = APIRoutes.FILE % (submission_id, path, is_directory)
-        headers = self.get_default_headers()
+    def create_file(self, submission_id, path, buf=None):
+        url = APIRoutes.FILE % (submission_id, path)
         r = requests.post(url, headers=self.get_default_headers(), data=buf)
 
         if r.status_code >= 400:
@@ -119,6 +122,7 @@ class CGAPI():
         url = APIRoutes.FILE_BUF % (file_id)
         r = requests.patch(url, headers=self.get_default_headers(), data=buf)
 
+        print(r.json())
         if r.status_code >= 400:
             raise CGAPIException(r)
 

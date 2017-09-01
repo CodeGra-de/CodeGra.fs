@@ -18,6 +18,16 @@ from fuse import FUSE, FuseOSError, LoggingMixIn, Operations
 
 from cgapi import CGAPI, CGAPIException, APICodes
 
+def handle_cgapi_exception(ex):
+    print(ex.message)
+    if ex.code == APICodes.OBJECT_ID_NOT_FOUND:
+        raise FuseOSError(ENOENT)
+    elif ex.code == APICodes.INCORRECT_PERMISSION:
+        raise FuseOSError(EPERM)
+    else:
+        raise ex
+
+
 class DirTypes(IntEnum):
     FSROOT = 0
     COURSE = 1
@@ -47,6 +57,12 @@ class BaseFile():
                 self.stat['st_mtime'] = stat['modification_date']
 
         return self.stat
+
+    def setattr(self, key, value):
+        if self.stat is None:
+            self.getattr()
+
+        self.stat[key] = value
 
 
 class Directory(BaseFile):
@@ -102,7 +118,7 @@ class File(BaseFile):
             self.stat['st_mode'] = S_IFREG | 0o770
             self.stat['st_nlink'] = 1
 
-        self.stat['st_mtime'] = time()
+        self.stat['st_atime'] = time()
         return self.stat
 
     def open(self, buf):
@@ -117,10 +133,7 @@ class File(BaseFile):
         try:
             cgapi.patch_file(self.id, self.data)
         except CGAPIException as e:
-            if e['code'] == APICodes.OBJECT_ID_NOT_FOUND:
-                raise FuseOSError(ENOENT)
-            elif e['code'] == APICodes.INCORRECT_PERMISSION:
-                raise FuseOSError(EPERM)
+            handle_cgapi_exception(e)
 
         self.dirty = False
 
@@ -142,7 +155,6 @@ class File(BaseFile):
         self.dirty = True
 
     def write(self, data, offset):
-        print(type(self.data), type(data))
         self.data = self.data[:offset] + data
         self.stat['st_size'] = len(self.data)
         self.stat['st_atime'] = time()
@@ -176,8 +188,8 @@ class CGFS(LoggingMixIn, Operations):
     def load_submissions(self, assignment):
         try:
             submissions = cgapi.get_submissions(assignment.id)
-        except CGAPIException:
-            raise FuseOSError(ENOTDIR)
+        except CGAPIException as e:
+            handle_cgapi_exception(e)
 
         for sub in submissions:
             sub_dir = Directory(sub, name=sub['user']['name'] + ' - ' + sub['created_at'], type=DirTypes.SUBMISSION, writable=True)
@@ -197,8 +209,8 @@ class CGFS(LoggingMixIn, Operations):
     def load_submission_files(self, submission):
         try:
             files = cgapi.get_submission_files(submission.id)
-        except CGAPIException:
-            raise FuseOSError(ENOTDIR)
+        except CGAPIException as e:
+            handle_cgapi_exception(e)
         self.insert_tree(submission, files)
         submission.tld = files['name']
 
@@ -215,10 +227,7 @@ class CGFS(LoggingMixIn, Operations):
         return submission
 
     def get_file(self, path, start=None, expect_type=None):
-        if start is None:
-            start = self.files
-
-        file = start
+        file = start if start is not None else self.files
         parts = self.split_path(path) if isinstance(path, str) else path
 
         for part in parts:
@@ -266,10 +275,12 @@ class CGFS(LoggingMixIn, Operations):
 
             try:
                 fdata = cgapi.create_file(submission.id, query_path)
-            except CGAPIException:
-                raise FuseOSError(EPERM)
+            except CGAPIException as e:
+                handle_cgapi_exception(e)
 
-            file = File(fdata, name=parts[-1])
+            file = File(fdata, name=fname)
+            file.setattr('st_size', fdata['size'])
+            file.setattr('st_mtime', fdata['modification_date'])
             parent.insert(file)
 
         file.open(bytes('', 'utf8'))
@@ -288,7 +299,11 @@ class CGFS(LoggingMixIn, Operations):
         if file.stat is None and len(parts) > 3:
             submission = self.get_submission(path)
 
-            query_path = submission.tld + '/' + '/'.join(parts[3:])
+            try:
+                query_path = submission.tld + '/' + '/'.join(parts[3:])
+            except CGAPIException as e:
+                handle_cgapi_exception(e)
+
             if isinstance(file, Directory):
                 query_path += '/'
         else:
@@ -377,13 +392,28 @@ class CGFS(LoggingMixIn, Operations):
         raise FuseOSError(ENOTSUP)
 
     def rename(self, old, new):
-        parts = self.split_path(old)
-        parent = self.get_dir(parts[:-1])
-        file = parent.pop(parts[-1])
+        old_parts = self.split_path(old)
+        old_parent = self.get_dir(old_parts[:-1])
+        file = self.get_file(old_parts[-1], start=old_parent)
 
-        parts = self.split_path(new)
-        parent = self.get_dir(parts[:-1])
-        parent.insert(file)
+        new_parts = self.split_path(new)
+        new_parent = self.get_dir(new_parts[:-1])
+
+        submission = self.get_submission(old)
+        new_query_path = submission.tld + '/' + '/'.join(new_parts[3:])
+        if isinstance(file, Directory):
+            new_query_path += '/'
+        try:
+            res = cgapi.create_file(submission.id, new_query_path, buf=file.data)
+            cgapi.delete_file(file.id)
+        except CGAPIException as e:
+            handle_cgapi_exception(e)
+        file.id = res['id']
+        file.name = new_parts[-1]
+        print(res)
+
+        old_parent.pop(old_parts[-1])
+        new_parent.insert(file)
 
     def rmdir(self, path):
         parts = self.split_path(path)
@@ -424,10 +454,7 @@ class CGFS(LoggingMixIn, Operations):
         try:
             cgapi.delete_file(file.id)
         except CGAPIException as e:
-            if e.errno == APICodes.OBJECT_ID_NOT_FOUND:
-                raise FuseOSError(ENOENT)
-            elif e.errno == APICodes.INCORRECT_PERMISSION:
-                raise FuseOSError(EPERM)
+            handle_cgapi_exception(e)
 
         parent.pop(fname)
 
