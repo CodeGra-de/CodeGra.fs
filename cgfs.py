@@ -5,6 +5,7 @@ from __future__ import print_function, absolute_import, division
 
 import logging
 
+from argparse import ArgumentParser
 from collections import defaultdict
 from enum import IntEnum
 from errno import EINVAL, EISDIR, ENOENT, ENOTDIR, ENOTEMPTY, ENOTSUP, EPERM
@@ -485,13 +486,44 @@ class CGFS(LoggingMixIn, Operations):
 
 
 if __name__ == '__main__':
-    if len(argv) != 3:
-        print('usage: %s MOUNTPOINT USER' % argv[0])
-        exit(1)
+    argparser = ArgumentParser(description='CodeGra.de file system')
+    argparser.add_argument(
+        'mountpoint',
+        metavar='MOUNTPOINT',
+        type=str,
+        help='Mountpoint for the file system'
+    )
+    argparser.add_argument(
+        'username',
+        metavar='USERNAME',
+        type=str,
+        help='Your CodeGra.de username'
+    )
+    argparser.add_argument(
+        '-p',
+        '--password',
+        metavar='PASSWORD',
+        type=str,
+        dest='password',
+        help='Your CodeGra.de password'
+    )
+    argparser.add_argument(
+        '-v',
+        '--verbose',
+        dest='debug',
+        action='store_true',
+        default=False,
+        help='Verbose mode: print all system calls (produces a LOT of output).'
+    )
+    args = argparser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG)
+    mountpoint = args.mountpoint
+    username = args.username
+    password = args.password if args.password is not None else getpass()
 
-    # cgapi = CGAPI(argv[2], getpass())
-    cgapi = CGAPI(argv[2], 'Thomas Schaper')
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
 
-    fuse = FUSE(CGFS(), argv[1], foreground=True)
+    cgapi = CGAPI(username, password)
+
+    fuse = FUSE(CGFS(), mountpoint, foreground=True)
