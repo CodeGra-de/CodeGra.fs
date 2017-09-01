@@ -18,6 +18,7 @@ from fuse import FUSE, FuseOSError, LoggingMixIn, Operations
 
 from cgapi import CGAPI, CGAPIException, APICodes
 
+
 def handle_cgapi_exception(ex):
     print(ex.message)
     if ex.code == APICodes.OBJECT_ID_NOT_FOUND:
@@ -148,7 +149,9 @@ class File(BaseFile):
         if length <= self.stat['st_size']:
             self.data = data[:length]
         else:
-            self.data = data + bytes('\0' * (length - self.stat['st_size']), 'utf8')
+            self.data = data + bytes(
+                '\0' * (length - self.stat['st_size']), 'utf8'
+            )
         self.stat['st_size'] = length
         self.stat['st_atime'] = time()
         self.stat['st_mtime'] = time()
@@ -168,7 +171,12 @@ class CGFS(LoggingMixIn, Operations):
         self.files = {}
         self.fd = 0
 
-        self.files = Directory({ 'id': None, 'name': 'root' }, type=DirTypes.FSROOT)
+        self.files = Directory(
+            {
+                'id': None,
+                'name': 'root'
+            }, type=DirTypes.FSROOT
+        )
         self.files.getattr()
         self.load_courses()
 
@@ -192,7 +200,12 @@ class CGFS(LoggingMixIn, Operations):
             handle_cgapi_exception(e)
 
         for sub in submissions:
-            sub_dir = Directory(sub, name=sub['user']['name'] + ' - ' + sub['created_at'], type=DirTypes.SUBMISSION, writable=True)
+            sub_dir = Directory(
+                sub,
+                name=sub['user']['name'] + ' - ' + sub['created_at'],
+                type=DirTypes.SUBMISSION,
+                writable=True
+            )
             sub_dir.getattr()
             assignment.insert(sub_dir)
 
@@ -386,7 +399,6 @@ class CGFS(LoggingMixIn, Operations):
             if isinstance(file, File):
                 file.release()
 
-
     # TODO?: Add xattr support
     def removexattr(self, path, name):
         raise FuseOSError(ENOTSUP)
@@ -404,7 +416,9 @@ class CGFS(LoggingMixIn, Operations):
         if isinstance(file, Directory):
             new_query_path += '/'
         try:
-            res = cgapi.create_file(submission.id, new_query_path, buf=file.data)
+            res = cgapi.create_file(
+                submission.id, new_query_path, buf=file.data
+            )
             cgapi.delete_file(file.id)
         except CGAPIException as e:
             handle_cgapi_exception(e)
@@ -468,6 +482,7 @@ class CGFS(LoggingMixIn, Operations):
     def write(self, path, data, offset, fh):
         file = self.get_file(path, expect_type=File)
         return file.write(data, offset)
+
 
 if __name__ == '__main__':
     if len(argv) != 3:
