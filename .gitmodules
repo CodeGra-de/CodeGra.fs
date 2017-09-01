@@ -1,0 +1,3 @@
+[submodule "bats"]
+	path = bats
+	url = gh:sstephenson/bats
