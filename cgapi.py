@@ -14,7 +14,7 @@ class APIRoutes():
     SUBMISSIONS = CGAPI_BASE_URL + '/assignments/{assignment_id}/submissions/'
     FILES = CGAPI_BASE_URL + '/submissions/{submission_id}/files/?owner=auto'
     FILE = CGAPI_BASE_URL + '/submissions/{submission_id}/files/?path={path}&owner=auto'
-    FILE_BUF = CGAPI_BASE_URL + '/code/%u'
+    FILE_BUF = CGAPI_BASE_URL + '/code/{file_id}'
 
 
 class APICodes(IntEnum):
@@ -125,7 +125,6 @@ class CGAPI():
         url = APIRoutes.FILE_BUF.format(file_id=file_id)
         r = requests.patch(url, headers=self.get_default_headers(), data=buf)
 
-        print(r.json())
         if r.status_code >= 400:
             raise CGAPIException(r)
 

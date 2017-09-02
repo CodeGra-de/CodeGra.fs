@@ -10,4 +10,4 @@ format:
 
 .PHONY: test
 test:
-	bats/bin/bats cgfs.bats
+	./bats/bin/bats ./test/*.bats

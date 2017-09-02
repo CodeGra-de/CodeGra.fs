@@ -477,8 +477,8 @@ class CGFS(LoggingMixIn, Operations):
         file = self.get_file(path)
 
         atime, mtime = times if times else (time(), time())
-        files[path]['st_atime'] = atime
-        files[path]['st_mtime'] = mtime
+        file.setattr('st_atime', atime)
+        file.setattr('st_mtime', mtime)
 
     def write(self, path, data, offset, fh):
         file = self.get_file(path, expect_type=File)
@@ -488,16 +488,16 @@ class CGFS(LoggingMixIn, Operations):
 if __name__ == '__main__':
     argparser = ArgumentParser(description='CodeGra.de file system')
     argparser.add_argument(
-        'mountpoint',
-        metavar='MOUNTPOINT',
-        type=str,
-        help='Mountpoint for the file system'
-    )
-    argparser.add_argument(
         'username',
         metavar='USERNAME',
         type=str,
         help='Your CodeGra.de username'
+    )
+    argparser.add_argument(
+        'mountpoint',
+        metavar='MOUNTPOINT',
+        type=str,
+        help='Mountpoint for the file system'
     )
     argparser.add_argument(
         '-p',
@@ -526,4 +526,4 @@ if __name__ == '__main__':
 
     cgapi = CGAPI(username, password)
 
-    fuse = FUSE(CGFS(), mountpoint, foreground=True)
+    fuse = FUSE(CGFS(), mountpoint, nothreads=True, foreground=True)
