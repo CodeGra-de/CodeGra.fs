@@ -82,7 +82,7 @@ class Directory(BaseFile):
             self.stat['st_mode'] = S_IFDIR | mode
             self.stat['st_nlink'] = 2
 
-        self.stat['st_mtime'] = time()
+        self.stat['st_atime'] = time()
         return self.stat
 
     def insert(self, file):
@@ -343,7 +343,8 @@ class CGFS(LoggingMixIn, Operations):
             raise FuseOSError(EEXIST)
 
         submission = self.get_submission(path)
-        ddata = cgapi.create_file(submission.id, path, is_directory=True)
+        query_path = submission.tld + '/' + '/'.join(parts[3:]) + '/'
+        ddata = cgapi.create_file(submission.id, query_path)
 
         parent.insert(Directory(ddata, name=dname, writable=True))
 
@@ -425,7 +426,6 @@ class CGFS(LoggingMixIn, Operations):
             handle_cgapi_exception(e)
         file.id = res['id']
         file.name = new_parts[-1]
-        print(res)
 
         old_parent.pop(old_parts[-1])
         new_parent.insert(file)

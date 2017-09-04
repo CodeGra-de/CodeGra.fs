@@ -43,6 +43,7 @@ class CGAPIException(Exception):
         data = response.json()
         super(CGAPIException, self).__init__(data['message'])
 
+        self.description = data['description']
         self.message = data['message']
         self.code = data['code']
 
