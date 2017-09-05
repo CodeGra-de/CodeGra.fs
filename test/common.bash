@@ -17,6 +17,23 @@ admin_user="robin"
 admin_pass="Robin"
 admin_jwt=$(http post :5000/api/v1/login username="$admin_user" password="$admin_pass" | jq -r .access_token)
 
+mount_cgfs()
+{
+	./cgfs.py --verbose --password "$password" "$username" "$mount_dir" &
+	while ! [ -d "$mount_dir/Programmeertalen" ]; do :; done
+}
+
+unmount_cgfs()
+{
+	fusermount -u "$mount_dir"
+}
+
+remount_cgfs()
+{
+	unmount_cgfs
+	mount_cgfs
+}
+
 setup()
 {
 	assignments=$(http :5000/api/v1/assignments/ Authorization:Bearer\ $student_jwt)
@@ -29,8 +46,7 @@ setup()
 	http patch :5000/api/v1/assignments/$assignment_id Authorization:Bearer\ $teacher_jwt state=done deadline=$(date --date=now +'%Y-%m-%dT%H:%M')
 
 	mount_dir=$(mktemp -d)
-	./cgfs.py --verbose --password "$password" "$username" "$mount_dir" &
-	while ! [ -d "$mount_dir/Programmeertalen" ]; do :; done
+	mount_cgfs
 
 	assig_open="$mount_dir/Programmeertalen/Python"
 	assig_done="$mount_dir/Programmeertalen/Shell"
@@ -40,7 +56,7 @@ setup()
 
 teardown()
 {
-	fusermount -u "$mount_dir"
+	unmount_cgfs
 	rm -rf "$mount_dir"
 
 	http delete :5000/api/v1/submissions/$sub1_id Authorization:Bearer\ $admin_jwt

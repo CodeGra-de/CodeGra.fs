@@ -16,7 +16,7 @@ password=$student_pass
 }
 
 @test "list submissions as student" {
-	for submission in "$mount_dir/Programmeertalen/"**/*; do
+	for submission in "$mount_dir/Programmeertalen"/*/*; do
 		grep "^/.*/.*/.*/.*/Stupid1" <<<"$submission"
 	done
 }
@@ -59,11 +59,77 @@ password=$student_pass
 	rm "$sub_open/file1"
 }
 
-@test "read directory as student" {
+@test "read directories as student" {
+	ls_done=$(ls -1 "$sub_done")
+	grep '^dir$' <<<"$ls_done"
+	grep '^dir2$' <<<"$ls_done"
+
+	ls_done=$(ls -1 "$sub_done/dir")
+	grep '^single_file_work$' <<<"$ls_done"
+	grep '^single_file_work_copy$' <<<"$ls_done"
+
+	ls_done=$(ls -1 "$sub_done/dir2")
+	grep '^single_file_work$' <<<"$ls_done"
+	grep '^single_file_work_copy$' <<<"$ls_done"
+
+	ls_open=$(ls -1 "$sub_open")
+	grep '^dir$' <<<"$ls_open"
+	grep '^dir2$' <<<"$ls_open"
+
+	ls_open=$(ls -1 "$sub_open/dir")
+	grep '^single_file_work$' <<<"$ls_open"
+	grep '^single_file_work_copy$' <<<"$ls_open"
+
+	ls_open=$(ls -1 "$sub_open/dir2")
+	grep '^single_file_work$' <<<"$ls_open"
+	grep '^single_file_work_copy$' <<<"$ls_open"
+
+	run ls "$sub_open/dir3"
+	[ "$status" != 0 ]
 }
 
-@test "make directory as student" {
+@test "make directories as student" {
+	run mkdir "$sub_done/dir"
+	[ "$status" != 0 ]
+
+	run mkdir "$sub_done/dir1"
+	[ "$status" != 0 ]
+
+	run mkdir "$sub_open/dir"
+	[ "$status" != 0 ]
+
+	mkdir "$sub_open/dir1"
+	[ -d "$sub_open/dir1" ]
+
+	mkdir -p "$sub_open/dir3/dir4"
+	[ -d "$sub_open/dir3" ]
+	[ -d "$sub_open/dir3/dir4" ]
 }
 
-@test "delete directory as student" {
+@test "delete directories as student" {
+	run rm "$sub_done/dir"
+	[ "$status" != 0 ]
+	[ -d "$sub_done/dir" ]
+
+	run rm -r "$sub_done/dir"
+	[ "$status" != 0 ]
+	[ -d "$sub_done/dir" ]
+	[ -f "$sub_done/dir/single_file_work" ]
+	[ -f "$sub_done/dir/single_file_work_copy" ]
+
+	run rm "$sub_open/dir"
+	[ "$status" != 0 ]
+	[ -d "$sub_open/dir" ]
+
+	run rmdir "$sub_open/dir"
+	[ "$status" != 0 ]
+	[ -d "$sub_open/dir" ]
+
+	# rm -r "$sub_open/dir"
+	# ! [ -d "$sub_open/dir" ]
+
+	# mkdir "$sub_open/dir"
+	# [ -d "$sub_open/dir" ]
+	# rmdir "$sub_open/dir"
+	# ! [ -d "$sub_open/dir" ]
 }

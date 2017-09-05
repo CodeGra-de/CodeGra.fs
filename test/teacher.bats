@@ -26,12 +26,12 @@ password=$teacher_pass
 
 @test "list submissions as teacher" {
 	for course in "Besturingssystemen" "Programmeertalen"; do
-		for submission in "$mount_dir/$course/"**/*; do
+		for submission in "$mount_dir/$course"/*/*; do
 			grep "^/.*/.*/.*/.*/Stupid[1-4]" <<<"$submission"
 		done
 	done
 
-	for submission in "$mount_dir/Project Software Engineering/"**/*; do
+	for submission in "$mount_dir/Project Software Engineering"/*/*; do
 		grep "^/.*/.*/.*/.*/Thomas Schaper" <<<"$submission"
 	done
 }
@@ -70,16 +70,88 @@ password=$teacher_pass
 }
 
 @test "delete files as teacher" {
-	echo abc >"$sub_done/file1"
+	run rm "$sub_open/dir/single_file_work"
 	[ "$status" != 0 ]
-	rm "$sub_done/file1"
+	[ -f "$sub_open/dir/single_file_work" ]
+
+	run rm "$sub_done/nonexistant_file"
+	[ "$status" != 0 ]
+
+	rm "$sub_done/dir/single_file_work"
+	! [ -f "$sub_done/dir/single_file_work" ]
 }
 
-@test "read directory as teacher" {
+@test "read directories as teacher" {
+	ls_done=$(ls -1 "$sub_done")
+	grep '^dir$' <<<"$ls_done"
+	grep '^dir2$' <<<"$ls_done"
+
+	ls_done=$(ls -1 "$sub_done/dir")
+	grep '^single_file_work$' <<<"$ls_done"
+	grep '^single_file_work_copy$' <<<"$ls_done"
+
+	ls_done=$(ls -1 "$sub_done/dir2")
+	grep '^single_file_work$' <<<"$ls_done"
+	grep '^single_file_work_copy$' <<<"$ls_done"
+
+	ls_open=$(ls -1 "$sub_open")
+	grep '^dir$' <<<"$ls_open"
+	grep '^dir2$' <<<"$ls_open"
+
+	ls_open=$(ls -1 "$sub_open/dir")
+	grep '^single_file_work$' <<<"$ls_open"
+	grep '^single_file_work_copy$' <<<"$ls_open"
+
+	ls_open=$(ls -1 "$sub_open/dir2")
+	grep '^single_file_work$' <<<"$ls_open"
+	grep '^single_file_work_copy$' <<<"$ls_open"
+
+	run ls "$sub_open/dir3"
+	[ "$status" != 0 ]
 }
 
-@test "make directory as teacher" {
+@test "make directories as teacher" {
+	run mkdir "$sub_open/dir"
+	[ "$status" != 0 ]
+
+	run mkdir "$sub_open/dir1"
+	[ "$status" != 0 ]
+
+	run mkdir "$sub_done/dir"
+	[ "$status" != 0 ]
+
+	mkdir "$sub_done/dir1"
+	[ -d "$sub_done/dir1" ]
+
+	mkdir -p "$sub_done/dir3/dir4"
+	[ -d "$sub_done/dir3" ]
+	[ -d "$sub_done/dir3/dir4" ]
 }
 
-@test "delete directory as teacher" {
+@test "delete directories as teacher" {
+	run rm "$sub_open/dir"
+	[ "$status" != 0 ]
+	[ -d "$sub_open/dir" ]
+
+	run rm -r "$sub_open/dir"
+	[ "$status" != 0 ]
+	[ -d "$sub_open/dir" ]
+	[ -f "$sub_open/dir/single_file_work" ]
+	[ -f "$sub_open/dir/single_file_work_copy" ]
+
+	run rm "$sub_done/dir"
+	[ "$status" != 0 ]
+	[ -d "$sub_done/dir" ]
+
+	run rmdir "$sub_done/dir"
+	[ "$status" != 0 ]
+	[ -d "$sub_done/dir" ]
+
+	# rm -r "$sub_done/dir"
+	# ! [ -d "$sub_done/dir" ]
+
+	# mkdir "$sub_done/dir"
+	# [ -d "$sub_done/dir" ]
+	# rmdir "$sub_done/dir"
+	# ! [ -d "$sub_done/dir" ]
 }
