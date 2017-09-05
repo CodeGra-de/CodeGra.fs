@@ -433,9 +433,15 @@ class CGFS(LoggingMixIn, Operations):
     def rmdir(self, path):
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
+        dir = self.get_file(parts[-1], start=parent)
 
-        if len(parent.children) != 0:
+        if len(dir.children) != 0:
             raise FuseOSError(ENOTEMPTY)
+
+        try:
+            cgapi.delete_file(dir.id)
+        except CGAPIException as e:
+            handle_cgapi_exception(e)
 
         parent.pop(parts[-1])
 
