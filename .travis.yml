@@ -39,11 +39,13 @@ before_script:
   - export PYTHONPATH="$PYTHONPATH:$(pwd)"
   - export DEBUG=true
   - psql -c 'create database travis_ci_test;' -U postgres
-  - export PYTHON=python && cd backend && make db_upgrade && make test_data && ( make start_dev_server > ../server.log 2>&1 & ) && cd ..
+  - export PYTHON=python
+  - cd backend
+  - make db_upgrade
+  - make test_data
+  - make start_dev_server &
+  - cd ..
   - sleep 6
 
 script:
   - make test
-
-after_script:
-  - cat server.log

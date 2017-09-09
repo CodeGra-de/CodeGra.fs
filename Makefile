@@ -1,4 +1,5 @@
 export PYTHONPATH=$(CURDIR)
+PYTEST?=pytest
 
 .PHONY: install_deps
 install_deps:
@@ -10,4 +11,4 @@ format:
 
 .PHONY: test
 test:
-	./bats/bin/bats ./test/*.bats --pretty
+	$(PYTEST) test/ -vvvvvvvvv
