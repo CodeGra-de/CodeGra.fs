@@ -1,23 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, absolute_import, division
+from __future__ import division, print_function, absolute_import
 
 import logging
-
-from argparse import ArgumentParser
-from collections import defaultdict
+from os import O_EXCL, O_CREAT, O_TRUNC
 from enum import IntEnum
-from errno import EINVAL, EISDIR, ENOENT, ENOTDIR, ENOTEMPTY, ENOTSUP, EPERM
-from getpass import getpass
-from os import O_CREAT, O_EXCL, O_RDONLY, O_RDWR, O_TRUNC, O_WRONLY
 from stat import S_IFDIR, S_IFREG
-from sys import argv, exit
 from time import time
+from errno import (
+    EPERM, EEXIST, EINVAL, EISDIR, ENOENT, ENOTDIR, ENOTSUP, ENOTEMPTY
+)
+from getpass import getpass
+from argparse import ArgumentParser
 
-from fuse import FUSE, FuseOSError, LoggingMixIn, Operations
-
-from cgapi import CGAPI, CGAPIException, APICodes
+from fuse import FUSE, Operations, FuseOSError, LoggingMixIn
+from cgapi import CGAPI, APICodes, CGAPIException
 
 
 def handle_cgapi_exception(ex):

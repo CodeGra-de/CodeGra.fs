@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from enum import IntEnum
 from os import getenv
+from enum import IntEnum
 
 import requests
 
@@ -61,7 +61,6 @@ class CGAPI():
         if r.status_code >= 400:
             raise CGAPIException(r)
 
-        json = r.json()
         self.access_token = r.json()['access_token']
 
     def get_default_headers(self):
