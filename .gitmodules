@@ -1,3 +1,3 @@
 [submodule "bats"]
 	path = bats
-	url = gh:sstephenson/bats
+	url = https://github.com/sstephenson/bats.git

@@ -147,11 +147,11 @@ password=$teacher_pass
 	[ "$status" != 0 ]
 	[ -d "$sub_done/dir" ]
 
-	# rm -r "$sub_done/dir"
-	# ! [ -d "$sub_done/dir" ]
+	rm -r "$sub_done/dir"
+	! [ -d "$sub_done/dir" ]
 
-	# mkdir "$sub_done/dir"
-	# [ -d "$sub_done/dir" ]
-	# rmdir "$sub_done/dir"
-	# ! [ -d "$sub_done/dir" ]
+	mkdir "$sub_done/dir"
+	[ -d "$sub_done/dir" ]
+	rmdir "$sub_done/dir"
+	! [ -d "$sub_done/dir" ]
 }
