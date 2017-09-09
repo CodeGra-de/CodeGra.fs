@@ -1,12 +1,12 @@
-import contextlib
-import copy
-import datetime
-import json
 import os
-import subprocess
 import sys
-import tempfile
+import copy
+import json
 import time
+import datetime
+import tempfile
+import contextlib
+import subprocess
 
 import pytest
 import requests

@@ -1,6 +1,6 @@
 import pytest
 
-from helpers import isdir, isfile, join, ls, mkdir, rm, rm_rf, rmdir
+from helpers import ls, rm, join, isdir, mkdir, rm_rf, rmdir, isfile
 
 
 @pytest.fixture(autouse=True)
@@ -78,6 +78,11 @@ def test_write_and_read_files(mount_dir, sub_open, sub_done):
     with open(join(sub_open, 'file1'), 'r') as f:
         assert f.read() == 'def\ndef\n'
 
+    with pytest.raises(PermissionError):
+        with open(join(sub_done, 'file1'), 'a') as f:
+            f.write('def\n')
+    assert not isfile(sub_done, 'file1')
+
 
 def test_delete_files(mount_dir, sub_open, sub_done):
     with open(join(sub_open, 'file1'), 'w') as f:
@@ -110,6 +115,7 @@ def test_read_directories(mount_dir, sub_done, sub_open):
 
         with pytest.raises(FileNotFoundError):
             ls(sub, 'dir3')
+
 
 def test_make_directories(mount_dir, sub_done, sub_open):
     with pytest.raises(FileExistsError):
