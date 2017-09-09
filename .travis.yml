@@ -51,9 +51,12 @@ before_script:
   - cd backend
   - make db_upgrade
   - make test_data
-  - make start_dev_server &
+  - make start_dev_server > ../server.log 2>&1 &
   - cd ..
   - sleep 6
 
 script:
   - make test
+
+after_script:
+  cat server.log
