@@ -1,5 +1,5 @@
 language: python
-sudo: false
+sudo: required
 notifications:
   email: false
 
@@ -10,7 +10,9 @@ branches:
   only:
     - master
 
-cache: pip
+cache:
+  pip: true
+  apt: true
 
 matrix:
   include:
@@ -20,6 +22,12 @@ addons:
   apt:
     packages:
       - jq
+
+before_install:
+  - sudo apt-get install -qq pkg-config fuse
+  - sudo modprobe fuse
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
 
 install:
   - pip install -U wheel
