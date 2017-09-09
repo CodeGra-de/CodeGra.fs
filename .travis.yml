@@ -1,0 +1,49 @@
+language: python
+sudo: false
+notifications:
+  email: false
+
+services:
+  - postgresql
+
+branches:
+  only:
+    - master
+
+cache: pip
+
+matrix:
+  include:
+    - python: "3.6-dev" # 3.6 development branch
+
+addons:
+  apt:
+    packages:
+      - jq
+
+install:
+  - pip install -U wheel
+  - pip install coveralls pytest-cov
+  - pip install codecov
+  - pip install -r requirements.txt
+  - git clone  -b fix-fs-api-bugs https://github.com/CodeGra-de/CodeGra.de.git backend
+  - pip install -r backend/requirements.txt
+
+before_script:
+  - pwd
+  - ls
+  - echo -e '[Back-end]\nsqlalchemy_database_uri = postgresql:///travis_ci_test\nDEBUG = true' > backend/config.ini
+  - mkdir -p backend/uploads
+  - mkdir -p backend/mirror_uploads
+  - python --version
+  - export PYTHONPATH="$PYTHONPATH:$(pwd)"
+  - export DEBUG=true
+  - psql -c 'create database travis_ci_test;' -U postgres
+  - export PYTHON=python && cd backend && make db_upgrade && make test_data && ( make start_dev_server > ../server.log 2>&1 & ) && cd ..
+  - sleep 6
+
+script:
+  - make test
+
+after_script:
+  - cat server.log

@@ -1,5 +1,3 @@
-. env/bin/activate
-
 export CGAPI_BASE_URL=http://localhost:5000/api/v1
 
 mount_dir=
@@ -16,16 +14,21 @@ student_jwt=$(http post :5000/api/v1/login username="$student_user" password="$s
 admin_user="robin"
 admin_pass="Robin"
 admin_jwt=$(http post :5000/api/v1/login username="$admin_user" password="$admin_pass" | jq -r .access_token)
+export CGFS_PID=-1
 
 mount_cgfs()
 {
-	./cgfs.py --verbose --password "$password" "$username" "$mount_dir" &
+	./cgfs.py --verbose --password "$password" "$username" "$mount_dir" 3>- &
+        CGFS_PID="$!"
+        sleep 1
 	while ! [ -d "$mount_dir/Programmeertalen" ]; do :; done
+        sleep 1
 }
 
 unmount_cgfs()
 {
 	fusermount -u "$mount_dir"
+        kill "$CGFS_PID"
 }
 
 remount_cgfs()
