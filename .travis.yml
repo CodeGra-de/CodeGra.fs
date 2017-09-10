@@ -60,3 +60,7 @@ script:
 
 after_script:
   cat server.log
+
+after_success:
+  - coveralls
+  - codecov

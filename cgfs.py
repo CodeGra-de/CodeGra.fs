@@ -131,13 +131,16 @@ class File(BaseFile):
             return
 
         try:
-            cgapi.patch_file(self.id, self.data)
+            res = cgapi.patch_file(self.id, self.data)
         except CGAPIException as e:
+            self.data = None
+            self.dirty = False
             handle_cgapi_exception(e)
 
         self.dirty = False
+        return res
 
-    def read(self, offset, length):
+    def read(self, offset, length):  # pragma: no cover
         pass
 
     def release(self):
@@ -195,7 +198,7 @@ class CGFS(LoggingMixIn, Operations):
     def load_submissions(self, assignment):
         try:
             submissions = cgapi.get_submissions(assignment.id)
-        except CGAPIException as e:
+        except CGAPIException as e:  # pragma: no cover
             handle_cgapi_exception(e)
 
         for sub in submissions:
@@ -243,10 +246,10 @@ class CGFS(LoggingMixIn, Operations):
         parts = self.split_path(path) if isinstance(path, str) else path
 
         for part in parts:
-            if part == '':
+            if part == '':  # pragma: no cover
                 continue
 
-            if not isinstance(file, Directory):
+            if not isinstance(file, Directory):  # pragma: no cover
                 raise FuseOSError(ENOTDIR)
 
             if len(file.children) == 0:
@@ -276,6 +279,9 @@ class CGFS(LoggingMixIn, Operations):
 
     def create(self, path, mode):
         parts = self.split_path(path)
+        if len(parts) <= 3:
+            raise FuseOSError(EPERM)
+
         parent = self.get_dir(parts[:-1])
         fname = parts[-1]
 
@@ -302,7 +308,9 @@ class CGFS(LoggingMixIn, Operations):
 
     def flush(self, path, fh=None):
         file = self.get_file(path, expect_type=File)
-        file.flush()
+        res = file.flush()
+        if res is not None:
+            file.id = res['id']
 
     def getattr(self, path, fh=None):
         parts = self.split_path(path)
@@ -329,7 +337,7 @@ class CGFS(LoggingMixIn, Operations):
         raise FuseOSError(ENOTSUP)
 
     # TODO?: Add xattr support
-    def listxattr(self, path):
+    def listxattr(self, path):  # pragma: no cover
         raise FuseOSError(ENOTSUP)
 
     def mkdir(self, path, mode):
@@ -337,7 +345,8 @@ class CGFS(LoggingMixIn, Operations):
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
 
-        if dname in parent.children:
+        # Fuse should handle this but better save than sorry
+        if dname in parent.children:  # pragma: no cover
             raise FuseOSError(EEXIST)
 
         submission = self.get_submission(path)
@@ -359,7 +368,8 @@ class CGFS(LoggingMixIn, Operations):
                 raise FuseOSError(ENOENT)
             return self.create(path, 0o770)
         else:
-            if flags & (O_CREAT & O_EXCL):
+            # This should be handled by FUSE.
+            if flags & (O_CREAT & O_EXCL):  # pragma: no cover
                 raise FuseOSError(EEXIST)
 
         if file.data is None:
@@ -413,8 +423,10 @@ class CGFS(LoggingMixIn, Operations):
 
         submission = self.get_submission(old)
         new_query_path = submission.tld + '/' + '/'.join(new_parts[3:])
+
         if isinstance(file, Directory):
             new_query_path += '/'
+
         try:
             res = cgapi.create_file(
                 submission.id, new_query_path, buf=file.data
@@ -422,6 +434,7 @@ class CGFS(LoggingMixIn, Operations):
             cgapi.delete_file(file.id)
         except CGAPIException as e:
             handle_cgapi_exception(e)
+
         file.id = res['id']
         file.name = new_parts[-1]
 
@@ -458,7 +471,7 @@ class CGFS(LoggingMixIn, Operations):
         raise FuseOSError(EPERM)
 
     def truncate(self, path, length, fh=None):
-        if length < 0:
+        if length < 0:  # pragma: no cover
             raise FuseOSError(EINVAL)
 
         file = self.get_file(path, expect_type=File)
@@ -480,7 +493,7 @@ class CGFS(LoggingMixIn, Operations):
     def utimens(self, path, times=None):
         file = self.get_file(path)
 
-        atime, mtime = times if times else (time(), time())
+        atime, mtime = times or (time(), time())
         file.setattr('st_atime', atime)
         file.setattr('st_mtime', mtime)
 

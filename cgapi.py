@@ -128,6 +128,8 @@ class CGAPI():
         if r.status_code >= 400:
             raise CGAPIException(r)
 
+        return r.json()
+
     def delete_file(self, file_id):
         url = APIRoutes.FILE_BUF.format(file_id=file_id)
         r = requests.delete(url, headers=self.get_default_headers())

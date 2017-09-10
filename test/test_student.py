@@ -61,6 +61,13 @@ def test_create_files(mount_dir, sub_open, sub_done):
 
 
 def test_write_and_read_files(mount_dir, sub_open, sub_done):
+    assert isfile(sub_open, 'dir', 'single_file_work')
+    with open(join(sub_open, 'dir', 'single_file_work'), 'w') as f:
+        f.write('abc\n')
+    assert isfile(sub_open, 'dir', 'single_file_work')
+    with open(join(sub_open, 'dir', 'single_file_work'), 'r') as f:
+        assert f.read() == 'abc\n'
+
     with open(join(sub_open, 'file1'), 'a') as f:
         f.write('abc\n')
     assert isfile(sub_open, 'file1')
@@ -82,6 +89,17 @@ def test_write_and_read_files(mount_dir, sub_open, sub_done):
         with open(join(sub_done, 'file1'), 'a') as f:
             f.write('def\n')
     assert not isfile(sub_done, 'file1')
+
+    assert isfile(sub_done, 'dir', 'single_file_work')
+    with open(join(sub_done, 'dir', 'single_file_work'), 'r') as f:
+        old = f.read()
+    with pytest.raises(PermissionError):
+        with open(join(sub_done, 'dir', 'single_file_work'), 'a') as f:
+            f.write('abc\n')
+    assert isfile(sub_done, 'dir', 'single_file_work')
+    with open(join(sub_done, 'dir', 'single_file_work'), 'r') as f:
+        assert f.read() == old
+
 
 
 def test_delete_files(mount_dir, sub_open, sub_done):

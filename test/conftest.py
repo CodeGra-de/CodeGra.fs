@@ -29,8 +29,8 @@ def mount(username, password, mount_dir):
     os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
     proc = subprocess.Popen(
         [
-            './cgfs.py', '--verbose', '--password', password, username,
-            mount_dir
+            'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password', password,
+            username, mount_dir
         ],
         stdout=sys.stdout,
         stderr=sys.stderr,
@@ -42,8 +42,11 @@ def mount(username, password, mount_dir):
         i *= 2
     yield
     subprocess.check_call(['fusermount', '-u', mount_dir])
-    proc.kill()
-    proc.wait()
+    try:
+        proc.wait(1)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
 
 
 @pytest.fixture(autouse=True)

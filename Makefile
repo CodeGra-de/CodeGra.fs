@@ -11,4 +11,6 @@ format:
 
 .PHONY: test
 test:
+	coverage erase
 	$(PYTEST) test/ -vvvvvvvvv
+	coverage report -m cgfs.py
