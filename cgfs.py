@@ -420,18 +420,18 @@ class CGFS(LoggingMixIn, Operations):
 
         new_parts = self.split_path(new)
         new_parent = self.get_dir(new_parts[:-1])
+        if new_parts[-1] in new_parent.children:
+            raise FuseOSError(EEXIST)
 
         submission = self.get_submission(old)
-        new_query_path = submission.tld + '/' + '/'.join(new_parts[3:])
+        if submission.id == self.get_submission(new):
+            raise FuseOSError(EPERM)
 
-        if isinstance(file, Directory):
-            new_query_path += '/'
+        new_query_path = submission.tld + '/' + '/'.join(new_parts[3:]) + '/'
+        print(new_query_path)
 
         try:
-            res = cgapi.create_file(
-                submission.id, new_query_path, buf=file.data
-            )
-            cgapi.delete_file(file.id)
+            res = cgapi.rename_file(file.id, new_query_path)
         except CGAPIException as e:
             handle_cgapi_exception(e)
 
@@ -446,6 +446,8 @@ class CGFS(LoggingMixIn, Operations):
         parent = self.get_dir(parts[:-1])
         dir = self.get_file(parts[-1], start=parent)
 
+        if dir.type != DirTypes.REGDIR:
+            raise FuseOSError(EPERM)
         if len(dir.children) != 0:
             raise FuseOSError(ENOTEMPTY)
 
@@ -457,7 +459,9 @@ class CGFS(LoggingMixIn, Operations):
         parent.pop(parts[-1])
 
     # TODO?: Add xattr support
-    def setxattr(self, path, name, value, options, position=0):
+    def setxattr(
+        self, path, name, value, options, position=0
+    ):  # pragma: no cover
         raise FuseOSError(ENOTSUP)
 
     def statfs(self, path):

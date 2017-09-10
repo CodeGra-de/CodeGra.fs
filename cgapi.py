@@ -15,6 +15,7 @@ class APIRoutes():
     FILES = CGAPI_BASE_URL + '/submissions/{submission_id}/files/?owner=auto'
     FILE = CGAPI_BASE_URL + '/submissions/{submission_id}/files/?path={path}&owner=auto'
     FILE_BUF = CGAPI_BASE_URL + '/code/{file_id}'
+    FILE_RENAME = CGAPI_BASE_URL + '/code/{file_id}?operation=rename&new_path={new_path}'
 
 
 class APICodes(IntEnum):
@@ -106,6 +107,15 @@ class CGAPI():
     def create_file(self, submission_id, path, buf=None):
         url = APIRoutes.FILE.format(submission_id=submission_id, path=path)
         r = requests.post(url, headers=self.get_default_headers(), data=buf)
+
+        if r.status_code >= 400:
+            raise CGAPIException(r)
+
+        return r.json()
+
+    def rename_file(self, file_id, new_path):
+        url = APIRoutes.FILE_RENAME.format(file_id=file_id, new_path=new_path)
+        r = requests.patch(url, headers=self.get_default_headers())
 
         if r.status_code >= 400:
             raise CGAPIException(r)

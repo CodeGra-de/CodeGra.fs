@@ -112,21 +112,28 @@ def test_rename(mount_dir, sub_done, sub_open):
     assert not isdir(mount_dir, sub_done, 'dir33')
     files = set(ls(mount_dir, sub_done, 'dir'))
 
-    rename([mount_dir, sub_done, 'dir'], [mount_dir, sub_done, 'dir33'])
+    assert isdir(sub_done, 'dir')
+    assert not isdir(sub_done, 'dir33')
+    mkdir(sub_done, 'dir33')
+    mkdir(sub_done, 'dir', 'sub_dir')
+    assert isdir(sub_done, 'dir33')
+    with open(join(sub_done, 'dir33', 'new_file'), 'w') as f:
+        f.write('bye\n')
 
-    assert isdir(mount_dir, sub_done, 'dir33')
-    assert not isdir(mount_dir, sub_done, 'dir')
-    assert files == set(ls(mount_dir, sub_done, 'dir33'))
+    rename([sub_done, 'dir33'], [sub_done, 'dir', 'sub_dir', 'dir33'])
+    with open(join(sub_done, 'dir', 'sub_dir', 'dir33', 'new_file'), 'r') as f:
+        assert f.read() == 'bye\n'
 
-    with open(join(mount_dir, sub_done, 'dir33', 'single_file_work'),
-              'w') as f:
-        f.write('hello\n')
 
-    rename(
-        [mount_dir, sub_done, 'dir33', 'single_file_work'],
-        [mount_dir, sub_done, 'dir33', 'single_file_work!']
-    )
 
-    with open(join(mount_dir, sub_done, 'dir33', 'single_file_work!'),
-              'r') as f:
-        assert f.read() == 'hello\n'
+def test_illegal_rename(mount_dir, sub_done, sub_open):
+    assert isdir(sub_done, 'dir')
+    assert not isdir(sub_done, 'dir33')
+    mkdir(sub_done, 'dir33')
+    assert isdir(sub_done, 'dir33')
+
+    with pytest.raises(FileNotFoundError):
+        rename([sub_done, 'dir33'], [sub_done, 'dir', 'non_existing', 'dir33'])
+
+    with pytest.raises(FileExistsError):
+        rename([sub_done, 'dir33'], [sub_done, 'dir'])
