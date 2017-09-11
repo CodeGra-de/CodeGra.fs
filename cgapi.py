@@ -129,7 +129,7 @@ class CGAPI():
         if r.status_code >= 400:
             raise CGAPIException(r)
 
-        return r.text
+        return r.content
 
     def patch_file(self, file_id, buf):
         url = APIRoutes.FILE_BUF.format(file_id=file_id)

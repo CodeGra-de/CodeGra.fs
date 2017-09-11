@@ -22,6 +22,7 @@ addons:
   apt:
     packages:
       - jq
+      - flex
 
 before_install:
   - sudo apt-get install -qq pkg-config fuse
@@ -34,7 +35,7 @@ install:
   - pip install coveralls pytest-cov
   - pip install codecov
   - pip install -r requirements.txt
-  - git clone  -b fix-fs-api-bugs https://github.com/CodeGra-de/CodeGra.de.git backend
+  - git clone https://github.com/CodeGra-de/CodeGra.de.git backend
   - pip install -r backend/requirements.txt
 
 before_script:

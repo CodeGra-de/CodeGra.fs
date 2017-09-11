@@ -160,7 +160,13 @@ class File(BaseFile):
         self.dirty = True
 
     def write(self, data, offset):
-        self.data = self.data[:offset] + data
+        if offset > len(self.data):
+            self.data += bytes(offset - len(self.data))
+        if len(self.data) - offset - len(data) > 0:
+            second_offset = offset + len(data)
+            self.data = self.data[:offset] + data + self.data[second_offset:]
+        else:
+            self.data = self.data[:offset] + data
         self.stat['st_size'] = len(self.data)
         self.stat['st_atime'] = time()
         self.stat['st_mtime'] = time()
@@ -373,7 +379,7 @@ class CGFS(LoggingMixIn, Operations):
                 raise FuseOSError(EEXIST)
 
         if file.data is None:
-            file.open(bytes(cgapi.get_file(file.id), 'utf8'))
+            file.open(cgapi.get_file(file.id))
 
         if flags & O_TRUNC:
             file.truncate(0)
