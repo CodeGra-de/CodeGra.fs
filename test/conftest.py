@@ -24,14 +24,18 @@ def mount_dir():
     os.removedirs(name)
 
 
+@pytest.fixture
+def latest_only():
+    return True
+
 @pytest.fixture(autouse=True)
-def mount(username, password, mount_dir):
+def mount(username, password, mount_dir, latest_only):
     os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
     proc = subprocess.Popen(
         [
             'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password', password,
             username, mount_dir
-        ],
+        ] + (['--latest-only'] if latest_only else []),
         stdout=sys.stdout,
         stderr=sys.stderr,
     )

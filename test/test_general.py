@@ -156,3 +156,14 @@ def test_compiling_program(sub_done):
     assert subprocess.check_output(
         [join(fdir, '42sh'), '-c', 'echo hello from 42']
     ).decode('utf-8') == 'hello from 42\n'
+
+
+@pytest.mark.parametrize('latest_only', [True, False], indirect=True)
+def test_latest_only(assig_done, latest_only):
+    amount = 0
+    for item in ls(assig_done):
+        amount += 1 if 'Stupid1' in item else 0
+    if latest_only:
+        assert amount == 1
+    else:
+        assert amount == 2

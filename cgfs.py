@@ -175,7 +175,8 @@ class File(BaseFile):
 
 
 class CGFS(LoggingMixIn, Operations):
-    def __init__(self):
+    def __init__(self, latest_only):
+        self.latest_only = latest_only
         self.files = {}
         self.fd = 0
 
@@ -207,13 +208,22 @@ class CGFS(LoggingMixIn, Operations):
         except CGAPIException as e:  # pragma: no cover
             handle_cgapi_exception(e)
 
+        seen = set()
+
         for sub in submissions:
+            if sub['user']['id'] in seen:
+                continue
+
             sub_dir = Directory(
                 sub,
                 name=sub['user']['name'] + ' - ' + sub['created_at'],
                 type=DirTypes.SUBMISSION,
                 writable=True
             )
+
+            if self.latest_only:
+                seen.add(sub['user']['id'])
+
             sub_dir.getattr()
             assignment.insert(sub_dir)
 
@@ -532,7 +542,8 @@ if __name__ == '__main__':
         metavar='PASSWORD',
         type=str,
         dest='password',
-        help='Your CodeGra.de password'
+        help='Your CodeGra.de password, don\' pass this option if you want to '
+        ' pass your password over stdin.'
     )
     argparser.add_argument(
         '-v',
@@ -542,15 +553,24 @@ if __name__ == '__main__':
         default=False,
         help='Verbose mode: print all system calls (produces a LOT of output).'
     )
+    argparser.add_argument(
+        '-l',
+        '--latest-only',
+        dest='latest_only',
+        action='store_true',
+        default=False,
+        help='Only see the latest submissions of students.'
+    )
     args = argparser.parse_args()
 
     mountpoint = args.mountpoint
     username = args.username
     password = args.password if args.password is not None else getpass()
+    latest_only = args.latest_only
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
     cgapi = CGAPI(username, password)
 
-    fuse = FUSE(CGFS(), mountpoint, nothreads=True, foreground=True)
+    fuse = FUSE(CGFS(latest_only), mountpoint, nothreads=True, foreground=True)
