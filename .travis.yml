@@ -1,71 +1,67 @@
-language: c
-sudo: false
+language: python
+sudo: required
 notifications:
   email: false
 
-script: make
+services:
+  - postgresql
 
 branches:
   only:
-  - master
+    - master
 
-addons:
-  apt:
-    packages: &common_deps
-    - pkg-config
-    - libfuse-dev
-    - curl
+cache:
+  pip: true
+  apt: true
 
 matrix:
   include:
-  - compiler: gcc-5
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        packages:
-        - gcc-5
-        - *common_deps
-  - compiler: gcc-6
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        packages:
-        - gcc-6
-        - *common_deps
-  - compiler: gcc-7
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        packages:
-        - gcc-7
-        - *common_deps
-  - compiler: clang-3.9
-    addons:
-      apt:
-        sources:
-        - llvm-toolchain-trusty-3.9
-        packages:
-        - clang-3.9
-        - *common_deps
-  - compiler: clang-4.0
-    addons:
-      apt:
-        sources:
-        - llvm-toolchain-trusty-4.0
-        packages:
-        - clang-4.0
-        - *common_deps
-  - compiler: clang-5.0
-    addons:
-      apt:
-        sources:
-        - llvm-toolchain-trusty
-        packages:
-        - clang-5.0
-        - *common_deps
+    - python: "3.6-dev" # 3.6 development branch
+
+addons:
+  apt:
+    packages:
+      - jq
+      - flex
 
 before_install:
-- eval "${MATRIX_EVAL}"
+  - sudo apt-get install -qq pkg-config fuse
+  - sudo modprobe fuse
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
+
+install:
+  - pip install -U wheel
+  - pip install coveralls pytest-cov
+  - pip install codecov
+  - pip install -r requirements.txt
+  - git clone https://github.com/CodeGra-de/CodeGra.de.git backend
+  - pip install -r backend/requirements.txt
+
+before_script:
+  - pwd
+  - ls
+  - echo -e '[Back-end]\nsqlalchemy_database_uri = postgresql:///travis_ci_test\nDEBUG = true' > backend/config.ini
+  - mkdir -p backend/uploads
+  - mkdir -p backend/mirror_uploads
+  - python --version
+  - export PYTHONPATH="$PYTHONPATH:$(pwd)"
+  - export DEBUG=true
+  - psql -c 'create database travis_ci_test;' -U postgres
+  - export PYTHON=python
+  - cd backend
+  - make db_upgrade
+  - make test_data
+  - make start_dev_server > ../server.log 2>&1 &
+  - cd ..
+  - sleep 6
+
+script:
+  - make test
+
+after_script:
+  cat server.log
+
+after_success:
+  - coveralls
+  - codecov

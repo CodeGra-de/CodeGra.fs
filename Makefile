@@ -1,4 +1,16 @@
-CFLAGS = -std=c11 -Werror -Wall -Wextra -pedantic $(shell pkg-config --cflags fuse)
-LDLIBS = -lcurl $(shell pkg-config --libs fuse)
+export PYTHONPATH=$(CURDIR)
+PYTEST?=pytest
 
-all: codegra-fs
+.PHONY: install_deps
+install_deps:
+	pip install -r requirements.txt
+
+.PHONY: format
+format:
+	yapf -rip *.py
+
+.PHONY: test
+test:
+	coverage erase
+	$(PYTEST) test/ -vvvvvvvvv
+	coverage report -m cgfs.py
