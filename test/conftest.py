@@ -24,14 +24,14 @@ def mount_dir():
     os.removedirs(name)
 
 
-@pytest.fixture
-def fixed():
-    return False
+@pytest.fixture(params=[False])
+def fixed(request):
+    return request.param
 
 
-@pytest.fixture
-def latest_only():
-    return True
+@pytest.fixture(params=[True])
+def latest_only(request):
+    return request.param
 
 
 @pytest.fixture(autouse=True)

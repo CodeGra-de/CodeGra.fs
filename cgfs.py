@@ -142,7 +142,9 @@ class TempFile:
         # Create a new temporary file
         self._filename = str(uuid.uuid4())
 
-        while path.exists(path.join(path.join(self._tmpdir, self._filename))):
+        while path.exists(
+            path.join(path.join(self._tmpdir, self._filename)),
+        ):  # pragma: no cover
             self._filename = str(uuid.uuid4())
 
         self.full_path = path.join(self._tmpdir, self._filename)

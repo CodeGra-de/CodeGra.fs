@@ -165,6 +165,7 @@ def test_compiling_program(sub_done, mount, fixed):
     if fixed:
         assert not isdir(fdir)
         assert not isfile(fname)
+        return
 
     assert isfile(fname)
     assert isdir(fdir)
@@ -189,4 +190,4 @@ def test_latest_only(assig_done, latest_only):
     if latest_only:
         assert amount == 1
     else:
-        assert amount == 2
+        assert amount > 1
