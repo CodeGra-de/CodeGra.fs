@@ -576,11 +576,15 @@ class CGFS(LoggingMixIn, Operations):
 
         new_parts = self.split_path(new)
         new_parent = self.get_dir(new_parts[:-1])
+
         if new_parts[-1] in new_parent.children:
             raise FuseOSError(EEXIST)
 
+        if len(new_parts) < 4 or len(old_parts) < 4:
+            raise FuseOSError(EPERM)
+
         submission = self.get_submission(old)
-        if submission.id == self.get_submission(new):
+        if submission.id != self.get_submission(new).id:
             raise FuseOSError(EPERM)
 
         new_query_path = submission.tld + '/' + '/'.join(new_parts[3:]) + '/'

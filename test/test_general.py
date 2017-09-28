@@ -244,3 +244,21 @@ def test_set_utime(sub_done, mount):
 
     assert old_st.st_atime != 10.0
     assert old_st.st_mtime != 123.5
+
+
+def test_getting_non_exising_submission(assig_done):
+    with pytest.raises(FileNotFoundError):
+        ls(assig_done, 'NON EXISTING')
+
+
+def test_renaming_submission(sub_done, sub_done2, assig_done):
+    with pytest.raises(FileExistsError):
+        rename([sub_done], [sub_done2])
+
+    with pytest.raises(PermissionError):
+        rename([sub_done], [assig_done, 'NEW AND WRONG'])
+
+    open(join(sub_done, 'hello'), 'w').close()
+
+    with pytest.raises(PermissionError):
+        rename([sub_done, 'hello'], [sub_done2, 'hello'])

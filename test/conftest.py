@@ -87,6 +87,14 @@ def assig_done(mount, shell_id, mount_dir):
 
 
 @pytest.fixture(autouse=True)
+def sub_done2(assig_done):
+    print(os.listdir(assig_done))
+    for path in reversed(sorted(os.listdir(assig_done))):
+        if 'Stupid2' in path:
+            return os.path.join(assig_done, path)
+
+
+@pytest.fixture(autouse=True)
 def sub_done(assig_done):
     print(os.listdir(assig_done))
     for path in reversed(sorted(os.listdir(assig_done))):
