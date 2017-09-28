@@ -191,3 +191,22 @@ def test_latest_only(assig_done, latest_only):
         assert amount == 1
     else:
         assert amount > 1
+
+@pytest.mark.parametrize('fixed', [True, False], indirect=True)
+def test_double_open(sub_done, mount, fixed):
+    f = open('new_test_file', 'wb')
+    f.write(b'hello')
+
+    ff = open('new_test_file', 'r+b')
+    fff = open('new_test_file', 'r+b')
+
+    f.flush()
+
+    assert ff.read() == b'hello'
+
+    f.close()
+
+    assert fff.read() == b'hello'
+
+    ff.close()
+    fff.close()

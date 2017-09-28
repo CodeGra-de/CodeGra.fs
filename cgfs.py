@@ -173,13 +173,14 @@ class TempFile:
     def getattr(self):
         return self.stat
 
-    def setattr(self, key, value):
+    def setattr(self, key, value):  # pragma: no cover
         raise ValueError
 
     def utimens(self, atime, mtime):
         os.utime(self.full_path, (atime, mtime))
 
     def open(self, *args):
+        # We open on demand so we never have problems with opening
         pass
 
     def read(self, offset, size):
