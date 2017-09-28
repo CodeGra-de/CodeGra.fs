@@ -230,7 +230,6 @@ class File(BaseFile):
             self.stat['st_mode'] = S_IFREG | 0o770
             self.stat['st_nlink'] = 1
 
-        self.stat['st_atime'] = time()
         return self.stat
 
     def open(self, buf):
@@ -674,9 +673,14 @@ class CGFS(LoggingMixIn, Operations):
     def utimens(self, path, times=None):
         file = self.get_file(path)
 
+        assert file is not None
+
         atime, mtime = times or (time(), time())
+
         if isinstance(file, TempFile):
             file.utimens(atime, mtime)
+        elif self.fixed:
+            raise FuseOSError(EPERM)
         else:
             file.setattr('st_atime', atime)
             file.setattr('st_mtime', mtime)
