@@ -771,7 +771,6 @@ if __name__ == '__main__':
     )
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
-        print(tmpdir)
         fuse = FUSE(
             CGFS(latest_only, fixed=fixed, tmpdir=tmpdir),
             mountpoint,

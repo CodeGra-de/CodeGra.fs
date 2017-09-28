@@ -25,32 +25,53 @@ def mount_dir():
 
 
 @pytest.fixture
+def fixed():
+    return False
+
+
+@pytest.fixture
 def latest_only():
     return True
 
+
 @pytest.fixture(autouse=True)
-def mount(username, password, mount_dir, latest_only):
-    os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
-    proc = subprocess.Popen(
-        [
-            'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password', password,
-            username, mount_dir
-        ] + (['--latest-only'] if latest_only else []),
-        stdout=sys.stdout,
-        stderr=sys.stderr,
-    )
-    check_dir = os.path.join(mount_dir, 'Programmeertalen')
-    i = 0.001
-    while not os.path.isdir(check_dir):
-        time.sleep(i)
-        i *= 2
-    yield
-    subprocess.check_call(['fusermount', '-u', mount_dir])
-    try:
-        proc.wait(1)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
+def mount(username, password, mount_dir, latest_only, fixed):
+    proc = None
+
+    def do_mount():
+        nonlocal proc
+
+        os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
+        proc = subprocess.Popen(
+            [
+                'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password',
+                password, username, mount_dir
+            ] + (['--latest-only']
+                 if latest_only else []) + (['--fixed'] if fixed else []),
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        )
+        check_dir = os.path.join(mount_dir, 'Programmeertalen')
+        i = 0.001
+        while not os.path.isdir(check_dir):
+            time.sleep(i)
+            i *= 2
+
+    def do_umount():
+        subprocess.check_call(['fusermount', '-u', mount_dir])
+        try:
+            proc.wait(1)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+
+    def do_remount():
+        do_umount()
+        do_mount()
+
+    do_mount()
+    yield do_remount
+    do_umount()
 
 
 @pytest.fixture(autouse=True)

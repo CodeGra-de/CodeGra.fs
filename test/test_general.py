@@ -144,7 +144,8 @@ def test_illegal_rename(mount_dir, sub_done, sub_open):
         rename([sub_done, 'dir33'], [sub_done, 'dir'])
 
 
-def test_compiling_program(sub_done):
+@pytest.mark.parametrize('fixed', [True, False], indirect=True)
+def test_compiling_program(sub_done, mount, fixed):
     url = 'https://attach.libremail.nl/__test_codegra.fs__.tar.gz'
     fname = join(sub_done, '42.tar.gz')
     fdir = join(sub_done, '42sh/')
@@ -153,9 +154,31 @@ def test_compiling_program(sub_done):
     tar.extractall(sub_done)
     tar.close()
     print(subprocess.check_output(['make', '-C', fdir]))
+    assert isdir(fdir)
+    assert isfile(fname)
     assert subprocess.check_output(
         [join(fdir, '42sh'), '-c', 'echo hello from 42']
     ).decode('utf-8') == 'hello from 42\n'
+
+    mount()
+
+    if fixed:
+        assert not isdir(fdir)
+        assert not isfile(fname)
+
+    assert isfile(fname)
+    assert isdir(fdir)
+    assert subprocess.check_output(
+        [join(fdir, '42sh'), '-c', 'echo hello from 42']
+    ).decode('utf-8') == 'hello from 42\n'
+
+    rm_rf(fdir)
+    assert not isdir(fdir)
+
+    mount()
+
+    assert isfile(fname)
+    assert not isdir(fdir)
 
 
 @pytest.mark.parametrize('latest_only', [True, False], indirect=True)
