@@ -37,8 +37,10 @@ def latest_only(request):
 @pytest.fixture(autouse=True)
 def mount(username, password, mount_dir, latest_only, fixed):
     proc = None
+    r_fixed = fixed
+    del fixed
 
-    def do_mount():
+    def do_mount(fixed=r_fixed):
         nonlocal proc
 
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
@@ -65,9 +67,9 @@ def mount(username, password, mount_dir, latest_only, fixed):
             proc.kill()
             proc.wait()
 
-    def do_remount():
+    def do_remount(fixed=r_fixed):
         do_umount()
-        do_mount()
+        do_mount(fixed=fixed)
 
     do_mount()
     yield do_remount

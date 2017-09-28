@@ -24,7 +24,6 @@ from cgapi import CGAPI, APICodes, CGAPIException
 
 
 def handle_cgapi_exception(ex):
-    print(ex.message)
     if ex.code == APICodes.OBJECT_ID_NOT_FOUND:
         raise FuseOSError(ENOENT)
     elif ex.code == APICodes.INCORRECT_PERMISSION:
@@ -96,12 +95,6 @@ class Directory(BaseFile):
 
         self.children[file.name] = file
         self.stat['st_nlink'] += 1
-
-    def get(self, filename):
-        try:
-            return self.children[filename]
-        except KeyError:
-            raise FuseOSError(ENOENT)
 
     def pop(self, filename):
         try:
@@ -435,25 +428,24 @@ class CGFS(LoggingMixIn, Operations):
         parent = self.get_dir(parts[:-1])
         fname = parts[-1]
 
-        if fname in parent.children:
-            file = parent.get(fname)
+        assert fname not in parent.children
+
+        submission = self.get_submission(path)
+        query_path = submission.tld + '/' + '/'.join(parts[3:])
+
+        if self.fixed:
+            file = TempFile(fname, self._tmpdir)
         else:
-            submission = self.get_submission(path)
-            query_path = submission.tld + '/' + '/'.join(parts[3:])
+            try:
+                fdata = cgapi.create_file(submission.id, query_path)
+            except CGAPIException as e:
+                handle_cgapi_exception(e)
 
-            if self.fixed:
-                file = TempFile(fname, self._tmpdir)
-            else:
-                try:
-                    fdata = cgapi.create_file(submission.id, query_path)
-                except CGAPIException as e:
-                    handle_cgapi_exception(e)
+            file = File(fdata, name=fname)
+            file.setattr('st_size', fdata['size'])
+            file.setattr('st_mtime', fdata['modification_date'])
 
-                file = File(fdata, name=fname)
-                file.setattr('st_size', fdata['size'])
-                file.setattr('st_mtime', fdata['modification_date'])
-
-            parent.insert(file)
+        parent.insert(file)
 
         file.open(bytes('', 'utf8'))
 
