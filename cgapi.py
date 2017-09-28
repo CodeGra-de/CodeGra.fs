@@ -91,8 +91,7 @@ class CGAPI():
             }
         )
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         self.access_token = r.json()['access_token']
         self.s = requests.Session()
@@ -101,11 +100,14 @@ class CGAPI():
             'Authorization': 'Bearer ' + self.access_token,
         }
 
+    def _handle_response_error(self, request):
+        if request.status_code >= 400:
+            raise CGAPIException(request)
+
     def get_courses(self):
         r = self.s.get(self.routes.get_courses())
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
@@ -113,8 +115,7 @@ class CGAPI():
         url = self.routes.get_submissions(assignment_id=assignment_id)
         r = self.s.get(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
@@ -122,8 +123,7 @@ class CGAPI():
         url = self.routes.get_files(submission_id=submission_id)
         r = self.s.get(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
@@ -131,8 +131,7 @@ class CGAPI():
         url = self.routes.get_file(submission_id=submission_id, path=path)
         r = self.s.get(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
@@ -140,8 +139,7 @@ class CGAPI():
         url = self.routes.get_file(submission_id=submission_id, path=path)
         r = self.s.post(url, data=buf)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
@@ -149,8 +147,7 @@ class CGAPI():
         url = self.routes.get_file_rename(file_id=file_id, new_path=new_path)
         r = self.s.patch(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
@@ -158,8 +155,7 @@ class CGAPI():
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.get(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.content
 
@@ -167,8 +163,7 @@ class CGAPI():
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.patch(url, data=buf)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
@@ -176,5 +171,4 @@ class CGAPI():
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.delete(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
