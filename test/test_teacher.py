@@ -46,7 +46,8 @@ def test_list_submissions(mount_dir):
     for course in ['Besturingssystemen', 'Programmeertalen']:
         for assig in ls(mount_dir, course):
             for sub in ls(mount_dir, course, assig):
-                assert any(f'Stupid{i}' in sub for i in range(1, 5))
+                assert any(f'Stupid{i}' in sub
+                           for i in range(1, 5)) or 'Œlµo' in sub
 
     for assig in ls(mount_dir, 'Project Software Engineering'):
         for sub in ls(mount_dir, 'Project Software Engineering', assig):
