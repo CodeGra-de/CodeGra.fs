@@ -545,10 +545,7 @@ class CGFS(LoggingMixIn, Operations):
         return self.fd
 
     def read(self, path, size, offset, fh):
-        if fh is not None and fh in self._open_files:
-            file = self._open_files[fh]
-        else:
-            file = self.get_file(path, expect_type=File)
+        file = self._open_files[fh]
 
         if isinstance(file, TempFile):
             return file.read(offset, size)
@@ -569,21 +566,10 @@ class CGFS(LoggingMixIn, Operations):
     def readlink(self, path):
         raise FuseOSError(EINVAL)
 
-    def release(self, path, fh=None):
-        if fh is not None and fh in self._open_files:
-            file = self._open_files[fh]
-            file.release()
-            del self._open_files[fh]
-            return
-
-        parts = self.split_path(path)
-        parent = self.get_dir(parts[:-1])
-        fname = parts[-1]
-
-        if fname in parent.children:
-            file = parent.get(fname)
-            if isinstance(file, File):
-                file.release()
+    def release(self, path, fh):
+        file = self._open_files[fh]
+        file.release()
+        del self._open_files[fh]
 
     # TODO?: Add xattr support
     def removexattr(self, path, name):
@@ -661,7 +647,7 @@ class CGFS(LoggingMixIn, Operations):
         if length < 0:  # pragma: no cover
             raise FuseOSError(EINVAL)
 
-        if fh is not None and fh in self._open_files:
+        if fh is not None and fh in self._open_files:  # pragma: no cover
             file = self._open_files[fh]
         else:
             file = self.get_file(path, expect_type=File)
@@ -701,12 +687,11 @@ class CGFS(LoggingMixIn, Operations):
             file.setattr('st_mtime', mtime)
 
     def write(self, path, data, offset, fh):
-        if fh is not None and fh in self._open_files:
-            file = self._open_files[fh]
-        else:
-            file = self.get_file(path, expect_type=File)
+        file = self._open_files[fh]
+
         if self.fixed and not isinstance(file, TempFile):
             raise FuseOSError(EPERM)
+
         return file.write(data, offset)
 
 
