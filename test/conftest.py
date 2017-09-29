@@ -24,33 +24,56 @@ def mount_dir():
     os.removedirs(name)
 
 
-@pytest.fixture
-def latest_only():
-    return True
+@pytest.fixture(params=[False])
+def fixed(request):
+    return request.param
+
+
+@pytest.fixture(params=[True])
+def latest_only(request):
+    return request.param
+
 
 @pytest.fixture(autouse=True)
-def mount(username, password, mount_dir, latest_only):
-    os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
-    proc = subprocess.Popen(
-        [
-            'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password', password,
-            username, mount_dir
-        ] + (['--latest-only'] if latest_only else []),
-        stdout=sys.stdout,
-        stderr=sys.stderr,
-    )
-    check_dir = os.path.join(mount_dir, 'Programmeertalen')
-    i = 0.001
-    while not os.path.isdir(check_dir):
-        time.sleep(i)
-        i *= 2
-    yield
-    subprocess.check_call(['fusermount', '-u', mount_dir])
-    try:
-        proc.wait(1)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
+def mount(username, password, mount_dir, latest_only, fixed):
+    proc = None
+    r_fixed = fixed
+    del fixed
+
+    def do_mount(fixed=r_fixed):
+        nonlocal proc
+
+        os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
+        proc = subprocess.Popen(
+            [
+                'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password',
+                password, username, mount_dir
+            ] + (['--latest-only']
+                 if latest_only else []) + (['--fixed'] if fixed else []),
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        )
+        check_dir = os.path.join(mount_dir, 'Programmeertalen')
+        i = 0.001
+        while not os.path.isdir(check_dir):
+            time.sleep(i)
+            i *= 2
+
+    def do_umount():
+        subprocess.check_call(['fusermount', '-u', mount_dir])
+        try:
+            proc.wait(1)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+
+    def do_remount(fixed=r_fixed):
+        do_umount()
+        do_mount(fixed=fixed)
+
+    do_mount()
+    yield do_remount
+    do_umount()
 
 
 @pytest.fixture(autouse=True)
@@ -61,6 +84,14 @@ def assig_open(mount, python_id, mount_dir):
 @pytest.fixture
 def assig_done(mount, shell_id, mount_dir):
     return os.path.join(mount_dir, 'Programmeertalen', 'Shell')
+
+
+@pytest.fixture(autouse=True)
+def sub_done2(assig_done):
+    print(os.listdir(assig_done))
+    for path in reversed(sorted(os.listdir(assig_done))):
+        if 'Stupid2' in path:
+            return os.path.join(assig_done, path)
 
 
 @pytest.fixture(autouse=True)
