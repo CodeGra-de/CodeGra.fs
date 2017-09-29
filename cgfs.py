@@ -173,7 +173,7 @@ class TempFile:
         os.utime(self.full_path, (atime, mtime))
 
     def open(self, *args):
-        # We open on demand so we never have problems with opening
+        # We open on-demand so we never have problems with opening
         pass
 
     def read(self, offset, size):
@@ -202,8 +202,11 @@ class TempFile:
         self._filename = None
 
     def truncate(self, length):
-        self._handle.seek(0)
-        self._handle.truncate(length)
+        if self.__handle is None:
+            os.truncate(self.full_path, length)
+        else:
+            self._handle.seek(0)
+            self._handle.truncate(length)
 
 
 class File(BaseFile):
@@ -512,23 +515,15 @@ class CGFS(LoggingMixIn, Operations):
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
 
-        try:
-            file = self.get_file(parts[-1], start=parent, expect_type=File)
-        except FuseOSError as e:
-            if e.errno is not ENOENT:
-                raise e
-            if not flags & O_CREAT:
-                raise FuseOSError(ENOENT)
-            return self.create(path, 0o770)
-        else:
-            # This should be handled by FUSE.
-            if flags & (O_CREAT & O_EXCL):  # pragma: no cover
-                raise FuseOSError(EEXIST)
+        file = self.get_file(parts[-1], start=parent, expect_type=File)
 
         if isinstance(file, TempFile):
             file.open()
 
-        if flags & O_TRUNC:
+        # This is handled by fuse [0] but it can be disabled so it is better to
+        # be save than sorry as it can be enabled.
+        # [0] https://sourceforge.net/p/fuse/mailman/message/29515577/
+        if flags & O_TRUNC:  # pragma: no cover
             file.truncate(0)
 
         self.fd += 1
