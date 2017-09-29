@@ -374,9 +374,6 @@ class CGFS(LoggingMixIn, Operations):
         parts = self.split_path(path)
         submission = self.get_file(parts[:3])
 
-        if submission is None:
-            raise FuseOSError(ENOTDIR)
-
         return submission
 
     def get_file(self, path, start=None, expect_type=None):
@@ -398,7 +395,7 @@ class CGFS(LoggingMixIn, Operations):
                     raise FuseOSError(ENOTDIR)
                 raise
 
-            if part not in file.children:
+            if part not in file.children or file.children[part] is None:
                 raise FuseOSError(ENOENT)
             file = file.children[part]
 

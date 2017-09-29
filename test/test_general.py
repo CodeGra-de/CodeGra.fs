@@ -246,7 +246,17 @@ def test_set_utime(sub_done, mount):
     assert old_st.st_mtime != 123.5
 
 
-def test_getting_non_exising_submission(assig_done):
+def test_non_exising_submission(assig_done):
+    with pytest.raises(FileNotFoundError):
+        open(join(assig_done, 'NON EXISTING', 'file'), 'x').close()
+
+    with pytest.raises(FileNotFoundError):
+        mkdir(assig_done, 'NON EXISTING', 'file')
+
+    with pytest.raises(FileNotFoundError):
+        rename([assig_done, 'NON EXISTING', 'file'],
+               [assig_done, 'NON EXISTING', 'file2'])
+
     with pytest.raises(FileNotFoundError):
         ls(assig_done, 'NON EXISTING')
 
@@ -262,3 +272,30 @@ def test_renaming_submission(sub_done, sub_done2, assig_done):
 
     with pytest.raises(PermissionError):
         rename([sub_done, 'hello'], [sub_done2, 'hello'])
+
+
+def test_removing_xattrs(sub_done):
+    fname = join(sub_done, 'hello')
+    open(fname, 'w').close()
+
+    with pytest.raises(OSError):
+        os.removexattr(fname, 'user.cool_attr')
+
+
+def test_write_to_directory(sub_done):
+    fdir = join(sub_done, 'new_dir')
+    fname = join(fdir, 'new_file')
+
+    mkdir(fdir)
+    assert isdir(fdir)
+    assert not isfile(fdir)
+
+    with pytest.raises(IsADirectoryError):
+        with open(fdir, 'w') as f:
+            f.write('hello\n')
+
+    open(fname, 'w').close()
+    with pytest.raises(NotADirectoryError):
+        ls(fname)
+    with pytest.raises(FileExistsError):
+        mkdir(fname)
