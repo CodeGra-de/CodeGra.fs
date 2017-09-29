@@ -159,3 +159,27 @@ def test_editing_file_in_fixed(sub_done, mount):
     with pytest.raises(PermissionError):
         with open(fname, 'w') as f:
             f.write('hello\n')
+
+@pytest.mark.parametrize('fixed', [True], indirect=True)
+def test_truncate_fixed(sub_done):
+    fname = join(sub_done, 'new_file')
+
+    f = open(fname, 'w')
+    f.write('hello\n')
+    f.flush()
+
+    ff = open(fname, 'a')
+    ff.truncate(1)
+
+    ff.close()
+    ff = open(fname, 'r')
+    assert ff.read() == 'h'
+
+    ff.close()
+
+    f.close()
+
+    os.truncate(fname, 0)
+    f = open(fname, 'r')
+    assert f.read() == ''
+    f.close()
