@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from os import getenv
-
-import uuid
-from pathlib import Path
-
-import logging
 import os
-from os import O_EXCL, O_CREAT, O_TRUNC, path
+import sys
+import json
+import uuid
+import socket
+import hashlib
+import logging
+import datetime
+import tempfile
+import threading
+import traceback
+from os import O_EXCL, O_CREAT, O_TRUNC, path, getenv
 from enum import IntEnum
 from stat import S_IFDIR, S_IFREG
 from time import time
@@ -16,9 +20,9 @@ from errno import (
     EPERM, EEXIST, EINVAL, EISDIR, ENOENT, ENOTDIR, ENOTSUP, ENOTEMPTY
 )
 from getpass import getpass
+from pathlib import Path
 from argparse import ArgumentParser
 
-import tempfile
 from fuse import FUSE, Operations, FuseOSError, LoggingMixIn
 from cgapi import CGAPI, APICodes, CGAPIException
 
@@ -30,6 +34,38 @@ def handle_cgapi_exception(ex):
         raise FuseOSError(EPERM)
     else:
         raise ex
+
+
+def wrap_string(string, prefix, max_len):
+    res = []
+    first = True
+    _prefix = ''
+    while string:
+        last_word = 0
+        if len(string) <= max_len and '\n' not in string:
+            last_word = max_len
+        else:
+            for i in range(min(max_len, len(string))):
+                if string[i] == ' ':
+                    last_word = i
+                elif string[i] == '\n':
+                    res.append((_prefix + string[:i]) if i else '')
+                    res.append('')
+                    string = string[i + 1:]
+                    while string.strip(' ')[0] == '\n':
+                        res.append('')
+                        string = string.strip(' ')[1:]
+                    last_word = None
+                    break
+
+        if last_word is not None:
+            res.append(_prefix + string[:last_word or max_len])
+            string = string[last_word + 1 if last_word else max_len:]
+        if first:
+            _prefix = prefix
+            max_len -= len(prefix)
+            first = False
+    return ('\n').join(res), len(res) - 1
 
 
 class DirTypes(IntEnum):
@@ -125,7 +161,450 @@ class TempDirectory(Directory):
         }
 
 
-class TempFile:
+class SingleFile:
+    pass
+
+
+class SpecialFile(SingleFile):
+    def __init__(self, name):
+        self.mode = 0o550
+        self.name = name
+
+    def fsync(self):
+        return
+
+    def get_data(self):
+        return b''
+
+    def getattr(self):
+        return {
+            'st_size': len(self.get_data()),
+            'st_atime': self.get_st_atime(),
+            'st_mtime': self.get_st_mtime(),
+            'st_ctime': self.get_st_ctime(),
+            'st_uid': os.getuid(),
+            'st_gid': os.getegid(),
+            'st_mode': S_IFREG | self.mode,
+            'st_nlink': 1,
+        }
+
+    def get_st_atime(self):
+        return time()
+
+    def get_st_mtime(self):
+        return time()
+
+    def get_st_ctime(self):
+        return time()
+
+    def read(self, offset, size):
+        return self.get_data()[offset:offset + size]
+
+    def release(self):
+        return
+
+    def open(self):
+        return
+
+    def truncate(self, length):
+        raise FuseOSError(EPERM)
+
+    def unlink(self):
+        raise FuseOSError(EPERM)
+
+    def utimens(self, atime, mtime):
+        return
+
+    def write(self, data, offset):
+        raise FuseOSError(EPERM)
+
+
+class SocketFile(SpecialFile):
+    def __init__(self, loc, name):
+        super(SocketFile, self).__init__(name=name)
+        self.loc = loc
+
+    def get_data(self):
+        return self.loc
+
+
+class CachedSpecialFile(SpecialFile):
+    DELTA = datetime.timedelta(seconds=60)
+
+    def __init__(self, name):
+        super(CachedSpecialFile, self).__init__(name=name)
+        self.data = None
+        self.time = None
+        self.mtime = time()
+        self.mode = 0o770
+        self.overwrite = False
+
+    def get_st_mtime(self):
+        return self.mtime
+
+    def get_data(self):
+        if self.data and (datetime.datetime.utcnow() - self.time) < self.DELTA:
+            return self.data
+        elif self.overwrite:
+            return self.data
+
+        data = self.get_online_data()
+        if data != self.data:
+            self.mtime = time() + 1
+
+        self.time = datetime.datetime.utcnow()
+        self.data = data
+
+        return self.data
+
+    def write(self, data, offset):
+        self.overwrite = True
+        self.data = self.get_data()
+
+        if offset > len(self.data):
+            self.data += bytes(offset - len(self.data))
+
+        if len(self.data) - offset - len(data) > 0:
+            # Write in between
+            second_offset = offset + len(data)
+            self.data = self.data[:offset] + data + self.data[second_offset:]
+        elif offset == 0:
+            self.data = data
+        else:
+            self.data = self.data[:offset] + data
+
+        self.data = self.data
+        return len(data)
+
+    def fsync(self):
+        if not self.overwrite:
+            return
+
+        try:
+            parsed = self.parse(self.data)
+        except ValueError:
+            raise FuseOSError(EPERM)
+
+        try:
+            self.send_back(parsed)
+        except CGAPIException as e:
+            print('error from server:', e.message)
+            raise FuseOSError(EPERM)
+        except:
+            traceback.print_exc()
+            raise
+
+        self.overwrite = False
+        self.data = None
+        self.data = self.get_data()
+
+    def truncate(self, length):
+        self.data = self.get_data()
+
+        if length == 0:
+            self.data = bytes('', 'utf8')
+        elif length <= len(self.data):
+            self.data = self.data[:length]
+        else:
+            self.data = self.data + bytes(
+                '\0' * (length - self.stat['st_size']), 'utf8'
+            )
+
+        self.overwrite = True
+
+
+class RubricSelectFile(CachedSpecialFile):
+    def __init__(self, api, submission_id):
+        super(RubricSelectFile, self).__init__(name='.cg-rubric.md')
+        self.submission_id = submission_id
+        self.lookup = {}
+        self.api = api
+
+    def get_online_data(self):
+        res = []
+        self.lookup = {}
+        d = self.api.get_submission_rubric(self.submission_id)
+        sel = set(i['id'] for i in d['selected'])
+        l_num = 0
+        for rub in d['rubrics']:
+            res.append('# ')
+            res.append(rub['header'])
+            res.append('\n')
+
+            new, num = wrap_string(' ' + rub['description'], ' ', 80)
+            res.append(new)
+            res.append('\n')
+            res.append('-' * 79)
+            res.append('\n')
+
+            l_num += num + 3
+
+            for item in rub['items']:
+                self.lookup[l_num] = item['id']
+                new, num = wrap_string(
+                    '- [{}] {} ({}) - {}'.format(
+                        'x' if item['id'] in sel else ' ',
+                        item['header'],
+                        item['points'],
+                        item['description'],
+                    ),
+                    '  ',
+                    80,
+                )
+                res.append(new)
+                res.append('\n')
+                l_num += num + 1
+
+            res.append('\n')
+            l_num += 1
+
+        return bytes(''.join(res[:-1]), 'utf8')
+
+    def parse(self, data):
+        sel = []
+
+        for i, line in enumerate(data.split(b'\n')):
+            if line.startswith(b'- [x]') or line.startswith(b'- [X]'):
+                try:
+                    sel.append(self.lookup[i])
+                except KeyError:
+                    raise FuseOSError(EPERM)
+
+        return sel
+
+    def send_back(self, sel):
+        self.api.select_rubricitems(self.submission_id, sel)
+
+
+class RubricEditorFile(CachedSpecialFile):
+    def __init__(self, api, assignment_id):
+        super(RubricEditorFile, self).__init__(name='.cg-edit-rubric.md')
+        self.api = api
+        self.assignment_id = assignment_id
+        self.lookup = {}
+
+    def hash_id(self, id):
+        h = hashlib.sha256(bytes(id)).hexdigest()[:16]
+        self.lookup[h] = id
+        return h
+
+    def get_online_data(self):
+        res = []
+        self.lookup = {}
+
+        for rub in self.api.get_assignment_rubric(self.assignment_id):
+            res.append('# ')
+            res.append('[{}] '.format(self.hash_id(rub['id'])))
+            res.append(rub['header'])
+            res.append('\n')
+
+            new, _ = wrap_string(' ' + rub['description'], ' ', 80)
+            res.append(new)
+            res.append('\n')
+            res.append('-' * 79)
+            res.append('\n')
+
+            for item in rub['items']:
+                new, _ = wrap_string(
+                    '- [{}] ({}) {} - {}'.format(
+                        self.hash_id(item['id']),
+                        item['points'],
+                        item['header'],
+                        item['description'],
+                    ),
+                    '  ',
+                    80,
+                )
+                res.append(new)
+                res.append('\n')
+
+            res.append('\n')
+
+        res.pop()
+        return bytes(''.join(res), 'utf8')
+
+    def parse(self, data):
+        i = 0
+
+        def strip_spaces(i):
+            while data[i] == ' ':
+                i += 1
+
+            return i
+
+        def parse_line(i):
+            res = []
+
+            while data[i] != '\n':
+                res.append(data[i])
+                i += 1
+
+            return ''.join(res), i + 1
+
+        def parse_description(i, end=None):
+            if end is None:
+                end = ['-']
+            lines = []
+            while True:
+                if i == len(data) or data[i] in end:
+                    while lines and lines[-1] in ['\n', ' ']:
+                        lines.pop()
+                    return ''.join(lines), i
+
+                stripped_i = strip_spaces(i)
+
+                if data[stripped_i] == '\n':
+                    if lines and lines[-1] == ' ':
+                        lines[-1] = '\n'
+                    else:
+                        lines.append('\n')
+                    i = stripped_i + 1
+                else:
+                    line, i = parse_line(i)
+                    lines.append(line.strip())
+                    lines.append(' ')
+
+        def parse_list(i):
+            items = []
+            while i < len(data) and data[i] != '#':
+                i = strip_spaces(i + 1)
+                if data[i] == '[':
+                    i += 1
+                    item_id = []
+                    while data[i] != ']':
+                        item_id.append(data[i])
+                        i += 1
+                    i = strip_spaces(i + 1)
+                    item_id = ''.join(item_id)
+                else:
+                    item_id = None
+
+                assert data[i] == '('
+                i += 1
+                points = []
+                while data[i] != ')':
+                    points.append(data[i])
+                    i += 1
+                i = strip_spaces(i + 1)
+                points = float(''.join(points))
+
+                header = []
+                while data[i] != '-':
+                    header.append(data[i])
+                    i += 1
+                i = strip_spaces(i + 1)
+                header = ''.join(header).strip()
+                desc, i = parse_description(i, end=['-', '#'])
+                items.append((item_id, points, header, desc))
+
+            return items, i
+
+        def parse_item(i):
+            i = strip_spaces(i)
+
+            if data[i] == '[':
+                h = []
+                i += 1
+                while data[i] != ']':
+                    h.append(data[i])
+                    i += 1
+                i = strip_spaces(i + 1)
+
+                item_id = ''.join(h)
+            else:
+                item_id = None
+            name, i = parse_line(i)
+            desc, i = parse_description(i)
+            while data[i] != '\n':
+                i += 1
+            items, i = parse_list(i + 1)
+            return (name, item_id, desc, items), i
+
+        try:
+            items = []
+            data = data.decode('utf8')
+            while i < len(data):
+                if data[i] == '#':
+                    item, i = parse_item(i + 1)
+                    items.append(item)
+            return items
+
+        except (IndexError, KeyError, AssertionError) as _:
+            traceback.print_exc()
+            raise FuseOSError(EPERM)
+
+    def send_back(self, parsed):
+        res = []
+        for header, row_id, desc, items in parsed:
+            items_res = []
+            for item_id_hash, points, i_head, i_desc in items:
+                items_res.append(
+                    {
+                        'description': i_desc,
+                        'header': i_head,
+                        'points': points,
+                    }
+                )
+                if item_id_hash is not None:
+                    items_res[-1]['id'] = self.lookup[item_id_hash]
+
+            res.append(
+                {
+                    'description': desc,
+                    'header': header,
+                    'items': items_res
+                }
+            )
+            if row_id is None:
+                assert not any('id' in i for i in items_res)
+            else:
+                res[-1]['id'] = self.lookup[row_id]
+
+        self.api.set_assignment_rubric(self.assignment_id, {'rows': res})
+
+
+class AssignmentSettingsFile(CachedSpecialFile):
+    TO_USE = {'state', 'deadline', 'name'}
+
+    def __init__(self, api, assignment_id):
+        super(AssignmentSettingsFile,
+              self).__init__(name='.cg-assignments-settings')
+        self.assignment_id = assignment_id
+        self.api = api
+
+    def send_back(self, data):
+        self.api.set_assignment(self.assignment_id, data)
+
+    def get_online_data(self):
+        lines = []
+        for k, v in self.api.get_assignment(self.assignment_id).items():
+            if k not in self.TO_USE:
+                continue
+
+            if k == 'state' and v in {'grading', 'submitting'}:
+                lines.append('{}={}'.format(k, 'open'))
+            else:
+                lines.append('{}={}'.format(k, v))
+
+        lines.sort(key=lambda i: i[0])
+        lines.append('')
+        return bytes('\n'.join(lines), 'utf8')
+
+    def parse(self, settings):
+        res = {}
+        for line in settings.split(b'\n'):
+            if not line:
+                continue
+
+            key, val = line.split(b'=', 1)
+            key = key.decode('utf8')
+            if key not in self.TO_USE:
+                raise ValueError
+            res[key] = val.decode('utf8')
+        return res
+
+
+class TempFile(SingleFile):
     def __init__(self, name, tmpdir):
         self._tmpdir = tmpdir
         self.name = name
@@ -193,8 +672,8 @@ class TempFile:
             self.__handle.close()
         self.__handle = None
 
-    def flush(self):
-        self._handle.flush()
+    def fsync(self):
+        self._handle.fsync()
 
     def unlink(self):
         self.release()
@@ -209,7 +688,7 @@ class TempFile:
             self._handle.truncate(length)
 
 
-class File(BaseFile):
+class File(BaseFile, SingleFile):
     def __init__(self, data, name=None):
         super(File, self).__init__(data, name)
 
@@ -239,7 +718,7 @@ class File(BaseFile):
         self._data = buf
         self.stat['st_atime'] = time()
 
-    def flush(self):
+    def fsync(self):
         if not self.dirty:
             return
 
@@ -293,15 +772,127 @@ class File(BaseFile):
         return len(data)
 
 
+class APIHandler:
+    OPS = {'add_feedback', 'get_feedback'}
+
+    def __init__(self, cgfs):
+        self.cgfs = cgfs
+        self.stop = False
+
+    def handle_conn(self, conn):
+        data = b''
+        while True:
+            new_data = conn.recv(1024)
+            data += new_data
+            if len(new_data) < 1024:
+                break
+
+        if not data:
+            return
+
+        with self.cgfs._lock:
+            data = json.loads(data)
+            op = data['op']
+            if op not in self.OPS:
+                conn.send(b'{"ok": false, "error": "unkown op"}')
+            del data['op']
+            payload = data
+            try:
+                res = getattr(self, op)(payload)
+                conn.send(bytes(json.dumps(res).encode('utf8')))
+            except:
+                traceback.print_exc()
+                conn.send(b'{"ok": false, "error": "Unkown error"}')
+
+    def run(self, sock):
+        sock.settimeout(1.0)
+
+        while not self.stop:
+            try:
+                conn, addr = sock.accept()
+            except socket.timeout:
+                continue
+            except OSError:
+                traceback.print_exc()
+                print('Closing socket')
+                return
+            except:
+                continue
+
+            try:
+                conn.settimeout(1.0)
+                self.handle_conn(conn)
+            finally:
+                conn.close()
+
+    def get_feedback(self, payload):
+        f_name = self.cgfs.strippath(payload['file'])
+
+        with self.cgfs._lock:
+            try:
+                f = self.cgfs.get_file(f_name, expect_type=SingleFile)
+            except:
+                return {'ok': False, 'error': 'File not found'}
+
+            if isinstance(f, TempFile):
+                return {'ok': False, 'error': 'File not a sever file'}
+
+            try:
+                res = cgapi.get_feedback(f.id)
+            except:
+                return {'ok': False, 'error': 'The server returned an error'}
+
+            return {'ok': True, 'data': res}
+
+    def add_feedback(self, payload):
+        f_name = self.cgfs.strippath(payload['file'])
+        line = payload['line']
+        message = payload['message']
+
+        with self.cgfs._lock:
+            try:
+                f = self.cgfs.get_file(f_name, expect_type=SingleFile)
+            except:
+                return {'ok': False, 'error': 'File not found'}
+
+            if isinstance(f, TempFile):
+                return {'ok': False, 'error': 'File not a sever file'}
+
+            try:
+                cgapi.add_feedback(f.id, line, message)
+            except:
+                return {'ok': False, 'error': 'The server returned an error'}
+
+            return {'ok': True}
+
+
 class CGFS(LoggingMixIn, Operations):
-    def __init__(self, latest_only, fixed=False, tmpdir=None):
+    API_FD = 0
+
+    def __init__(
+        self, latest_only, socketfile, mountpoint, fixed=False, tmpdir=None
+    ):
         self.latest_only = latest_only
         self.fixed = fixed
         self.files = {}
-        self.fd = 0
+        self.fd = 1
+        self.mountpoint = mountpoint
+        self._lock = threading.RLock()
         self._open_files = {}
 
         self._tmpdir = tmpdir
+
+        self._socketfile = socketfile
+        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.socket.bind(self._socketfile)
+        self.socket.listen()
+        self.api_handler = APIHandler(self)
+        threading.Thread(
+            target=self.api_handler.run, args=(self.socket, )
+        ).start()
+        self.special_socketfile = SocketFile(
+            bytes(socketfile, 'utf8'), '.api.socket'
+        )
 
         self.files = Directory(
             {
@@ -310,9 +901,15 @@ class CGFS(LoggingMixIn, Operations):
             }, type=DirTypes.FSROOT
         )
 
-        self.files.getattr()
-        self.load_courses()
+        with self._lock:
+            self.files.getattr()
+            self.files.insert(self.special_socketfile)
+            self.load_courses()
         print('Mounted')
+
+    def strippath(self, path):
+        path = os.path.abspath(path)
+        return path[len(self.mountpoint):]
 
     def load_courses(self):
         for course in cgapi.get_courses():
@@ -326,6 +923,8 @@ class CGFS(LoggingMixIn, Operations):
                 assig_dir = Directory(assig, type=DirTypes.ASSIGNMENT)
                 assig_dir.getattr()
                 course_dir.insert(assig_dir)
+                assig_dir.insert(AssignmentSettingsFile(cgapi, assig['id']))
+                assig_dir.insert(RubricEditorFile(cgapi, assig['id']))
 
     def load_submissions(self, assignment):
         try:
@@ -350,6 +949,7 @@ class CGFS(LoggingMixIn, Operations):
                 seen.add(sub['user']['id'])
 
             sub_dir.getattr()
+            sub_dir.insert(RubricSelectFile(cgapi, sub['id']))
             assignment.insert(sub_dir)
 
     def insert_tree(self, dir, tree):
@@ -376,6 +976,10 @@ class CGFS(LoggingMixIn, Operations):
     def get_submission(self, path):
         parts = self.split_path(path)
         submission = self.get_file(parts[:3])
+        try:
+            submission.tld
+        except AttributeError:
+            self.load_submission_files(submission)
 
         return submission
 
@@ -403,10 +1007,8 @@ class CGFS(LoggingMixIn, Operations):
             file = file.children[part]
 
         if expect_type is not None:
-            if expect_type is File and not isinstance(file, (File, TempFile)):
+            if not isinstance(file, expect_type):
                 raise FuseOSError(EISDIR)
-            elif expect_type is Directory and not isinstance(file, Directory):
-                raise FuseOSError(ENOTDIR)
 
         return file
 
@@ -420,6 +1022,10 @@ class CGFS(LoggingMixIn, Operations):
         raise FuseOSError(EPERM)
 
     def create(self, path, mode):
+        with self._lock:
+            return self._create(path, mode)
+
+    def _create(self, path, mode):
         parts = self.split_path(path)
         if len(parts) <= 3:
             raise FuseOSError(EPERM)
@@ -453,17 +1059,25 @@ class CGFS(LoggingMixIn, Operations):
 
         return self.fd
 
-    def flush(self, path, fh=None):
-        file = self.get_file(path, expect_type=File)
-        res = file.flush()
-        if res is not None:
-            file.id = res['id']
+    def fsync(self, path, datasync, fh):
+        with self._lock:
+            if fh is not None:
+                file = self._open_files[fh]
+            else:
+                file = self.get_file(path, expect_type=SingleFile)
+            res = file.fsync()
+            if res is not None:
+                file.id = res['id']
 
     def getattr(self, path, fh=None):
+        with self._lock:
+            return self._getattr(path, fh)
+
+    def _getattr(self, path, fh):
         parts = self.split_path(path)
         file = self.get_file(parts)
 
-        if isinstance(file, TempFile):
+        if isinstance(file, (TempFile, SpecialFile)):
             return file.getattr()
 
         if file.stat is None and len(parts) > 3:
@@ -494,6 +1108,10 @@ class CGFS(LoggingMixIn, Operations):
         raise FuseOSError(ENOTSUP)
 
     def mkdir(self, path, mode):
+        with self._lock:
+            return self._mkdir(path, mode)
+
+    def _mkdir(self, path, mode):
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
@@ -512,12 +1130,16 @@ class CGFS(LoggingMixIn, Operations):
             parent.insert(Directory(ddata, name=dname, writable=True))
 
     def open(self, path, flags):
+        with self._lock:
+            return self._open(path, flags)
+
+    def _open(self, path, flags):
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
 
-        file = self.get_file(parts[-1], start=parent, expect_type=File)
+        file = self.get_file(parts[-1], start=parent, expect_type=SingleFile)
 
-        if isinstance(file, TempFile):
+        if isinstance(file, (TempFile, SpecialFile)):
             file.open()
 
         # This is handled by fuse [0] but it can be disabled so it is better to
@@ -531,40 +1153,52 @@ class CGFS(LoggingMixIn, Operations):
         return self.fd
 
     def read(self, path, size, offset, fh):
-        file = self._open_files[fh]
+        with self._lock:
+            file = self._open_files[fh]
 
-        if isinstance(file, TempFile):
-            return file.read(offset, size)
+            if isinstance(file, (TempFile, SpecialFile)):
+                return file.read(offset, size)
 
-        return file.data[offset:offset + size]
+            return file.data[offset:offset + size]
 
     def readdir(self, path, fh):
-        dir = self.get_dir(path)
+        with self._lock:
+            dir = self.get_dir(path)
 
-        if not dir.children:
-            if dir.type == DirTypes.ASSIGNMENT:
-                self.load_submissions(dir)
-            elif dir.type == DirTypes.SUBMISSION:
-                self.load_submission_files(dir)
+            if not dir.children or all(
+                isinstance(f, SpecialFile) for f in dir.children.values()
+            ):
+                if dir.type == DirTypes.ASSIGNMENT:
+                    self.load_submissions(dir)
+                elif dir.type == DirTypes.SUBMISSION:
+                    self.load_submission_files(dir)
 
-        return dir.read()
+            return dir.read()
 
     def readlink(self, path):
         raise FuseOSError(EINVAL)
 
     def release(self, path, fh):
-        file = self._open_files[fh]
-        file.release()
-        del self._open_files[fh]
+        with self._lock:
+            file = self._open_files[fh]
+            file.release()
+            del self._open_files[fh]
 
     # TODO?: Add xattr support
     def removexattr(self, path, name):
         raise FuseOSError(ENOTSUP)
 
     def rename(self, old, new):
+        with self._lock:
+            self._rename(old, new)
+
+    def _rename(self, old, new):
         old_parts = self.split_path(old)
         old_parent = self.get_dir(old_parts[:-1])
         file = self.get_file(old_parts[-1], start=old_parent)
+
+        if isinstance(file, SpecialFile):
+            raise FuseOSError(EPERM)
 
         new_parts = self.split_path(new)
         new_parent = self.get_dir(new_parts[:-1])
@@ -597,6 +1231,10 @@ class CGFS(LoggingMixIn, Operations):
         new_parent.insert(file)
 
     def rmdir(self, path):
+        with self._lock:
+            self._rmdir(path)
+
+    def _rmdir(self, path):
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dir = self.get_file(parts[-1], start=parent)
@@ -634,60 +1272,64 @@ class CGFS(LoggingMixIn, Operations):
         raise FuseOSError(EPERM)
 
     def truncate(self, path, length, fh=None):
-        if length < 0:  # pragma: no cover
-            raise FuseOSError(EINVAL)
+        with self._lock:
+            if length < 0:  # pragma: no cover
+                raise FuseOSError(EINVAL)
 
-        if fh is not None and fh in self._open_files:  # pragma: no cover
-            file = self._open_files[fh]
-        else:
-            file = self.get_file(path, expect_type=File)
+            if fh is not None and fh in self._open_files:  # pragma: no cover
+                file = self._open_files[fh]
+            else:
+                file = self.get_file(path, expect_type=SingleFile)
 
-        if self.fixed and not isinstance(file, TempFile):
-            raise FuseOSError(EPERM)
-
-        file.truncate(length)
-
-    def unlink(self, path):
-        parts = self.split_path(path)
-        parent = self.get_dir(parts[:-1])
-        fname = parts[-1]
-        file = self.get_file(fname, start=parent, expect_type=File)
-
-        if isinstance(file, TempFile):
-            file.unlink()
-        else:
-            if self.fixed:
+            if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 raise FuseOSError(EPERM)
 
-            try:
-                cgapi.delete_file(file.id)
-            except CGAPIException as e:
-                handle_cgapi_exception(e)
+            file.truncate(length)
 
-        parent.pop(fname)
+    def unlink(self, path):
+        with self._lock:
+            parts = self.split_path(path)
+            parent = self.get_dir(parts[:-1])
+            fname = parts[-1]
+            file = self.get_file(fname, start=parent, expect_type=SingleFile)
+
+            if isinstance(file, (TempFile, SpecialFile)):
+                file.unlink()
+            else:
+                if self.fixed:
+                    raise FuseOSError(EPERM)
+
+                try:
+                    cgapi.delete_file(file.id)
+                except CGAPIException as e:
+                    handle_cgapi_exception(e)
+
+            parent.pop(fname)
 
     def utimens(self, path, times=None):
-        file = self.get_file(path)
+        with self._lock:
+            file = self.get_file(path)
 
-        assert file is not None
+            assert file is not None
 
-        atime, mtime = times or (time(), time())
+            atime, mtime = times or (time(), time())
 
-        if isinstance(file, TempFile):
-            file.utimens(atime, mtime)
-        elif self.fixed:
-            raise FuseOSError(EPERM)
-        else:
-            file.setattr('st_atime', atime)
-            file.setattr('st_mtime', mtime)
+            if isinstance(file, (TempFile, SpecialFile)):
+                file.utimens(atime, mtime)
+            elif self.fixed:
+                raise FuseOSError(EPERM)
+            else:
+                file.setattr('st_atime', atime)
+                file.setattr('st_mtime', mtime)
 
     def write(self, path, data, offset, fh):
-        file = self._open_files[fh]
+        with self._lock:
+            file = self._open_files[fh]
 
-        if self.fixed and not isinstance(file, TempFile):
-            raise FuseOSError(EPERM)
+            if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
+                raise FuseOSError(EPERM)
 
-        return file.write(data, offset)
+            return file.write(data, offset)
 
 
 if __name__ == '__main__':
@@ -752,7 +1394,7 @@ if __name__ == '__main__':
     )
     args = argparser.parse_args()
 
-    mountpoint = args.mountpoint
+    mountpoint = os.path.abspath(args.mountpoint)
     username = args.username
     password = args.password if args.password is not None else getpass()
     latest_only = args.latest_only
@@ -766,9 +1408,24 @@ if __name__ == '__main__':
     )
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
-        fuse = FUSE(
-            CGFS(latest_only, fixed=fixed, tmpdir=tmpdir),
-            mountpoint,
-            nothreads=True,
-            foreground=True
-        )
+        sockfile = tempfile.NamedTemporaryFile().name
+        try:
+            fs = CGFS(
+                latest_only,
+                socketfile=sockfile,
+                fixed=fixed,
+                mountpoint=mountpoint,
+                tmpdir=tmpdir
+            )
+            fuse = FUSE(
+                fs,
+                mountpoint,
+                nothreads=True,
+                foreground=True,
+                direct_io=True
+            )
+        except RuntimeError:
+            traceback.print_exc()
+        finally:
+            fs.api_handler.stop = True
+            os.unlink(sockfile)

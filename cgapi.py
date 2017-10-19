@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from enum import IntEnum
 
 import requests
@@ -40,12 +41,47 @@ class APIRoutes():
     def get_file_buf(self, file_id):
         return '{base}/code/{file_id}'.format(base=self.base, file_id=file_id)
 
+    def select_rubricitems(self, submission_id):
+        return '{base}/submissions/{submission_id}/rubricitems/'.format(
+            base=self.base, submission_id=submission_id
+        )
+
+    def get_submission_rubric(self, submission_id):
+        return '{base}/submissions/{submission_id}/rubrics/'.format(
+            base=self.base, submission_id=submission_id
+        )
+
+    def get_assignment_rubric(self, assignment_id):
+        return '{base}/assignments/{assignment_id}/rubrics/'.format(
+            base=self.base, assignment_id=assignment_id
+        )
+
     def get_file_rename(self, file_id, new_path):
         return (
             '{base}/code/{file_id}?operation='
             'rename&new_path={new_path}'
         ).format(
             base=self.base, file_id=file_id, new_path=new_path
+        )
+
+    def get_feedbacks(self, assignment_id):
+        return '{base}/assignments/{assignment_id}/feedbacks/'.format(
+            base=self.base, assignment_id=assignment_id
+        )
+
+    def get_feedback(self, file_id):
+        return ('{base}/code/{file_id}?type=feedback').format(
+            base=self.base, file_id=file_id
+        )
+
+    def add_feedback(self, file_id, line):
+        return ('{base}/code/{file_id}/comments/{line}').format(
+            base=self.base, file_id=file_id, line=line
+        )
+
+    def get_assignment(self, assignment_id):
+        return ('{base}/assignments/{assignment_id}').format(
+            base=self.base, assignment_id=assignment_id
         )
 
 
@@ -170,5 +206,65 @@ class CGAPI():
     def delete_file(self, file_id):
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.delete(url)
+
+        self._handle_response_error(r)
+
+    def get_assignment_rubric(self, assignment_id):
+        url = self.routes.get_assignment_rubric(assignment_id)
+        r = self.s.get(url)
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def set_assignment_rubric(self, assignment_id, rub):
+        url = self.routes.get_assignment_rubric(assignment_id)
+        r = self.s.put(url, json=rub)
+        self._handle_response_error(r)
+
+    def get_submission_rubric(self, submission_id):
+        url = self.routes.get_submission_rubric(submission_id)
+        r = self.s.get(url)
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def select_rubricitems(self, submission_id, items):
+        url = self.routes.select_rubricitems(submission_id)
+        r = self.s.patch(url, json={'items': items})
+        self._handle_response_error(r)
+
+    def get_feedbacks(self, assignment_id):
+        url = self.routes.get_feedbacks(assignment_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def add_feedback(self, file_id, line, message):
+        url = self.routes.add_feedback(file_id, line)
+        r = self.s.put(url, json={'comment': message})
+
+        self._handle_response_error(r)
+
+    def get_feedback(self, file_id):
+        url = self.routes.get_feedback(file_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def get_assignment(self, assignment_id):
+        url = self.routes.get_assignment(assignment_id=assignment_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def set_assignment(self, assignment_id, settings):
+        url = self.routes.get_assignment(assignment_id=assignment_id)
+        r = self.s.patch(url, json=settings)
 
         self._handle_response_error(r)
