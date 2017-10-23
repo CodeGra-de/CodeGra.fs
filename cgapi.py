@@ -212,6 +212,9 @@ class CGAPI():
     def get_assignment_rubric(self, assignment_id):
         url = self.routes.get_assignment_rubric(assignment_id)
         r = self.s.get(url)
+        if r.status_code == 404:
+            return []
+
         self._handle_response_error(r)
 
         return r.json()
@@ -224,6 +227,13 @@ class CGAPI():
     def get_submission_rubric(self, submission_id):
         url = self.routes.get_submission_rubric(submission_id)
         r = self.s.get(url)
+
+        if r.status_code == 404:
+            return {
+                'rubrics': [],
+                'selected': []
+            }
+
         self._handle_response_error(r)
 
         return r.json()

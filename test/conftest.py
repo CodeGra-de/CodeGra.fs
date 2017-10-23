@@ -29,13 +29,20 @@ def fixed(request):
     return request.param
 
 
+@pytest.fixture(params=[False])
+def rubric_append_only(request):
+    return request.param
+
+
 @pytest.fixture(params=[True])
 def latest_only(request):
     return request.param
 
 
 @pytest.fixture(autouse=True)
-def mount(username, password, mount_dir, latest_only, fixed):
+def mount(
+    username, password, mount_dir, latest_only, fixed, rubric_append_only
+):
     proc = None
     r_fixed = fixed
     del fixed
@@ -44,15 +51,16 @@ def mount(username, password, mount_dir, latest_only, fixed):
         nonlocal proc
 
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
-        proc = subprocess.Popen(
-            [
-                'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password',
-                password, username, mount_dir
-            ] + (['--latest-only']
-                 if latest_only else []) + (['--fixed'] if fixed else []),
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-        )
+        args = [
+            'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password',
+            password, username, mount_dir
+        ]
+        if latest_only:
+            args.append('--fixed')
+        if not rubric_append_only:
+            args.append('--rubric-edit')
+
+        proc = subprocess.Popen(args, stdout=sys.stdout, stderr=sys.stderr)
         check_dir = os.path.join(mount_dir, 'Programmeertalen')
         i = 0.001
         while not os.path.isdir(check_dir):

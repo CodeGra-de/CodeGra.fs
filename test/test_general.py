@@ -39,16 +39,16 @@ def test_create_invalid_file(mount_dir):
             f.write('hello\n')
 
     with pytest.raises(PermissionError):
-        with open(join(mount_dir, ls(mount_dir)[0], 'file'), 'w+') as f:
+        with open(join(mount_dir, ls(mount_dir)[1], 'file'), 'w+') as f:
             f.write('hello\n')
 
 
 def test_delete_invalid_file(mount_dir):
     with pytest.raises(PermissionError):
-        rm_rf(mount_dir, ls(mount_dir)[0])
+        rm_rf(mount_dir, ls(mount_dir)[1])
 
     with pytest.raises(PermissionError):
-        top = ls(mount_dir)[0]
+        top = ls(mount_dir)[1]
         rm_rf(mount_dir, top, ls(mount_dir, top)[0])
 
 

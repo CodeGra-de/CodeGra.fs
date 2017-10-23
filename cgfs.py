@@ -24,6 +24,7 @@ from pathlib import Path
 from argparse import ArgumentParser
 
 from fuse import FUSE, Operations, FuseOSError, LoggingMixIn
+
 from cgapi import CGAPI, APICodes, CGAPIException
 
 
@@ -170,9 +171,6 @@ class SpecialFile(SingleFile):
         self.mode = 0o550
         self.name = name
 
-    def fsync(self):
-        return
-
     def get_data(self):
         return b''
 
@@ -217,6 +215,12 @@ class SpecialFile(SingleFile):
 
     def write(self, data, offset):
         raise FuseOSError(EPERM)
+
+    def flush(self):
+        raise NotImplementedError
+
+    def fsync(self):
+        return self.flush()
 
 
 class SocketFile(SpecialFile):
@@ -277,6 +281,14 @@ class CachedSpecialFile(SpecialFile):
         return len(data)
 
     def fsync(self):
+        return self.flush()
+
+    def unlink(self):
+        self.overwrite = False
+        self.data = None
+        raise ValueError
+
+    def flush(self):
         if not self.overwrite:
             return
 
@@ -339,6 +351,7 @@ class RubricSelectFile(CachedSpecialFile):
 
             l_num += num + 3
 
+            rub['items'].sort(key=lambda i: i['points'])
             for item in rub['items']:
                 self.lookup[l_num] = item['id']
                 new, num = wrap_string(
@@ -377,10 +390,11 @@ class RubricSelectFile(CachedSpecialFile):
 
 
 class RubricEditorFile(CachedSpecialFile):
-    def __init__(self, api, assignment_id):
+    def __init__(self, api, assignment_id, append_only=True):
         super(RubricEditorFile, self).__init__(name='.cg-edit-rubric.md')
         self.api = api
         self.assignment_id = assignment_id
+        self.append_only = append_only
         self.lookup = {}
 
     def hash_id(self, id):
@@ -404,6 +418,7 @@ class RubricEditorFile(CachedSpecialFile):
             res.append('-' * 79)
             res.append('\n')
 
+            rub['items'].sort(key=lambda i: i['points'])
             for item in rub['items']:
                 new, _ = wrap_string(
                     '- [{}] ({}) {} - {}'.format(
@@ -419,6 +434,9 @@ class RubricEditorFile(CachedSpecialFile):
                 res.append('\n')
 
             res.append('\n')
+
+        if not res:
+            return b''
 
         res.pop()
         return bytes(''.join(res), 'utf8')
@@ -524,9 +542,9 @@ class RubricEditorFile(CachedSpecialFile):
             items = []
             data = data.decode('utf8')
             while i < len(data):
-                if data[i] == '#':
-                    item, i = parse_item(i + 1)
-                    items.append(item)
+                assert data[i] == '#'
+                item, i = parse_item(i + 1)
+                items.append(item)
             return items
 
         except (IndexError, KeyError, AssertionError) as _:
@@ -535,6 +553,17 @@ class RubricEditorFile(CachedSpecialFile):
 
     def send_back(self, parsed):
         res = []
+
+        def get_from_lookup(h):
+            try:
+                print(h, self.lookup)
+                res = self.lookup[h]
+                if self.append_only:
+                    del self.lookup[h]
+                return res
+            except KeyError:
+                raise FuseOSError(EPERM)
+
         for header, row_id, desc, items in parsed:
             items_res = []
             for item_id_hash, points, i_head, i_desc in items:
@@ -546,7 +575,7 @@ class RubricEditorFile(CachedSpecialFile):
                     }
                 )
                 if item_id_hash is not None:
-                    items_res[-1]['id'] = self.lookup[item_id_hash]
+                    items_res[-1]['id'] = get_from_lookup(item_id_hash)
 
             res.append(
                 {
@@ -558,7 +587,10 @@ class RubricEditorFile(CachedSpecialFile):
             if row_id is None:
                 assert not any('id' in i for i in items_res)
             else:
-                res[-1]['id'] = self.lookup[row_id]
+                res[-1]['id'] = get_from_lookup(row_id)
+
+        if self.append_only and self.lookup:
+            raise FuseOSError(EPERM)
 
         self.api.set_assignment_rubric(self.assignment_id, {'rows': res})
 
@@ -672,8 +704,11 @@ class TempFile(SingleFile):
             self.__handle.close()
         self.__handle = None
 
+    def flush(self):
+        return
+
     def fsync(self):
-        self._handle.fsync()
+        return
 
     def unlink(self):
         self.release()
@@ -686,6 +721,7 @@ class TempFile(SingleFile):
         else:
             self._handle.seek(0)
             self._handle.truncate(length)
+            self._handle.flush()
 
 
 class File(BaseFile, SingleFile):
@@ -719,6 +755,9 @@ class File(BaseFile, SingleFile):
         self.stat['st_atime'] = time()
 
     def fsync(self):
+        return self.flush()
+
+    def flush(self):
         if not self.dirty:
             return
 
@@ -870,7 +909,7 @@ class CGFS(LoggingMixIn, Operations):
     API_FD = 0
 
     def __init__(
-        self, latest_only, socketfile, mountpoint, fixed=False, tmpdir=None
+            self, latest_only, socketfile, mountpoint, fixed=False, tmpdir=None, rubric_append_only=True
     ):
         self.latest_only = latest_only
         self.fixed = fixed
@@ -893,6 +932,8 @@ class CGFS(LoggingMixIn, Operations):
         self.special_socketfile = SocketFile(
             bytes(socketfile, 'utf8'), '.api.socket'
         )
+
+        self.rubric_append_only = rubric_append_only
 
         self.files = Directory(
             {
@@ -924,7 +965,7 @@ class CGFS(LoggingMixIn, Operations):
                 assig_dir.getattr()
                 course_dir.insert(assig_dir)
                 assig_dir.insert(AssignmentSettingsFile(cgapi, assig['id']))
-                assig_dir.insert(RubricEditorFile(cgapi, assig['id']))
+                assig_dir.insert(RubricEditorFile(cgapi, assig['id'], self.rubric_append_only))
 
     def load_submissions(self, assignment):
         try:
@@ -992,7 +1033,10 @@ class CGFS(LoggingMixIn, Operations):
                 continue
 
             try:
-                if not file.children:
+                if not any(
+                    not isinstance(f, SpecialFile)
+                    for f in file.children.values()
+                ):
                     if file.type == DirTypes.ASSIGNMENT:
                         self.load_submissions(file)
                     elif file.type == DirTypes.SUBMISSION:
@@ -1059,13 +1103,19 @@ class CGFS(LoggingMixIn, Operations):
 
         return self.fd
 
-    def fsync(self, path, datasync, fh):
+    def fsync(self, path, _, fh):
+        self._flush_or_fsync(path, fh, 'fsync')
+
+    def flush(self, path, fh):
+        self._flush_or_fsync(path, fh, 'flush')
+
+    def _flush_or_fsync(self, path, fh, todo):
         with self._lock:
-            if fh is not None:
-                file = self._open_files[fh]
-            else:
+            if fh is None:
                 file = self.get_file(path, expect_type=SingleFile)
-            res = file.fsync()
+            else:
+                file = self._open_files[fh]
+            res = getattr(file, todo)()
             if res is not None:
                 file.id = res['id']
 
@@ -1294,7 +1344,10 @@ class CGFS(LoggingMixIn, Operations):
             file = self.get_file(fname, start=parent, expect_type=SingleFile)
 
             if isinstance(file, (TempFile, SpecialFile)):
-                file.unlink()
+                try:
+                    file.unlink()
+                except ValueError:
+                    return
             else:
                 if self.fixed:
                     raise FuseOSError(EPERM)
@@ -1392,12 +1445,23 @@ if __name__ == '__main__':
         help="""Mount the original files as read only. It is still possible to
         create new files, but it is not possible to alter existing files."""
     )
+    argparser.add_argument(
+        '-r',
+        '--rubric-edit',
+        dest='rubric_append_only',
+        action='store_false',
+        default=True,
+        help='''Make it possible to delete rubric items or categories using the
+        `.cg-edit-rubric.md` files. Note: this feature is experimental and can
+        lead to data loss!'''
+    )
     args = argparser.parse_args()
 
     mountpoint = os.path.abspath(args.mountpoint)
     username = args.username
     password = args.password if args.password is not None else getpass()
     latest_only = args.latest_only
+    rubric_append_only = args.rubric_append_only
     fixed = args.fixed
 
     if args.debug:
@@ -1415,7 +1479,8 @@ if __name__ == '__main__':
                 socketfile=sockfile,
                 fixed=fixed,
                 mountpoint=mountpoint,
-                tmpdir=tmpdir
+                tmpdir=tmpdir,
+                rubric_append_only=rubric_append_only
             )
             fuse = FUSE(
                 fs,
