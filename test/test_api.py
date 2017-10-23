@@ -87,8 +87,12 @@ def test_get_set_rubric(
     )
     assert r.status_code < 400 or r.status_code == 404
     r_file = join(assig_done, '.cg-edit-rubric.md')
+    r_help_file = join(assig_done, '.cg-edit-rubric.help')
     with open(r_file, 'r') as r:
         assert r.read() == ''
+
+    with open(r_help_file) as r:
+        assert r.read()
 
     f = open(r_file, 'wb', 0)
     f.write(data)

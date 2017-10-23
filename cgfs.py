@@ -232,6 +232,27 @@ class SocketFile(SpecialFile):
         return self.loc
 
 
+class HelpFile(SpecialFile):
+    def __init__(self, from_class):
+        name = os.path.splitext(from_class.NAME)[0] + '.help'
+        super(HelpFile, self).__init__(name=name)
+        self.mode = 0o550
+        self.from_class = from_class
+
+    def get_data(self):
+        return bytes(
+            '\n'.join(
+                [
+                    l[4:] if l[:4] == ' ' * 4 else l
+                    for l in self.from_class.__doc__.splitlines()
+                ]
+            ), 'utf8'
+        )
+
+    def flush(self):
+        pass
+
+
 class CachedSpecialFile(SpecialFile):
     DELTA = datetime.timedelta(seconds=60)
 
@@ -326,8 +347,10 @@ class CachedSpecialFile(SpecialFile):
 
 
 class RubricSelectFile(CachedSpecialFile):
+    NAME = '.cg-rubric.md'
+
     def __init__(self, api, submission_id):
-        super(RubricSelectFile, self).__init__(name='.cg-rubric.md')
+        super(RubricSelectFile, self).__init__(name=self.NAME)
         self.submission_id = submission_id
         self.lookup = {}
         self.api = api
@@ -390,8 +413,63 @@ class RubricSelectFile(CachedSpecialFile):
 
 
 class RubricEditorFile(CachedSpecialFile):
+    """This file lets users edit rubrics.
+
+    The format is as follows:
+
+    file:
+      rubric file | ε
+    newline:
+      '\\n'
+    rubric:
+      header newline description sep newline items
+    id_hash:
+      '[' (ANY_NON_SPACE_CHAR * 16) '] ' | ε
+    header:
+      '# ' id_hash ' ANY_NON_NEWLINE_CHAR
+    description:
+      description_line description?
+    description?:
+      description_line description? | ε
+    description_line:
+      '  ' ANY_NON_NEWLINE_CHAR newline
+    sep?:
+      '-' | ε
+    sep:
+      '-' sep?
+    items:
+      item items?
+    items?:
+      item items? | ε
+    float:
+      ALPHANUM_CHARS | ALPHANUM_CHARS '.' ALPHANUM_CHARS
+    title:
+      ANY_NOT_-_CHAR
+    description:
+      SINGLE_NOT_-_CHAR ANY_NON_NEWLINE_CHAR newline description | SINGLE_NOT_-_CHAR ANY_NON_NEWLINE_CHAR
+    item:
+      '- ' id_hash '('  float ') ' '-' description newline
+
+    Please note that the ids are hashes, so they should not be edited. Removing
+    items is only supported when editing rubrics is enabled. The file will
+    change after saving, make sure your editor reloads a file after saving.
+
+    An example file could be like this:
+    # My header
+    My description
+    of multiple
+    lines
+    --------------
+    - (5.0) First item - Description
+    - (1.0) Second item - Multiline
+      description
+
+      is here.
+    """
+    NAME = '.cg-edit-rubric.md'
+
     def __init__(self, api, assignment_id, append_only=True):
-        super(RubricEditorFile, self).__init__(name='.cg-edit-rubric.md')
+        super(RubricEditorFile, self).__init__(name=self.NAME)
         self.api = api
         self.assignment_id = assignment_id
         self.append_only = append_only
@@ -909,7 +987,13 @@ class CGFS(LoggingMixIn, Operations):
     API_FD = 0
 
     def __init__(
-            self, latest_only, socketfile, mountpoint, fixed=False, tmpdir=None, rubric_append_only=True
+        self,
+        latest_only,
+        socketfile,
+        mountpoint,
+        fixed=False,
+        tmpdir=None,
+        rubric_append_only=True
     ):
         self.latest_only = latest_only
         self.fixed = fixed
@@ -965,7 +1049,12 @@ class CGFS(LoggingMixIn, Operations):
                 assig_dir.getattr()
                 course_dir.insert(assig_dir)
                 assig_dir.insert(AssignmentSettingsFile(cgapi, assig['id']))
-                assig_dir.insert(RubricEditorFile(cgapi, assig['id'], self.rubric_append_only))
+                assig_dir.insert(
+                    RubricEditorFile(
+                        cgapi, assig['id'], self.rubric_append_only
+                    )
+                )
+                assig_dir.insert(HelpFile(RubricEditorFile))
 
     def load_submissions(self, assignment):
         try:
