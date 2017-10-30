@@ -722,8 +722,8 @@ class TempFile(SingleFile):
     def __init__(self, name, tmpdir):
         self._tmpdir = tmpdir
         self.name = name
-
-        self.__handle = None
+        self._cnt = 0
+        self._unlink = False
 
         # Create a new temporary file
         self._filename = str(uuid.uuid4())
@@ -742,19 +742,12 @@ class TempFile(SingleFile):
         stat = {
             key: getattr(st, key)
             for key in (
-                'st_atime', 'st_ctime', 'st_gid', 'st_mode', 'st_mtime',
-                'st_nlink', 'st_size', 'st_uid'
+                'st_atime', 'st_ctime', 'st_gid', 'st_mtime', 'st_nlink',
+                'st_size', 'st_uid'
             )
         }
         stat['st_mode'] = S_IFREG | 0o770
         return stat
-
-    @property
-    def _handle(self):
-        if self.__handle is None:
-            self.__handle = open(self.full_path, 'r+b')
-            self.__handle.seek(0)
-        return self.__handle
 
     def getattr(self):
         return self.stat
@@ -766,25 +759,27 @@ class TempFile(SingleFile):
         os.utime(self.full_path, (atime, mtime))
 
     def open(self, *args):
-        # We open on-demand so we never have problems with opening
-        pass
+        assert not self._unlink
+
+        if self._cnt == 0:
+            self._handle = open(self.full_path, 'r+b')
+
+        self._cnt += 1
 
     def read(self, offset, size):
         self._handle.seek(offset)
         return self._handle.read(size)
 
     def write(self, data, offset):
-        handle = self._handle
-        handle.seek(offset)
-        res = handle.write(data)
-        handle.flush()
+        self._handle.seek(offset)
+        res = self._handle.write(data)
+        self._handle.flush()
         return res
 
     def release(self):
-        if self.__handle is not None:
-            self.__handle.flush()
-            self.__handle.close()
-        self.__handle = None
+        self._cnt -= 1
+        if self._cnt == 0:
+            self._handle.close()
 
     def flush(self):
         return
@@ -793,9 +788,9 @@ class TempFile(SingleFile):
         return self.flush()
 
     def unlink(self):
-        self.release()
-        os.unlink(self.full_path)
-        self._filename = None
+        self._unlink = True
+        if self._cnt == 0:
+            os.unlink(self.full_path)
 
     def truncate(self, length):
         if self.__handle is None:
@@ -822,6 +817,7 @@ class File(BaseFile, SingleFile):
 
     @data.setter
     def data(self, data):
+        self.stat['st_size'] = len(data) if data is not None else 0
         self._data = data
 
     def getattr(self, submission=None, path=None):
@@ -833,8 +829,15 @@ class File(BaseFile, SingleFile):
         return self.stat
 
     def open(self, buf):
-        self._data = buf
+        self.data = buf
         self.stat['st_atime'] = time()
+
+    def read(self, offset, size):
+        return self.data[offset:offset + size]
+
+    def utimens(self, atime, mtime):
+        self.setattr('st_atime', atime)
+        self.setattr('st_mtime', mtime)
 
     def flush(self):
         if not self.dirty:
@@ -857,14 +860,13 @@ class File(BaseFile, SingleFile):
 
     def truncate(self, length):
         if length == 0:
-            self._data = bytes('', 'utf8')
+            self.data = bytes('', 'utf8')
         elif length <= self.stat['st_size']:
-            self._data = self.data[:length]
+            self.data = self.data[:length]
         else:
-            self._data = self.data + bytes(
+            self.data = self.data + bytes(
                 '\0' * (length - self.stat['st_size']), 'utf8'
             )
-        self.stat['st_size'] = length
         self.stat['st_atime'] = time()
         self.stat['st_mtime'] = time()
         self.dirty = True
@@ -1022,7 +1024,8 @@ class CGFS(LoggingMixIn, Operations):
         mountpoint,
         fixed=False,
         tmpdir=None,
-        rubric_append_only=True
+            rubric_append_only=True,
+            quiet=False,
     ):
         self.latest_only = latest_only
         self.fixed = fixed
@@ -1031,6 +1034,7 @@ class CGFS(LoggingMixIn, Operations):
         self.mountpoint = mountpoint
         self._lock = threading.RLock()
         self._open_files = {}
+        self.quiet = quiet
 
         self._tmpdir = tmpdir
 
@@ -1064,7 +1068,8 @@ class CGFS(LoggingMixIn, Operations):
                 )
             )
             self.load_courses()
-        print('Mounted')
+        if not self.quiet:
+            print('Mounted')
 
     def strippath(self, path):
         path = os.path.abspath(path)
@@ -1300,7 +1305,7 @@ class CGFS(LoggingMixIn, Operations):
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
 
-        # Fuse should handle this but better save than sorry
+        # Fuse should handle this but better safe than sorry
         if dname in parent.children:  # pragma: no cover
             raise FuseOSError(EEXIST)
 
@@ -1327,7 +1332,7 @@ class CGFS(LoggingMixIn, Operations):
             file.open()
 
         # This is handled by fuse [0] but it can be disabled so it is better to
-        # be save than sorry as it can be enabled.
+        # be safe than sorry as it can be enabled.
         # [0] https://sourceforge.net/p/fuse/mailman/message/29515577/
         if flags & O_TRUNC:  # pragma: no cover
             file.truncate(0)
@@ -1339,11 +1344,7 @@ class CGFS(LoggingMixIn, Operations):
     def read(self, path, size, offset, fh):
         with self._lock:
             file = self._open_files[fh]
-
-            if isinstance(file, (TempFile, SpecialFile)):
-                return file.read(offset, size)
-
-            return file.data[offset:offset + size]
+            return file.read(offset, size)
 
     def readdir(self, path, fh):
         with self._lock:
@@ -1496,18 +1497,13 @@ class CGFS(LoggingMixIn, Operations):
     def utimens(self, path, times=None):
         with self._lock:
             file = self.get_file(path)
-
             assert file is not None
-
             atime, mtime = times or (time(), time())
 
-            if isinstance(file, (TempFile, SpecialFile)):
-                file.utimens(atime, mtime)
-            elif self.fixed:
+            if isinstance(file, File) and self.fixed:
                 raise FuseOSError(EPERM)
-            else:
-                file.setattr('st_atime', atime)
-                file.setattr('st_mtime', mtime)
+
+            file.utimens(atime, mtime)
 
     def write(self, path, data, offset, fh):
         with self._lock:
@@ -1520,8 +1516,6 @@ class CGFS(LoggingMixIn, Operations):
 
 
 if __name__ == '__main__':
-    print('Mounting... ')
-
     argparser = ArgumentParser(description='CodeGra.de file system')
     argparser.add_argument(
         'username',
@@ -1580,14 +1574,22 @@ if __name__ == '__main__':
         create new files, but it is not possible to alter existing files."""
     )
     argparser.add_argument(
+        '-q',
+        '--quiet',
+        dest='quiet',
+        action='store_true',
+        default=True,
+        help="""Only output error messages.""",
+    )
+    argparser.add_argument(
         '-r',
         '--rubric-edit',
         dest='rubric_append_only',
         action='store_false',
         default=True,
-        help='''Make it possible to delete rubric items or categories using the
+        help="""Make it possible to delete rubric items or categories using the
         `.cg-edit-rubric.md` files. Note: this feature is experimental and can
-        lead to data loss!'''
+        lead to data loss!"""
     )
     args = argparser.parse_args()
 
@@ -1597,6 +1599,10 @@ if __name__ == '__main__':
     latest_only = args.latest_only
     rubric_append_only = args.rubric_append_only
     fixed = args.fixed
+    quiet = args.quiet
+
+    if not quiet:
+        print('Mounting... ')
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -1614,7 +1620,8 @@ if __name__ == '__main__':
                 fixed=fixed,
                 mountpoint=mountpoint,
                 tmpdir=tmpdir,
-                rubric_append_only=rubric_append_only
+                rubric_append_only=rubric_append_only,
+                quiet=quiet,
             )
             fuse = FUSE(
                 fs,

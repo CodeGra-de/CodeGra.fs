@@ -213,6 +213,35 @@ def test_double_open(sub_done, mount, fixed):
     fff.close()
 
 
+@pytest.mark.parametrize('fixed', [False, True], indirect=True)
+def test_double_open_unlink(sub_done, mount, fixed):
+    fname = join(sub_done, 'new_test_file')
+    f = open(fname, 'wb')
+    f.write(b'hello')
+
+    f.flush()
+    f.close()
+
+    ff = open(fname, 'r+b')
+    fff = open(fname, 'r+b')
+    print(f, ff, fff)
+
+    os.unlink(fname)
+
+    assert ff.read() == b'hello'
+
+    ff.close()
+
+    assert fff.read() == b'hello'
+
+    fff.close()
+
+    with pytest.raises(FileNotFoundError):
+        ff = open(fname, 'r+b')
+
+    assert False
+
+
 def test_set_utime(sub_done, mount):
     fname = join(sub_done, 'new_test_file')
     fname2 = join(sub_done, 'new_test_file2')
