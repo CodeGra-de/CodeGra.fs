@@ -30,6 +30,21 @@ def recv(s):
             break
     return message
 
+def is_file(s, file):
+    s.send(
+        bytes(
+            json.dumps(
+                {
+                    'op': 'is_file',
+                    'file': os.path.abspath(file),
+                }
+            ).encode('utf8')
+        )
+    )
+    if json.loads(recv(s))['ok']:
+        return 0
+    else:
+        return 2
 
 def get_comments(s, file):
     s.send(
@@ -53,7 +68,7 @@ def get_comments(s, file):
         print(
             '\n'.join(
                 '{}:{}:{}:{}'.format(
-                    os.path.abspath(sys.argv[2]), number, 0, msg
+                    os.path.abspath(file), number, 0, msg
                 ) for number, msg in res
             )
         )
@@ -69,7 +84,7 @@ def delete_comment(s, file, line):
             json.dumps(
                 {
                     'op': 'delete_feedback',
-                    'file': os.path.abspath(sys.argv[2]),
+                    'file': os.path.abspath(file),
                     'line': line,
                 }
             ).encode('utf8')
@@ -147,6 +162,13 @@ def main():
                 sys.exit(3)
 
             sys.exit(delete_comment(s, sys.argv[2], line))
+
+        elif sys.argv[1] == 'is-file':
+            if len(sys.argv) != 3:
+                print_usage()
+                sys.exit(1)
+
+            sys.exit(is_file(s, sys.argv[2]))
 
         elif sys.argv[1] == 'get-comment':
             if len(sys.argv) != 3:

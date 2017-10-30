@@ -891,7 +891,7 @@ class File(BaseFile, SingleFile):
 
 
 class APIHandler:
-    OPS = {'add_feedback', 'get_feedback', 'delete_feedback'}
+    OPS = {'add_feedback', 'get_feedback', 'delete_feedback', 'is_file'}
 
     def __init__(self, cgfs):
         self.cgfs = cgfs
@@ -959,6 +959,17 @@ class APIHandler:
                 return {'ok': False, 'error': 'The server returned an error'}
 
             return {'ok': True}
+
+    def is_file(self, payload):
+        f_name = self.cgfs.strippath(payload['file'])
+
+        with self.cgfs._lock:
+            try:
+                f = self.cgfs.get_file(f_name, expect_type=SingleFile)
+            except:
+                return {'ok': False, 'error': 'File not found'}
+
+            return {'ok': isinstance(f, File)}
 
     def get_feedback(self, payload):
         f_name = self.cgfs.strippath(payload['file'])

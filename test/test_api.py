@@ -446,7 +446,22 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
     assert res == bytes('{0}:0:0:Message\n'.format(f), 'utf8')
 
+    assert subprocess.check_output([
+        './api_consumer.py',
+        'is-file',
+        f,
+    ]) == b''
+    assert run_shell(['./api_consumer.py', 'is-file', '/etc']).returncode == 3
+    assert run_shell(
+        [
+            './api_consumer.py',
+            'is-file',
+            join(sub_done, '.cg-rubric.md'),
+        ]
+    ).returncode == 2
+
 
 @pytest.mark.parametrize('fixed', [True, False], indirect=True)
 def test_cg_mode_file(mount_dir, fixed):
-    assert (open(join(mount_dir, '.cg-mode'), 'r').read() == 'FIXED\n') == fixed
+    assert (open(join(mount_dir, '.cg-mode'),
+                 'r').read() == 'FIXED\n') == fixed
