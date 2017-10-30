@@ -434,12 +434,19 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
     assert res == bytes('{0}:0:0:Message\n{0}:5:0:\n'.format(f), 'utf8')
 
-    assert subprocess.check_output([
-        './api_consumer.py',
-        'delete-comment',
-        f,
-        '5',
-    ]) == b''
+    assert subprocess.check_output(
+        [
+            './api_consumer.py',
+            'delete-comment',
+            f,
+            '5',
+        ]
+    ) == b''
 
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
     assert res == bytes('{0}:0:0:Message\n'.format(f), 'utf8')
+
+
+@pytest.mark.parametrize('fixed', [True, False], indirect=True)
+def test_cg_mode_file(mount_dir, fixed):
+    assert (open(join(mount_dir, '.cg-mode'), 'r').read() == 'FIXED\n') == fixed

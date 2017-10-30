@@ -1047,6 +1047,11 @@ class CGFS(LoggingMixIn, Operations):
         with self._lock:
             self.files.getattr()
             self.files.insert(self.special_socketfile)
+            self.files.insert(
+                SpecialFile(
+                    '.cg-mode', b'FIXED\n' if self.fixed else b'NOT_FIXED\n'
+                )
+            )
             self.load_courses()
         print('Mounted')
 
