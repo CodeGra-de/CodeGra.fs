@@ -29,9 +29,9 @@ from cgapi import CGAPI, APICodes, CGAPIException
 
 
 def handle_cgapi_exception(ex):
-    if ex.code == APICodes.OBJECT_ID_NOT_FOUND:
+    if ex.code == APICodes.OBJECT_ID_NOT_FOUND.name:
         raise FuseOSError(ENOENT)
-    elif ex.code == APICodes.INCORRECT_PERMISSION:
+    elif ex.code == APICodes.INCORRECT_PERMISSION.name:
         raise FuseOSError(EPERM)
     else:
         raise ex
@@ -167,12 +167,13 @@ class SingleFile:
 
 
 class SpecialFile(SingleFile):
-    def __init__(self, name):
+    def __init__(self, name, data=b''):
         self.mode = 0o550
         self.name = name
+        self.data = data
 
     def get_data(self):
-        return b''
+        return self.data
 
     def getattr(self):
         return {
@@ -217,9 +218,9 @@ class SpecialFile(SingleFile):
         raise FuseOSError(EPERM)
 
     def flush(self):
-        raise NotImplementedError
+        return
 
-    def fsync(self):
+    def fsync(self):  # pragma: no cover
         return self.flush()
 
 
@@ -322,7 +323,7 @@ class CachedSpecialFile(SpecialFile):
             self.send_back(parsed)
         except CGAPIException as e:
             print('error from server:', e.message)
-            raise FuseOSError(EPERM)
+            handle_cgapi_exception(e)
         except:
             traceback.print_exc()
             raise
@@ -634,7 +635,6 @@ class RubricEditorFile(CachedSpecialFile):
 
         def get_from_lookup(h):
             try:
-                print(h, self.lookup)
                 res = self.lookup[h]
                 if self.append_only:
                     del self.lookup[h]
@@ -678,7 +678,7 @@ class AssignmentSettingsFile(CachedSpecialFile):
 
     def __init__(self, api, assignment_id):
         super(AssignmentSettingsFile,
-              self).__init__(name='.cg-assignments-settings')
+              self).__init__(name='.cg-assignment-settings.ini')
         self.assignment_id = assignment_id
         self.api = api
 
@@ -692,9 +692,9 @@ class AssignmentSettingsFile(CachedSpecialFile):
                 continue
 
             if k == 'state' and v in {'grading', 'submitting'}:
-                lines.append('{}={}'.format(k, 'open'))
+                lines.append('{} = {}'.format(k, 'open'))
             else:
-                lines.append('{}={}'.format(k, v))
+                lines.append('{} = {}'.format(k, v))
 
         lines.sort(key=lambda i: i[0])
         lines.append('')
@@ -707,10 +707,14 @@ class AssignmentSettingsFile(CachedSpecialFile):
                 continue
 
             key, val = line.split(b'=', 1)
-            key = key.decode('utf8')
+            key = key.decode('utf8').strip()
             if key not in self.TO_USE:
                 raise ValueError
-            res[key] = val.decode('utf8')
+            res[key] = val.decode('utf8').strip()
+
+        if len(self.TO_USE) != len(res):
+            raise ValueError
+
         return res
 
 
@@ -785,8 +789,8 @@ class TempFile(SingleFile):
     def flush(self):
         return
 
-    def fsync(self):
-        return
+    def fsync(self):  # pragma: no cover
+        return self.flush()
 
     def unlink(self):
         self.release()
@@ -831,9 +835,6 @@ class File(BaseFile, SingleFile):
     def open(self, buf):
         self._data = buf
         self.stat['st_atime'] = time()
-
-    def fsync(self):
-        return self.flush()
 
     def flush(self):
         if not self.dirty:
@@ -890,7 +891,7 @@ class File(BaseFile, SingleFile):
 
 
 class APIHandler:
-    OPS = {'add_feedback', 'get_feedback'}
+    OPS = {'add_feedback', 'get_feedback', 'delete_feedback'}
 
     def __init__(self, cgfs):
         self.cgfs = cgfs
@@ -942,6 +943,23 @@ class APIHandler:
             finally:
                 conn.close()
 
+    def delete_feedback(self, payload):
+        f_name = self.cgfs.strippath(payload['file'])
+        line = payload['line']
+
+        with self.cgfs._lock:
+            try:
+                f = self.cgfs.get_file(f_name, expect_type=SingleFile)
+            except:
+                return {'ok': False, 'error': 'File not found'}
+
+            try:
+                res = cgapi.delete_feedback(f.id, line)
+            except:
+                return {'ok': False, 'error': 'The server returned an error'}
+
+            return {'ok': True}
+
     def get_feedback(self, payload):
         f_name = self.cgfs.strippath(payload['file'])
 
@@ -949,7 +967,7 @@ class APIHandler:
             try:
                 f = self.cgfs.get_file(f_name, expect_type=SingleFile)
             except:
-                return {'ok': False, 'error': 'File not found'}
+                return {'ok': False, 'error': 'File not found', 'f': f_name}
 
             if isinstance(f, TempFile):
                 return {'ok': False, 'error': 'File not a sever file'}
@@ -1055,6 +1073,12 @@ class CGFS(LoggingMixIn, Operations):
                     )
                 )
                 assig_dir.insert(HelpFile(RubricEditorFile))
+                assig_dir.insert(
+                    SpecialFile(
+                        '.cg-assignment-id',
+                        data=str(assig['id']).encode() + b'\n'
+                    )
+                )
 
     def load_submissions(self, assignment):
         try:
@@ -1098,6 +1122,11 @@ class CGFS(LoggingMixIn, Operations):
         except CGAPIException as e:
             handle_cgapi_exception(e)
         self.insert_tree(submission, files)
+        submission.insert(
+            SpecialFile(
+                '.cg-submission-id', data=str(submission.id).encode() + b'\n'
+            )
+        )
         submission.tld = files['name']
 
     def split_path(self, path):
@@ -1200,7 +1229,7 @@ class CGFS(LoggingMixIn, Operations):
 
     def _flush_or_fsync(self, path, fh, todo):
         with self._lock:
-            if fh is None:
+            if fh is None:  # pragma: no cover
                 file = self.get_file(path, expect_type=SingleFile)
             else:
                 file = self._open_files[fh]
@@ -1578,7 +1607,7 @@ if __name__ == '__main__':
                 foreground=True,
                 direct_io=True
             )
-        except RuntimeError:
+        except RuntimeError:  # pragma: no cover
             traceback.print_exc()
         finally:
             fs.api_handler.stop = True

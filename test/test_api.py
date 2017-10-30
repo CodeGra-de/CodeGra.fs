@@ -14,6 +14,12 @@ from helpers import (
 )
 
 
+def run_shell(prog, **kwargs):
+    return subprocess.run(
+        prog, stderr=subprocess.PIPE, stdout=subprocess.PIPE, **kwargs
+    )
+
+
 @pytest.fixture(autouse=True)
 def username():
     yield 'thomas'
@@ -243,3 +249,197 @@ def test_remove_add_rubric_item(
         with open(r_file, 'w') as f:
             f.write(read)
         test_correct(res_after)
+
+
+def test_selecting_rubric(
+    sub_done,
+    assig_done,
+    shell_id,
+    teacher_jwt,
+):
+    r = requests.delete(
+        'http://localhost:5000/api/v1/assignments/{}/rubrics/'.
+        format(shell_id),
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt,
+        }
+    )
+    assert r.status_code < 400 or r.status_code == 404
+    r_file = join(assig_done, '.cg-edit-rubric.md')
+    ru_file = join(sub_done, '.cg-rubric.md')
+    with open(r_file, 'r') as r:
+        assert r.read() == ''
+
+    f = open(r_file, 'wb', 0)
+    f.write(
+        b'# Header\nDescription\n----\n- (1.0) Item - Desc\n- (4.0) Item2 '
+        b'- Desc2\n\n# Header 2\nDescription 2\n------\n- (2.5) I - D\n   '
+        b'C\n  \nA\n\n\nM\n'
+    )
+
+    f.flush()
+
+    f.close()
+
+    with open(join(sub_done, '.cg-submission-id'), 'r') as f:
+        sub_id = f.read().strip()
+
+    with open(ru_file, 'r') as f:
+        data = f.read()
+
+    print(sub_id)
+    r = requests.get(
+        'http://localhost:5000/api/v1/submissions/{}/rubrics/'.format(sub_id),
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt,
+        }
+    )
+    assert not r.json()['selected']
+
+    with pytest.raises(PermissionError):
+        with open(ru_file, 'w') as f:
+            f.write('\n' + data.replace('[ ] I (2.5)', '[x] I (2.5)'))
+
+    with open(ru_file, 'w') as f:
+        f.write(data)
+
+    r = requests.get(
+        'http://localhost:5000/api/v1/submissions/{}/rubrics/'.format(sub_id),
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt,
+        }
+    )
+    assert not r.json()['selected']
+
+    with open(ru_file, 'w') as f:
+        f.write(data.replace('[ ] I (2.5)', '[x] I (2.5)'))
+
+    r = requests.get(
+        'http://localhost:5000/api/v1/submissions/{}/rubrics/'.format(sub_id),
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt,
+        }
+    )
+    sel = r.json()['selected']
+    assert len(sel) == 1
+    assert sel[0]['header'] == 'I'
+    assert sel[0]['points'] == 2.5
+
+
+def test_assig_settings(
+    sub_done,
+    assig_done,
+    shell_id,
+    teacher_jwt,
+):
+    a_file = join(assig_done, '.cg-assignment-settings.ini')
+
+    with open(a_file, 'r') as r:
+        data = r.read()
+
+    with pytest.raises(PermissionError):
+        with open(a_file, 'w') as r:
+            r.write('')
+
+    with pytest.raises(PermissionError):
+        with open(a_file, 'w') as r:
+            r.write('bla = die')
+
+    with open(a_file, 'w') as r:
+        d = data.replace('done', 'open')
+        r.write(d)
+
+    assert requests.get(
+        'http://localhost:5000/api/v1/assignments/{}'.format(shell_id),
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt,
+        }
+    ).json()['state'] == 'grading'
+
+    with open(a_file, 'w') as r:
+        r.write(data.replace('hidden', 'done'))
+
+    assert requests.get(
+        'http://localhost:5000/api/v1/assignments/{}'.format(shell_id),
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt,
+        }
+    ).json()['state'] == 'done'
+
+
+def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
+    for root, _, files in os.walk(sub_done):
+        for name in files:
+            if name[0] != '.':
+                f = join(root, name)
+                break
+
+    print(f)
+    assert run_shell([
+        './api_consumer.py',
+        'get-comment',
+    ]).returncode == 1
+    s = run_shell([
+        './api_consumer.py',
+        'get-comment',
+        '/etc',
+    ])
+    assert s.returncode == 3
+
+    print(run_shell(['./api_consumer.py', 'get-comment', f]).stdout)
+    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    assert res == b'\n'
+
+    assert run_shell([
+        './api_consumer.py',
+        'add-comment',
+        '/etc',
+    ]).returncode == 3
+    assert run_shell(
+        ['./api_consumer.py', 'add-comment', '/etc', '5', 'hello']
+    ).returncode == 3
+
+    s = run_shell(['./api_consumer.py', 'add-comment', f, '5'])
+    print(s.stderr, s.stdout)
+    assert s.returncode == 1
+
+    assert subprocess.check_output(
+        ['./api_consumer.py', 'add-comment', f, '5', 'Feedback message']
+    ) == b''
+
+    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    assert res == bytes('{}:5:0:Feedback message\n'.format(f), 'utf8')
+
+    assert subprocess.check_output(
+        ['./api_consumer.py', 'add-comment', f, '0', 'Message']
+    ) == b''
+    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    assert res == bytes(
+        '{0}:0:0:Message\n{0}:5:0:Feedback message\n'.format(f), 'utf8'
+    )
+
+    assert subprocess.check_output(
+        ['./api_consumer.py', 'add-comment', f, '5', '']
+    ) == b''
+    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    assert res == bytes('{0}:0:0:Message\n{0}:5:0:\n'.format(f), 'utf8')
+
+    assert run_shell([
+        './api_consumer.py',
+        'delete-comment',
+        f,
+        '4',
+    ]).returncode == 2
+
+    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    assert res == bytes('{0}:0:0:Message\n{0}:5:0:\n'.format(f), 'utf8')
+
+    assert subprocess.check_output([
+        './api_consumer.py',
+        'delete-comment',
+        f,
+        '5',
+    ]) == b''
+
+    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    assert res == bytes('{0}:0:0:Message\n'.format(f), 'utf8')

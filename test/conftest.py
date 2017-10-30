@@ -56,6 +56,8 @@ def mount(
             password, username, mount_dir
         ]
         if latest_only:
+            args.append('-l')
+        if fixed:
             args.append('--fixed')
         if not rubric_append_only:
             args.append('--rubric-edit')

@@ -36,7 +36,7 @@ def test_list_submissions(mount_dir):
 
     for assig in ls(course_dir):
         for sub in ls(course_dir, assig):
-            assert 'Stupid1' in sub
+            assert 'Stupid1' in sub or sub[0] == '.'
 
 
 def test_create_files(mount_dir, sub_open, sub_done):

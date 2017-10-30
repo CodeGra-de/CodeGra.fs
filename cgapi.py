@@ -79,6 +79,8 @@ class APIRoutes():
             base=self.base, file_id=file_id, line=line
         )
 
+    delete_feedback = add_feedback
+
     def get_assignment(self, assignment_id):
         return ('{base}/assignments/{assignment_id}').format(
             base=self.base, assignment_id=assignment_id
@@ -111,6 +113,7 @@ class CGAPIException(Exception):
         data = response.json()
         super(CGAPIException, self).__init__(data['message'])
 
+        self.status_code = response.status_code
         self.description = data['description']
         self.message = data['message']
         self.code = data['code']
@@ -254,6 +257,12 @@ class CGAPI():
     def add_feedback(self, file_id, line, message):
         url = self.routes.add_feedback(file_id, line)
         r = self.s.put(url, json={'comment': message})
+
+        self._handle_response_error(r)
+
+    def delete_feedback(self, file_id, line):
+        url = self.routes.delete_feedback(file_id=file_id, line=line)
+        r = self.s.delete(url)
 
         self._handle_response_error(r)
 
