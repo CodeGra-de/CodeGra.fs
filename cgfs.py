@@ -1470,10 +1470,10 @@ class CGFS(LoggingMixIn, Operations):
             if length < 0:  # pragma: no cover
                 raise FuseOSError(EINVAL)
 
-            if fh is not None and fh in self._open_files:  # pragma: no cover
-                file = self._open_files[fh]
-            else:
+            if fh is None:
                 file = self.get_file(path, expect_type=SingleFile)
+            else:  # pragma: no cover
+                file = self._open_files[fh]
 
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 raise FuseOSError(EPERM)
@@ -1544,7 +1544,7 @@ if __name__ == '__main__':
         metavar='PASSWORD',
         type=str,
         dest='password',
-        help="""Your CodeGra.de password, don' pass this option if you want to
+        help="""Your CodeGra.de password, don't pass this option if you want to
         pass your password over stdin."""
     )
     argparser.add_argument(
