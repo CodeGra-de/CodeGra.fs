@@ -419,13 +419,13 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'add-comment', f, '0', 'Message']
+        ['./api_consumer.py', 'add-comment', f, '1', 'Message']
     ) == b''
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
-            'line': 0,
+            'line': 1,
             'col': 0,
             'content': 'Message'
         }, {
@@ -442,7 +442,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
-            'line': 0,
+            'line': 1,
             'col': 0,
             'content': 'Message'
         }, {
@@ -477,7 +477,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
-            'line': 0,
+            'line': 1,
             'col': 0,
             'content': 'Message'
         },

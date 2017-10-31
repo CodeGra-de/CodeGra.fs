@@ -55,8 +55,8 @@ def mount(
             'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password',
             password, username, mount_dir
         ]
-        if latest_only:
-            args.append('-l')
+        if not latest_only:
+            args.append('-a')
         if fixed:
             args.append('--fixed')
         if not rubric_append_only:
