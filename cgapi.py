@@ -51,6 +51,13 @@ class APIRoutes():
             base=self.base, submission_id=submission_id
         )
 
+    def get_submission(self, submission_id):
+        return '{base}/submissions/{submission_id}'.format(
+            base=self.base, submission_id=submission_id
+        )
+
+    set_submission = get_submission
+
     def get_assignment_rubric(self, assignment_id):
         return '{base}/assignments/{assignment_id}/rubrics/'.format(
             base=self.base, assignment_id=assignment_id
@@ -232,10 +239,7 @@ class CGAPI():
         r = self.s.get(url)
 
         if r.status_code == 404:
-            return {
-                'rubrics': [],
-                'selected': []
-            }
+            return {'rubrics': [], 'selected': []}
 
         self._handle_response_error(r)
 
@@ -285,5 +289,26 @@ class CGAPI():
     def set_assignment(self, assignment_id, settings):
         url = self.routes.get_assignment(assignment_id=assignment_id)
         r = self.s.patch(url, json=settings)
+
+        self._handle_response_error(r)
+
+    def get_submission(self, submission_id):
+        url = self.routes.get_submission(submission_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def set_submission(self, submission_id, grade=None, feedback=None):
+        url = self.routes.set_submission(submission_id)
+        d = {}
+        if grade is not None:
+            d['grade'] = grade
+        if grade == 'delete':
+            d['grade'] = None
+        if feedback is not None:
+            d['feedback'] = feedback
+        r = self.s.patch(url, json=d)
 
         self._handle_response_error(r)

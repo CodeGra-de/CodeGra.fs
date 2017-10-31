@@ -269,7 +269,8 @@ class CachedSpecialFile(SpecialFile):
         return self.mtime
 
     def get_data(self):
-        if self.data and (datetime.datetime.utcnow() - self.time) < self.DELTA:
+        if self.data is not None and (datetime.datetime.utcnow() -
+                                      self.time) < self.DELTA:
             return self.data
         elif self.overwrite:
             return self.data
@@ -345,6 +346,82 @@ class CachedSpecialFile(SpecialFile):
             )
 
         self.overwrite = True
+
+
+class FeedbackFile(CachedSpecialFile):
+    NAME = '.cg-feedback'
+
+    def __init__(self, api, submission_id):
+        self.api = api
+        super(FeedbackFile, self).__init__(name=self.NAME)
+        self.submission_id = submission_id
+
+    def get_online_data(self):
+        feedback = self.api.get_submission(self.submission_id)['comment']
+        if not feedback:
+            return b''
+
+        return bytes(wrap_string(feedback, '', 79)[0], 'utf8') + b'\n'
+
+    def parse(self, data):
+        data = data.decode('utf8').split('\n')
+        if len(data) == 1 and data[0] == '':
+            return ''
+
+        res = []
+        for line in data:
+            line = line.strip()
+            if line:
+                if res and res[-1] != '\n':
+                    res.append(' ')
+                res.append(line)
+            else:
+                res.append('\n')
+
+        return ''.join(res).strip()
+
+    def send_back(self, feedback):
+        self.api.set_submission(self.submission_id, feedback=feedback)
+
+
+class GradeFile(CachedSpecialFile):
+    NAME = '.cg-grade'
+
+    def __init__(self, api, submission_id):
+        self.api = api
+        self.grade = None
+        super(GradeFile, self).__init__(name=self.NAME)
+        self.submission_id = submission_id
+
+    def get_online_data(self):
+        grade = self.api.get_submission(self.submission_id)['grade']
+
+        if grade is None:
+            return b''
+
+        self.grade = round(float(grade), 2)
+        return bytes(str(self.grade) + '\n', 'utf8')
+
+    def parse(self, data):
+        if not data:
+            return 'delete'
+
+        data = [d for d in data.decode('utf8').split('\n') if d]
+
+        if len(data) != 1:
+            raise ValueError
+
+        return float(data[0])
+
+    def send_back(self, grade):
+        if grade != 'delete':
+            if round(grade, 2) == self.grade:
+                return
+
+            if grade < 0 or grade > 10:
+                raise FuseOSError(EPERM)
+
+        self.api.set_submission(self.submission_id, grade=grade)
 
 
 class RubricSelectFile(CachedSpecialFile):
@@ -897,6 +974,9 @@ class File(BaseFile, SingleFile):
         self.dirty = True
         return len(data)
 
+    def fsync(self):
+        self.flush()
+
 
 class APIHandler:
     OPS = {'add_feedback', 'get_feedback', 'delete_feedback', 'is_file'}
@@ -1030,8 +1110,8 @@ class CGFS(LoggingMixIn, Operations):
         mountpoint,
         fixed=False,
         tmpdir=None,
-            rubric_append_only=True,
-            quiet=False,
+        rubric_append_only=True,
+        quiet=False,
     ):
         self.latest_only = latest_only
         self.fixed = fixed
@@ -1131,6 +1211,8 @@ class CGFS(LoggingMixIn, Operations):
 
             sub_dir.getattr()
             sub_dir.insert(RubricSelectFile(cgapi, sub['id']))
+            sub_dir.insert(GradeFile(cgapi, sub['id']))
+            sub_dir.insert(FeedbackFile(cgapi, sub['id']))
             assignment.insert(sub_dir)
 
     def insert_tree(self, dir, tree):

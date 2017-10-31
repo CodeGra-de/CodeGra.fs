@@ -502,3 +502,62 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 def test_cg_mode_file(mount_dir, fixed):
     assert (open(join(mount_dir, '.cg-mode'),
                  'r').read() == 'FIXED\n') == fixed
+
+
+def test_grade_file(sub_done):
+    g_file = join(sub_done, '.cg-grade')
+    with open(g_file, 'r') as f:
+        assert f.read() == ''
+
+    with open(g_file, 'w') as f:
+        f.write('5.5')
+
+    with pytest.raises(PermissionError):
+        with open(g_file, 'w') as f:
+            f.write('hallo')
+
+    with pytest.raises(PermissionError):
+        with open(g_file, 'w') as f:
+            f.write('5.5\n5.3')
+
+    rm(g_file)
+
+    with open(g_file, 'r') as f:
+        assert f.read() == '5.5\n'
+
+    with open(g_file, 'w') as f:
+        assert f.write('5.5\n')
+
+    with open(g_file, 'r') as f:
+        assert f.read() == '5.5\n'
+
+    with open(g_file, 'w') as f:
+        pass
+
+    with open(g_file, 'r') as f:
+        assert f.read() == ''
+
+    with pytest.raises(PermissionError):
+        with open(g_file, 'w') as f:
+            f.write('11.0\n')
+
+    with open(g_file, 'w') as f:
+        pass
+
+
+def test_feedback_file(sub_done):
+    f_file = join(sub_done, '.cg-feedback')
+    with open(f_file, 'r') as f:
+        assert f.read() == ''
+
+    with open(f_file, 'w') as f:
+        f.write('hello\nThomas\n\nBye we')
+
+    with open(f_file, 'r') as f:
+        assert f.read() == 'hello Thomas\n\nBye we\n'
+
+    with open(f_file, 'w') as f:
+        pass
+
+    with open(f_file, 'r') as f:
+        assert f.read() == ''
