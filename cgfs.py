@@ -1566,12 +1566,12 @@ if __name__ == '__main__':
         help='Verbose mode: print all system calls (produces a LOT of output).'
     )
     argparser.add_argument(
-        '-l',
-        '--latest-only',
+        '-a',
+        '--all-submissions',
         dest='latest_only',
-        action='store_true',
-        default=False,
-        help='Only see the latest submissions of students.'
+        action='store_false',
+        default=True,
+        help='See all submissions not just the latest submissions of students.'
     )
     argparser.add_argument(
         '-f',
