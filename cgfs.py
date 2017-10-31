@@ -780,6 +780,7 @@ class TempFile(SingleFile):
         self._cnt -= 1
         if self._cnt == 0:
             self._handle.close()
+            self._handle = None
 
     def flush(self):
         return
@@ -793,7 +794,7 @@ class TempFile(SingleFile):
             os.unlink(self.full_path)
 
     def truncate(self, length):
-        if self.__handle is None:
+        if self._handle is None:
             os.truncate(self.full_path, length)
         else:
             self._handle.seek(0)
