@@ -62,7 +62,7 @@ def get_comments(s, file):
     if out['ok']:
         res = []
         for key, val in out['data'].items():
-            res.append({'col': 0, 'line': int(key), 'content': val['msg']})
+            res.append({'col': 0, 'line': int(key) + 1, 'content': val['msg']})
 
         res.sort(key=lambda i: i['line'])
         print(json.dumps(res))
@@ -78,7 +78,7 @@ def delete_comment(s, file, line):
                 {
                     'op': 'delete_feedback',
                     'file': os.path.abspath(file),
-                    'line': line,
+                    'line': line - 1,
                 }
             ).encode('utf8')
         )
@@ -96,7 +96,7 @@ def add_comment(s, file, line, message):
                 {
                     'op': 'add_feedback',
                     'file': os.path.abspath(sys.argv[2]),
-                    'line': line,
+                    'line': line - 1,
                     'message': message
                 }
             ).encode('utf8')
