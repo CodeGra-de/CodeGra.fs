@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import stat
 import tarfile
 import subprocess
@@ -388,7 +389,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 
     print(run_shell(['./api_consumer.py', 'get-comment', f]).stdout)
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
-    assert res == b'\n'
+    assert res == b'[]\n'
 
     assert run_shell([
         './api_consumer.py',
@@ -408,21 +409,48 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ) == b''
 
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
-    assert res == bytes('{}:5:0:Feedback message\n'.format(f), 'utf8')
+    assert b'\n' not in res[:-1]
+    assert json.loads(res) == [
+        {
+            'line': 5,
+            'col': 0,
+            'content': 'Feedback message'
+        }
+    ]
 
     assert subprocess.check_output(
         ['./api_consumer.py', 'add-comment', f, '0', 'Message']
     ) == b''
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
-    assert res == bytes(
-        '{0}:0:0:Message\n{0}:5:0:Feedback message\n'.format(f), 'utf8'
-    )
+    assert b'\n' not in res[:-1]
+    assert json.loads(res) == [
+        {
+            'line': 0,
+            'col': 0,
+            'content': 'Message'
+        }, {
+            'line': 5,
+            'col': 0,
+            'content': 'Feedback message'
+        }
+    ]
 
     assert subprocess.check_output(
         ['./api_consumer.py', 'add-comment', f, '5', '']
     ) == b''
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
-    assert res == bytes('{0}:0:0:Message\n{0}:5:0:\n'.format(f), 'utf8')
+    assert b'\n' not in res[:-1]
+    assert json.loads(res) == [
+        {
+            'line': 0,
+            'col': 0,
+            'content': 'Message'
+        }, {
+            'line': 5,
+            'col': 0,
+            'content': ''
+        }
+    ]
 
     assert run_shell([
         './api_consumer.py',
@@ -431,8 +459,10 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
         '4',
     ]).returncode == 2
 
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
-    assert res == bytes('{0}:0:0:Message\n{0}:5:0:\n'.format(f), 'utf8')
+    # Don't change after a wrong delete
+    assert res == subprocess.check_output(
+        ['./api_consumer.py', 'get-comment', f]
+    )
 
     assert subprocess.check_output(
         [
@@ -444,7 +474,14 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ) == b''
 
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
-    assert res == bytes('{0}:0:0:Message\n'.format(f), 'utf8')
+    assert b'\n' not in res[:-1]
+    assert json.loads(res) == [
+        {
+            'line': 0,
+            'col': 0,
+            'content': 'Message'
+        },
+    ]
 
     assert subprocess.check_output([
         './api_consumer.py',

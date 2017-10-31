@@ -62,17 +62,10 @@ def get_comments(s, file):
     if out['ok']:
         res = []
         for key, val in out['data'].items():
-            res.append((key, val['msg']))
+            res.append({'col': 0, 'line': int(key), 'content': val['msg']})
 
-        res.sort(key=lambda i: i[0])
-        print(
-            '\n'.join(
-                '{}:{}:{}:{}'.format(
-                    os.path.abspath(file), number, 0, msg
-                ) for number, msg in res
-            )
-        )
-
+        res.sort(key=lambda i: i['line'])
+        print(json.dumps(res))
         return 0
     else:
         return 2
