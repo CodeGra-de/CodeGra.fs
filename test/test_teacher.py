@@ -24,7 +24,7 @@ def test_list_courses(mount_dir):
     assert set(ls(mount_dir)) == set(
         [
             'Besturingssystemen', 'Programmeertalen',
-            'Project Software Engineering', '.api.socket'
+            'Project Software Engineering', '.api.socket', '.cg-mode'
         ]
     )
 

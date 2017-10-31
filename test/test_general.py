@@ -39,17 +39,24 @@ def test_create_invalid_file(mount_dir):
             f.write('hello\n')
 
     with pytest.raises(PermissionError):
-        with open(join(mount_dir, ls(mount_dir)[1], 'file'), 'w+') as f:
+        with open(
+            join(
+                mount_dir, [l for l in ls(mount_dir)
+                            if isdir(mount_dir, l)][0], 'file'
+            ), 'w+'
+        ) as f:
             f.write('hello\n')
 
 
 def test_delete_invalid_file(mount_dir):
     with pytest.raises(PermissionError):
-        rm_rf(mount_dir, ls(mount_dir)[1])
+        top = [l for l in ls(mount_dir) if isdir(mount_dir, l)][0]
+        rm_rf(mount_dir, top)
 
     with pytest.raises(PermissionError):
-        top = ls(mount_dir)[1]
-        rm_rf(mount_dir, top, ls(mount_dir, top)[0])
+        top = [l for l in ls(mount_dir) if isdir(mount_dir, l)][0]
+        f = [l for l in ls(mount_dir, top) if isdir(mount_dir, top, l)][0]
+        rm_rf(mount_dir, top, f)
 
 
 def test_invalid_perm_setting(sub_done):
@@ -239,8 +246,6 @@ def test_double_open_unlink(sub_done, mount, fixed):
     with pytest.raises(FileNotFoundError):
         ff = open(fname, 'r+b')
 
-    assert False
-
 
 def test_set_utime(sub_done, mount):
     fname = join(sub_done, 'new_test_file')
@@ -283,8 +288,10 @@ def test_non_exising_submission(assig_done):
         mkdir(assig_done, 'NON EXISTING', 'file')
 
     with pytest.raises(FileNotFoundError):
-        rename([assig_done, 'NON EXISTING', 'file'],
-               [assig_done, 'NON EXISTING', 'file2'])
+        rename(
+            [assig_done, 'NON EXISTING', 'file'],
+            [assig_done, 'NON EXISTING', 'file2']
+        )
 
     with pytest.raises(FileNotFoundError):
         ls(assig_done, 'NON EXISTING')

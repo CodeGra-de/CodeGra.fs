@@ -818,7 +818,8 @@ class File(BaseFile, SingleFile):
 
     @data.setter
     def data(self, data):
-        self.stat['st_size'] = len(data) if data is not None else 0
+        if data is not None:
+            self.stat['st_size'] = len(data)
         self._data = data
 
     def getattr(self, submission=None, path=None):
@@ -827,6 +828,8 @@ class File(BaseFile, SingleFile):
             self.stat['st_mode'] = S_IFREG | 0o770
             self.stat['st_nlink'] = 1
 
+        if self.stat['st_size'] is None:
+            self.stat['st_size'] = len(self.data)
         return self.stat
 
     def open(self, buf):
@@ -860,33 +863,35 @@ class File(BaseFile, SingleFile):
         self.data = None
 
     def truncate(self, length):
+        old_data = self.data
+
         if length == 0:
             self.data = bytes('', 'utf8')
-        elif length <= self.stat['st_size']:
+        elif length <= len(old_data):
             self.data = self.data[:length]
         else:
-            self.data = self.data + bytes(
-                '\0' * (length - self.stat['st_size']), 'utf8'
+            self.data = old_data + bytes(
+                '\0' * (length - len(old_data)), 'utf8'
             )
         self.stat['st_atime'] = time()
         self.stat['st_mtime'] = time()
         self.dirty = True
 
     def write(self, data, offset):
-        if offset > self.stat['st_size']:
-            self._data += bytes(offset - len(self.data))
+        old_data = self.data
 
-        if self.stat['st_size'] - offset - len(data) > 0:
+        if offset > len(old_data):
+            self._data += bytes(offset - len(old_data))
+
+        if len(old_data) - offset - len(data) > 0:
             # Write in between
             second_offset = offset + len(data)
-            old_d = self.data
-            self._data = old_d[:offset] + data + old_d[second_offset:]
+            self.data = old_data[:offset] + data + old_data[second_offset:]
         elif offset == 0:
-            self._data = data
+            self.data = data
         else:
-            self._data = self.data[:offset] + data
+            self.data = self.data[:offset] + data
 
-        self.stat['st_size'] = len(self._data)
         self.stat['st_atime'] = time()
         self.stat['st_mtime'] = time()
         self.dirty = True
@@ -1264,8 +1269,11 @@ class CGFS(LoggingMixIn, Operations):
             return self._getattr(path, fh)
 
     def _getattr(self, path, fh):
-        parts = self.split_path(path)
-        file = self.get_file(parts)
+        if fh is None:
+            parts = self.split_path(path)
+            file = self.get_file(parts)
+        else:
+            file = self._open_files[fh]
 
         if isinstance(file, (TempFile, SpecialFile)):
             return file.getattr()
