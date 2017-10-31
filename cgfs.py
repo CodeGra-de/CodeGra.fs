@@ -979,7 +979,7 @@ class File(BaseFile, SingleFile):
 
 
 class APIHandler:
-    OPS = {'add_feedback', 'get_feedback', 'delete_feedback', 'is_file'}
+    OPS = {'set_feedback', 'get_feedback', 'delete_feedback', 'is_file'}
 
     def __init__(self, cgfs):
         self.cgfs = cgfs
@@ -1078,7 +1078,7 @@ class APIHandler:
 
             return {'ok': True, 'data': res}
 
-    def add_feedback(self, payload):
+    def set_feedback(self, payload):
         f_name = self.cgfs.strippath(payload['file'])
         line = payload['line']
         message = payload['message']

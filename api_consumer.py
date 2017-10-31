@@ -9,7 +9,7 @@ def print_usage():
     print(
         (
             'Usage:\n'
-            '{0} add-comment FILE LINE_NUMBER MESSAGE\n'
+            '{0} set-comment FILE LINE_NUMBER MESSAGE\n'
             'OR\n'
             '{0} delete-comment FILE LINE_NUMBER\n'
             'OR\n'
@@ -89,12 +89,12 @@ def delete_comment(s, file, line):
         return 2
 
 
-def add_comment(s, file, line, message):
+def set_comment(s, file, line, message):
     s.send(
         bytes(
             json.dumps(
                 {
-                    'op': 'add_feedback',
+                    'op': 'set_feedback',
                     'file': os.path.abspath(sys.argv[2]),
                     'line': line - 1,
                     'message': message
@@ -128,7 +128,7 @@ def main():
     s.connect(open(os.path.join(path, '.api.socket'), 'r').read())
 
     try:
-        if sys.argv[1] == 'add-comment':
+        if sys.argv[1] == 'set-comment':
             if len(sys.argv) != 5:
                 print_usage()
                 sys.exit(1)
@@ -141,7 +141,7 @@ def main():
 
             message = sys.argv[4]
 
-            sys.exit(add_comment(s, sys.argv[2], line, message))
+            sys.exit(set_comment(s, sys.argv[2], line, message))
 
         elif sys.argv[1] == 'delete-comment':
             if len(sys.argv) != 4:

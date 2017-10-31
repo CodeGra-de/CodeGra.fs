@@ -393,19 +393,19 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 
     assert run_shell([
         './api_consumer.py',
-        'add-comment',
+        'set-comment',
         '/etc',
     ]).returncode == 3
     assert run_shell(
-        ['./api_consumer.py', 'add-comment', '/etc', '5', 'hello']
+        ['./api_consumer.py', 'set-comment', '/etc', '5', 'hello']
     ).returncode == 3
 
-    s = run_shell(['./api_consumer.py', 'add-comment', f, '5'])
+    s = run_shell(['./api_consumer.py', 'set-comment', f, '5'])
     print(s.stderr, s.stdout)
     assert s.returncode == 1
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'add-comment', f, '5', 'Feedback message']
+        ['./api_consumer.py', 'set-comment', f, '5', 'Feedback message']
     ) == b''
 
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
@@ -419,7 +419,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'add-comment', f, '1', 'Message']
+        ['./api_consumer.py', 'set-comment', f, '1', 'Message']
     ) == b''
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
     assert b'\n' not in res[:-1]
@@ -436,7 +436,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'add-comment', f, '5', '']
+        ['./api_consumer.py', 'set-comment', f, '5', '']
     ) == b''
     res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
     assert b'\n' not in res[:-1]
