@@ -1315,7 +1315,9 @@ class CGFS(LoggingMixIn, Operations):
         parent = self.get_dir(parts[:-1])
         fname = parts[-1]
 
-        assert fname not in parent.children
+        if fname in parent.children:
+            parent.children[fname].truncate(0)
+
 
         submission = self.get_submission(path)
         query_path = submission.tld + '/' + '/'.join(parts[3:])
