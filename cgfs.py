@@ -115,6 +115,7 @@ class Directory(BaseFile):
         self.type = type
         self.writable = writable
         self.children = {}
+        self.children_loaded = False
 
     def getattr(self, submission=None, path=None):
         if self.stat is None:
@@ -1190,6 +1191,8 @@ class CGFS(LoggingMixIn, Operations):
                         data=str(assig['id']).encode() + b'\n'
                     )
                 )
+            course_dir.children_loaded = True
+        self.files.children_loaded = True
 
     def load_submissions(self, assignment):
         try:
@@ -1219,6 +1222,8 @@ class CGFS(LoggingMixIn, Operations):
             sub_dir.insert(FeedbackFile(cgapi, sub['id']))
             assignment.insert(sub_dir)
 
+        assignment.children_loaded = True
+
     def insert_tree(self, dir, tree):
         for item in tree['entries']:
             if 'entries' in item:
@@ -1228,6 +1233,7 @@ class CGFS(LoggingMixIn, Operations):
                 self.insert_tree(new_dir, item)
             else:
                 dir.insert(File(item))
+        dir.children_loaded = True
 
     def load_submission_files(self, submission):
         try:
@@ -1241,6 +1247,7 @@ class CGFS(LoggingMixIn, Operations):
             )
         )
         submission.tld = files['name']
+        submission.children_loaded = True
 
     def split_path(self, path):
         return [x for x in path.split('/') if x]
@@ -1445,9 +1452,7 @@ class CGFS(LoggingMixIn, Operations):
         with self._lock:
             dir = self.get_dir(path)
 
-            if not dir.children or all(
-                isinstance(f, SpecialFile) for f in dir.children.values()
-            ):
+            if not dir.children_loaded:
                 if dir.type == DirTypes.ASSIGNMENT:
                     self.load_submissions(dir)
                 elif dir.type == DirTypes.SUBMISSION:
