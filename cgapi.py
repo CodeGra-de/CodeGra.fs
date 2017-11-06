@@ -1,21 +1,97 @@
 # -*- coding: utf-8 -*-
 
-from os import getenv
 from enum import IntEnum
 
 import requests
 
-CGAPI_BASE_URL = getenv('CGAPI_BASE_URL', 'https://codegra.de/api/v1')
+DEFAULT_CGAPI_BASE_URL = 'https://codegra.de/api/v1'
 
 
 class APIRoutes():
-    LOGIN = CGAPI_BASE_URL + '/login'
-    COURSES = CGAPI_BASE_URL + '/courses/?extended=true'
-    SUBMISSIONS = CGAPI_BASE_URL + '/assignments/{assignment_id}/submissions/'
-    FILES = CGAPI_BASE_URL + '/submissions/{submission_id}/files/?owner=auto'
-    FILE = CGAPI_BASE_URL + '/submissions/{submission_id}/files/?path={path}&owner=auto'
-    FILE_BUF = CGAPI_BASE_URL + '/code/{file_id}'
-    FILE_RENAME = CGAPI_BASE_URL + '/code/{file_id}?operation=rename&new_path={new_path}'
+    def __init__(self, base):
+        while base and base[-1] == '/':  # pragma: no cover
+            base = base[:-1]
+
+        self.base = base
+
+    def get_login(self):
+        return '{base}/login'.format(base=self.base)
+
+    def get_courses(self):
+        return '{base}/courses/?extended=true'.format(base=self.base)
+
+    def get_submissions(self, assignment_id):
+        return '{base}/assignments/{assignment_id}/submissions/'.format(
+            base=self.base, assignment_id=assignment_id
+        )
+
+    def get_files(self, submission_id):
+        return '{base}/submissions/{submission_id}/files/?owner=auto'.format(
+            base=self.base, submission_id=submission_id
+        )
+
+    def get_file(self, submission_id, path):
+        return (
+            '{base}/submissions/{submission_id}/'
+            'files/?path={path}&owner=auto'
+        ).format(
+            base=self.base, submission_id=submission_id, path=path
+        )
+
+    def get_file_buf(self, file_id):
+        return '{base}/code/{file_id}'.format(base=self.base, file_id=file_id)
+
+    def select_rubricitems(self, submission_id):
+        return '{base}/submissions/{submission_id}/rubricitems/'.format(
+            base=self.base, submission_id=submission_id
+        )
+
+    def get_submission_rubric(self, submission_id):
+        return '{base}/submissions/{submission_id}/rubrics/'.format(
+            base=self.base, submission_id=submission_id
+        )
+
+    def get_submission(self, submission_id):
+        return '{base}/submissions/{submission_id}'.format(
+            base=self.base, submission_id=submission_id
+        )
+
+    set_submission = get_submission
+
+    def get_assignment_rubric(self, assignment_id):
+        return '{base}/assignments/{assignment_id}/rubrics/'.format(
+            base=self.base, assignment_id=assignment_id
+        )
+
+    def get_file_rename(self, file_id, new_path):
+        return (
+            '{base}/code/{file_id}?operation='
+            'rename&new_path={new_path}'
+        ).format(
+            base=self.base, file_id=file_id, new_path=new_path
+        )
+
+    def get_feedbacks(self, assignment_id):
+        return '{base}/assignments/{assignment_id}/feedbacks/'.format(
+            base=self.base, assignment_id=assignment_id
+        )
+
+    def get_feedback(self, file_id):
+        return ('{base}/code/{file_id}?type=feedback').format(
+            base=self.base, file_id=file_id
+        )
+
+    def add_feedback(self, file_id, line):
+        return ('{base}/code/{file_id}/comments/{line}').format(
+            base=self.base, file_id=file_id, line=line
+        )
+
+    delete_feedback = add_feedback
+
+    def get_assignment(self, assignment_id):
+        return ('{base}/assignments/{assignment_id}').format(
+            base=self.base, assignment_id=assignment_id
+        )
 
 
 class APICodes(IntEnum):
@@ -44,105 +120,195 @@ class CGAPIException(Exception):
         data = response.json()
         super(CGAPIException, self).__init__(data['message'])
 
+        self.status_code = response.status_code
         self.description = data['description']
         self.message = data['message']
         self.code = data['code']
 
 
 class CGAPI():
-    def __init__(self, username, password):
+    def __init__(self, username, password, base=None):
+        self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL)
         r = requests.post(
-            APIRoutes.LOGIN,
+            self.routes.get_login(),
             json={
                 'username': username,
                 'password': password,
             }
         )
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         self.access_token = r.json()['access_token']
+        self.s = requests.Session()
 
-    def get_default_headers(self):
-        return {
+        self.s.headers = {
             'Authorization': 'Bearer ' + self.access_token,
         }
 
-    def get_courses(self):
-        r = requests.get(APIRoutes.COURSES, headers=self.get_default_headers())
+    def _handle_response_error(self, request):
+        if request.status_code >= 400:
+            raise CGAPIException(request)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+    def get_courses(self):
+        r = self.s.get(self.routes.get_courses())
+
+        self._handle_response_error(r)
 
         return r.json()
 
     def get_submissions(self, assignment_id):
-        url = APIRoutes.SUBMISSIONS.format(assignment_id=assignment_id)
-        r = requests.get(url, headers=self.get_default_headers())
+        url = self.routes.get_submissions(assignment_id=assignment_id)
+        r = self.s.get(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
     def get_submission_files(self, submission_id):
-        url = APIRoutes.FILES.format(submission_id=submission_id)
-        r = requests.get(url, headers=self.get_default_headers())
+        url = self.routes.get_files(submission_id=submission_id)
+        r = self.s.get(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
     def get_file_meta(self, submission_id, path):
-        url = APIRoutes.FILE.format(submission_id=submission_id, path=path)
-        r = requests.get(url, headers=self.get_default_headers())
+        url = self.routes.get_file(submission_id=submission_id, path=path)
+        r = self.s.get(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
     def create_file(self, submission_id, path, buf=None):
-        url = APIRoutes.FILE.format(submission_id=submission_id, path=path)
-        r = requests.post(url, headers=self.get_default_headers(), data=buf)
+        url = self.routes.get_file(submission_id=submission_id, path=path)
+        r = self.s.post(url, data=buf)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
     def rename_file(self, file_id, new_path):
-        url = APIRoutes.FILE_RENAME.format(file_id=file_id, new_path=new_path)
-        r = requests.patch(url, headers=self.get_default_headers())
+        url = self.routes.get_file_rename(file_id=file_id, new_path=new_path)
+        r = self.s.patch(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
     def get_file(self, file_id):
-        url = APIRoutes.FILE_BUF.format(file_id=file_id)
-        r = requests.get(url, headers=self.get_default_headers())
+        url = self.routes.get_file_buf(file_id=file_id)
+        r = self.s.get(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.content
 
     def patch_file(self, file_id, buf):
-        url = APIRoutes.FILE_BUF.format(file_id=file_id)
-        r = requests.patch(url, headers=self.get_default_headers(), data=buf)
+        url = self.routes.get_file_buf(file_id=file_id)
+        r = self.s.patch(url, data=buf)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
 
         return r.json()
 
     def delete_file(self, file_id):
-        url = APIRoutes.FILE_BUF.format(file_id=file_id)
-        r = requests.delete(url, headers=self.get_default_headers())
+        url = self.routes.get_file_buf(file_id=file_id)
+        r = self.s.delete(url)
 
-        if r.status_code >= 400:
-            raise CGAPIException(r)
+        self._handle_response_error(r)
+
+    def get_assignment_rubric(self, assignment_id):
+        url = self.routes.get_assignment_rubric(assignment_id)
+        r = self.s.get(url)
+        if r.status_code == 404:
+            return []
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def set_assignment_rubric(self, assignment_id, rub):
+        url = self.routes.get_assignment_rubric(assignment_id)
+        r = self.s.put(url, json=rub)
+        self._handle_response_error(r)
+
+    def get_submission_rubric(self, submission_id):
+        url = self.routes.get_submission_rubric(submission_id)
+        r = self.s.get(url)
+
+        if r.status_code == 404:
+            return {'rubrics': [], 'selected': []}
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def select_rubricitems(self, submission_id, items):
+        url = self.routes.select_rubricitems(submission_id)
+        r = self.s.patch(url, json={'items': items})
+        self._handle_response_error(r)
+
+    def get_feedbacks(self, assignment_id):
+        url = self.routes.get_feedbacks(assignment_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def add_feedback(self, file_id, line, message):
+        url = self.routes.add_feedback(file_id, line)
+        r = self.s.put(url, json={'comment': message})
+
+        self._handle_response_error(r)
+
+    def delete_feedback(self, file_id, line):
+        url = self.routes.delete_feedback(file_id=file_id, line=line)
+        r = self.s.delete(url)
+
+        self._handle_response_error(r)
+
+    def get_feedback(self, file_id):
+        url = self.routes.get_feedback(file_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def get_assignment(self, assignment_id):
+        url = self.routes.get_assignment(assignment_id=assignment_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def set_assignment(self, assignment_id, settings):
+        url = self.routes.get_assignment(assignment_id=assignment_id)
+        r = self.s.patch(url, json=settings)
+
+        self._handle_response_error(r)
+
+    def get_submission(self, submission_id):
+        url = self.routes.get_submission(submission_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
+
+    def set_submission(self, submission_id, grade=None, feedback=None):
+        url = self.routes.set_submission(submission_id)
+        d = {}
+        if grade is not None:
+            d['grade'] = grade
+        if grade == 'delete':
+            d['grade'] = None
+        if feedback is not None:
+            d['feedback'] = feedback
+        r = self.s.patch(url, json=d)
+
+        self._handle_response_error(r)

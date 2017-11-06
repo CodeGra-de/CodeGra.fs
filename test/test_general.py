@@ -39,17 +39,24 @@ def test_create_invalid_file(mount_dir):
             f.write('hello\n')
 
     with pytest.raises(PermissionError):
-        with open(join(mount_dir, ls(mount_dir)[0], 'file'), 'w+') as f:
+        with open(
+            join(
+                mount_dir, [l for l in ls(mount_dir)
+                            if isdir(mount_dir, l)][0], 'file'
+            ), 'w+'
+        ) as f:
             f.write('hello\n')
 
 
 def test_delete_invalid_file(mount_dir):
     with pytest.raises(PermissionError):
-        rm_rf(mount_dir, ls(mount_dir)[0])
+        top = [l for l in ls(mount_dir) if isdir(mount_dir, l)][0]
+        rm_rf(mount_dir, top)
 
     with pytest.raises(PermissionError):
-        top = ls(mount_dir)[0]
-        rm_rf(mount_dir, top, ls(mount_dir, top)[0])
+        top = [l for l in ls(mount_dir) if isdir(mount_dir, l)][0]
+        f = [l for l in ls(mount_dir, top) if isdir(mount_dir, top, l)][0]
+        rm_rf(mount_dir, top, f)
 
 
 def test_invalid_perm_setting(sub_done):
@@ -116,7 +123,6 @@ def test_create_existing_dir(sub_done):
 def test_rename(mount_dir, sub_done, sub_open):
     assert isdir(sub_done, 'dir')
     assert not isdir(sub_done, 'dir33')
-    files = set(ls(sub_done, 'dir'))
 
     assert isdir(sub_done, 'dir')
     assert not isdir(sub_done, 'dir33')
@@ -144,7 +150,8 @@ def test_illegal_rename(mount_dir, sub_done, sub_open):
         rename([sub_done, 'dir33'], [sub_done, 'dir'])
 
 
-def test_compiling_program(sub_done):
+@pytest.mark.parametrize('fixed', [True, False], indirect=True)
+def test_compiling_program(sub_done, mount, fixed):
     url = 'https://attach.libremail.nl/__test_codegra.fs__.tar.gz'
     fname = join(sub_done, '42.tar.gz')
     fdir = join(sub_done, '42sh/')
@@ -153,9 +160,32 @@ def test_compiling_program(sub_done):
     tar.extractall(sub_done)
     tar.close()
     print(subprocess.check_output(['make', '-C', fdir]))
+    assert isdir(fdir)
+    assert isfile(fname)
     assert subprocess.check_output(
         [join(fdir, '42sh'), '-c', 'echo hello from 42']
     ).decode('utf-8') == 'hello from 42\n'
+
+    mount()
+
+    if fixed:
+        assert not isdir(fdir)
+        assert not isfile(fname)
+        return
+
+    assert isfile(fname)
+    assert isdir(fdir)
+    assert subprocess.check_output(
+        [join(fdir, '42sh'), '-c', 'echo hello from 42']
+    ).decode('utf-8') == 'hello from 42\n'
+
+    rm_rf(fdir)
+    assert not isdir(fdir)
+
+    mount()
+
+    assert isfile(fname)
+    assert not isdir(fdir)
 
 
 @pytest.mark.parametrize('latest_only', [True, False], indirect=True)
@@ -166,4 +196,142 @@ def test_latest_only(assig_done, latest_only):
     if latest_only:
         assert amount == 1
     else:
-        assert amount == 2
+        assert amount > 1
+
+
+@pytest.mark.parametrize('fixed', [True, False], indirect=True)
+def test_double_open(sub_done, mount, fixed):
+    fname = join(sub_done, 'new_test_file')
+    f = open(fname, 'wb')
+    f.write(b'hello')
+
+    ff = open(fname, 'r+b')
+    fff = open(fname, 'r+b')
+
+    f.flush()
+
+    assert ff.read() == b'hello'
+
+    f.close()
+
+    assert fff.read() == b'hello'
+
+    ff.close()
+    fff.close()
+
+
+@pytest.mark.parametrize('fixed', [False, True], indirect=True)
+def test_double_open_unlink(sub_done, mount, fixed):
+    fname = join(sub_done, 'new_test_file')
+    f = open(fname, 'wb')
+    f.write(b'hello')
+
+    f.flush()
+    f.close()
+
+    ff = open(fname, 'r+b')
+    fff = open(fname, 'r+b')
+    print(f, ff, fff)
+
+    os.unlink(fname)
+
+    assert ff.read() == b'hello'
+
+    ff.close()
+
+    assert fff.read() == b'hello'
+
+    fff.close()
+
+    with pytest.raises(FileNotFoundError):
+        ff = open(fname, 'r+b')
+
+
+def test_set_utime(sub_done, mount):
+    fname = join(sub_done, 'new_test_file')
+    fname2 = join(sub_done, 'new_test_file2')
+    open(fname, 'w').close()
+
+    old_st = os.lstat(fname)
+    os.utime(fname, (10, 123.5))
+    new_st = os.lstat(fname)
+
+    assert new_st.st_atime == 10.0
+    assert new_st.st_mtime == 123.5
+
+    assert old_st.st_atime != 10.0
+    assert old_st.st_mtime != 123.5
+
+    mount(fixed=True)
+
+    with pytest.raises(PermissionError):
+        os.utime(fname, (100, 1235))
+
+    open(fname2, 'w').close()
+
+    old_st = os.lstat(fname2)
+    os.utime(fname2, (10, 123.5))
+    new_st = os.lstat(fname2)
+
+    assert new_st.st_atime == 10.0
+    assert new_st.st_mtime == 123.5
+
+    assert old_st.st_atime != 10.0
+    assert old_st.st_mtime != 123.5
+
+
+def test_non_exising_submission(assig_done):
+    with pytest.raises(FileNotFoundError):
+        open(join(assig_done, 'NON EXISTING', 'file'), 'x').close()
+
+    with pytest.raises(FileNotFoundError):
+        mkdir(assig_done, 'NON EXISTING', 'file')
+
+    with pytest.raises(FileNotFoundError):
+        rename(
+            [assig_done, 'NON EXISTING', 'file'],
+            [assig_done, 'NON EXISTING', 'file2']
+        )
+
+    with pytest.raises(FileNotFoundError):
+        ls(assig_done, 'NON EXISTING')
+
+
+def test_renaming_submission(sub_done, sub_done2, assig_done):
+    with pytest.raises(FileExistsError):
+        rename([sub_done], [sub_done2])
+
+    with pytest.raises(PermissionError):
+        rename([sub_done], [assig_done, 'NEW AND WRONG'])
+
+    open(join(sub_done, 'hello'), 'w').close()
+
+    with pytest.raises(PermissionError):
+        rename([sub_done, 'hello'], [sub_done2, 'hello'])
+
+
+def test_removing_xattrs(sub_done):
+    fname = join(sub_done, 'hello')
+    open(fname, 'w').close()
+
+    with pytest.raises(OSError):
+        os.removexattr(fname, 'user.cool_attr')
+
+
+def test_write_to_directory(sub_done):
+    fdir = join(sub_done, 'new_dir')
+    fname = join(fdir, 'new_file')
+
+    mkdir(fdir)
+    assert isdir(fdir)
+    assert not isfile(fdir)
+
+    with pytest.raises(IsADirectoryError):
+        with open(fdir, 'w') as f:
+            f.write('hello\n')
+
+    open(fname, 'w').close()
+    with pytest.raises(NotADirectoryError):
+        ls(fname)
+    with pytest.raises(FileExistsError):
+        mkdir(fname)

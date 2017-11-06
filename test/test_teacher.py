@@ -24,7 +24,7 @@ def test_list_courses(mount_dir):
     assert set(ls(mount_dir)) == set(
         [
             'Besturingssystemen', 'Programmeertalen',
-            'Project Software Engineering'
+            'Project Software Engineering', '.api.socket', '.cg-mode'
         ]
     )
 
@@ -46,11 +46,13 @@ def test_list_submissions(mount_dir):
     for course in ['Besturingssystemen', 'Programmeertalen']:
         for assig in ls(mount_dir, course):
             for sub in ls(mount_dir, course, assig):
-                assert any(f'Stupid{i}' in sub for i in range(1, 5))
+                assert any(
+                    'Stupid{i}'.format(i=i) in sub for i in range(1, 5)
+                ) or 'Œlµo' in sub or sub[0] == '.'
 
     for assig in ls(mount_dir, 'Project Software Engineering'):
         for sub in ls(mount_dir, 'Project Software Engineering', assig):
-            assert 'Thomas Schaper' in sub
+            assert 'Thomas Schaper' in sub or sub[0] == '.'
 
 
 def test_create_files(mount_dir, sub_open, sub_done):

@@ -1,4 +1,5 @@
 export PYTHONPATH=$(CURDIR)
+TEST_FLAGS?=
 PYTEST?=pytest
 
 .PHONY: install_deps
@@ -12,5 +13,5 @@ format:
 .PHONY: test
 test:
 	coverage erase
-	$(PYTEST) test/ -vvvvvvvvv
+	$(PYTEST) test/ -vvvvvvvvv $(TEST_FLAGS)
 	coverage report -m cgfs.py
