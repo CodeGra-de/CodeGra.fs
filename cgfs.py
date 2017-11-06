@@ -427,9 +427,10 @@ class GradeFile(CachedSpecialFile):
 class RubricSelectFile(CachedSpecialFile):
     NAME = '.cg-rubric.md'
 
-    def __init__(self, api, submission_id):
+    def __init__(self, api, submission_id, user):
         super(RubricSelectFile, self).__init__(name=self.NAME)
         self.submission_id = submission_id
+        self.user = user
         self.lookup = {}
         self.api = api
 
@@ -439,8 +440,15 @@ class RubricSelectFile(CachedSpecialFile):
         d = self.api.get_submission_rubric(self.submission_id)
         sel = set(i['id'] for i in d['selected'])
         l_num = 0
+        if d['rubrics']:
+            res.append('# The rubric of {}\n\n'.format(self.user['name']))
+            l_num += 2
+        else:
+            res.append('# This assignment does not have a rubric!\n')
+            l_num += 1
+
         for rub in d['rubrics']:
-            res.append('# ')
+            res.append('## ')
             res.append(rub['header'])
             res.append('\n')
 
@@ -709,12 +717,13 @@ class RubricEditorFile(CachedSpecialFile):
 
     def send_back(self, parsed):
         res = []
+        new_lookup = {k: v for k, v in self.lookup.items()}
 
         def get_from_lookup(h):
             try:
-                res = self.lookup[h]
+                res = new_lookup[h]
                 if self.append_only:
-                    del self.lookup[h]
+                    del new_lookup[h]
                 return res
             except KeyError:
                 raise FuseOSError(EPERM)
@@ -744,9 +753,10 @@ class RubricEditorFile(CachedSpecialFile):
             else:
                 res[-1]['id'] = get_from_lookup(row_id)
 
-        if self.append_only and self.lookup:
+        if self.append_only and new_lookup:
             raise FuseOSError(EPERM)
 
+        self.lookup = new_lookup
         self.api.set_assignment_rubric(self.assignment_id, {'rows': res})
 
 
@@ -1016,12 +1026,6 @@ class APIHandler:
         while not self.stop:
             try:
                 conn, addr = sock.accept()
-            except socket.timeout:
-                continue
-            except OSError:
-                traceback.print_exc()
-                print('Closing socket')
-                return
             except:
                 continue
 
@@ -1210,7 +1214,7 @@ class CGFS(LoggingMixIn, Operations):
                 seen.add(sub['user']['id'])
 
             sub_dir.getattr()
-            sub_dir.insert(RubricSelectFile(cgapi, sub['id']))
+            sub_dir.insert(RubricSelectFile(cgapi, sub['id'], sub['user']))
             sub_dir.insert(GradeFile(cgapi, sub['id']))
             sub_dir.insert(FeedbackFile(cgapi, sub['id']))
             assignment.insert(sub_dir)
@@ -1669,7 +1673,7 @@ if __name__ == '__main__':
         '--quiet',
         dest='quiet',
         action='store_true',
-        default=True,
+        default=False,
         help="""Only output error messages.""",
     )
     argparser.add_argument(
