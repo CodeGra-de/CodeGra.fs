@@ -30,21 +30,21 @@ def recv(s):
             break
     return message
 
+
 def is_file(s, file):
     s.send(
         bytes(
-            json.dumps(
-                {
-                    'op': 'is_file',
-                    'file': os.path.abspath(file),
-                }
-            ).encode('utf8')
+            json.dumps({
+                'op': 'is_file',
+                'file': os.path.abspath(file),
+            }).encode('utf8')
         )
     )
     if json.loads(recv(s))['ok']:
         return 0
     else:
         return 2
+
 
 def get_comments(s, file):
     s.send(
