@@ -15,3 +15,7 @@ test:
 	coverage erase
 	$(PYTEST) test/ -vvvvvvvvv $(TEST_FLAGS)
 	coverage report -m cgfs.py
+
+.PHONY: test_quick
+test-quick: TEST_FLAGS += -x
+test-quick: test
