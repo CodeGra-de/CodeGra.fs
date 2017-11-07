@@ -70,6 +70,8 @@ def wrap_string(string, prefix, max_len):
 
 
 def split_path(path):
+    if isinstance(path, list):
+        return path
     return [x for x in path.split('/') if x]
 
 
@@ -137,6 +139,29 @@ class Directory(BaseFile):
         self.stat['st_nlink'] -= 1
 
         return file
+
+    def get_file(self, path):
+        parts = split_path(path)
+        name = parts[0]
+        parts = parts[1:]
+
+        if not self.children_loaded:
+            if isinstance(self, AssignmentDirectory):
+                self.load_submissions()
+            elif isinstance(self, SubmissionDirectory):
+                self.load_files()
+
+        if not name in self.children:
+            raise FuseOSError(ENOENT)
+
+        child = self.children[name]
+
+        if parts:
+            if not isinstance(child, Directory):
+                raise FuseOSError(ENOTDIR)
+            return child.get_file(parts)
+        else:
+            return child
 
     def read(self):
         res = list(self.children)
@@ -208,8 +233,8 @@ class AssignmentDirectory(Directory):
 
 
 class SubmissionDirectory(Directory):
-        parts = split_path(path) if isinstance(path, str) else path
     def get_full_path(self, path, is_dir=False):
+        parts = split_path(path)
         full_path = self.tld + '/' + '/'.join(parts)
         if (is_dir):
             full_path += '/'
@@ -1275,27 +1300,13 @@ class CGFS(LoggingMixIn, Operations):
         return submission
 
     def get_file(self, path, start=None, expect_type=None):
-        file = start if start is not None else self.files
-        parts = split_path(path) if isinstance(path, str) else path
+        dir = start if start is not None else self.files
 
-        for part in parts:
-            if part == '':  # pragma: no cover
-                continue
+        if not isinstance(dir, Directory):
+            raise FuseOSError(ENOTDIR)
 
-            try:
-                if not file.children_loaded:
-                    if isinstance(file, AssignmentDirectory):
-                        file.load_submissions()
-                    elif isinstance(file, SubmissionDirectory):
-                        file.load_files()
-            except AttributeError:  # pragma: no cover
-                if not isinstance(file, Directory):
-                    raise FuseOSError(ENOTDIR)
-                raise
-
-            if part not in file.children or file.children[part] is None:
-                raise FuseOSError(ENOENT)
-            file = file.children[part]
+        parts = split_path(path)
+        file = dir.get_file(parts, expect_type)
 
         if expect_type is not None:
             if not isinstance(file, expect_type):
@@ -1303,8 +1314,6 @@ class CGFS(LoggingMixIn, Operations):
                     raise FuseOSError(ENOTDIR)
                 elif issubclass(expect_type, SingleFile):
                     raise FuseOSError(EISDIR)
-
-        return file
 
     def get_dir(self, path, start=None):
         return self.get_file(path, start=start, expect_type=Directory)
