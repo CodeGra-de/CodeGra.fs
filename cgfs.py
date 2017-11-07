@@ -81,7 +81,7 @@ class BaseFile():
         self.name = name if name is not None else data['name']
         self.stat = None
 
-    def getattr(self, submission=None, path=None):
+    def getattr(self):
         if self.stat is None:
             self.stat = {
                 'st_size': 0,
@@ -91,11 +91,6 @@ class BaseFile():
                 'st_uid': os.getuid(),
                 'st_gid': os.getegid(),
             }
-
-            if submission is not None and path is not None:
-                stat = __cgapi__.get_file_meta(submission.id, path)
-                self.stat['st_size'] = stat['size']
-                self.stat['st_mtime'] = stat['modification_date']
 
         return self.stat
 
@@ -114,9 +109,9 @@ class Directory(BaseFile):
         self.children = {}
         self.children_loaded = False
 
-    def getattr(self, submission=None, path=None):
+    def getattr(self):
         if self.stat is None:
-            super(Directory, self).getattr(submission, path)
+            super(Directory, self).getattr()
             mode = 0o770 if self.writable else 0o550
             self.stat['st_mode'] = S_IFDIR | mode
             self.stat['st_nlink'] = 2
@@ -163,25 +158,37 @@ class Directory(BaseFile):
         return res
 
 
-class RootDirectory(Directory):
-    def load_courses(self):
-        for course in __cgapi__.get_courses():
-            course_dir = CourseDirectory(course)
-            course_dir.getattr()
-            course_dir.insert_assignments(course['assignments'])
+class ServerDirectory(Directory):
+    def __init__(self, cgapi, *args, **kwargs):
+        super(ServerDirectory, self).__init__(*args, **kwargs)
+        self.cgapi = cgapi
+
+
+class RootDirectory(ServerDirectory):
+    def __init__(self, cgapi):
+        super(RootDirectory, self).__init__(cgapi, {
+            'id': None,
+            'name': None,
+        })
+        self.getattr()
+
+        for course in self.cgapi.get_courses():
+            course_dir = CourseDirectory(self.cgapi, course)
             self.insert(course_dir)
         self.children_loaded = True
 
 
-class CourseDirectory(Directory):
-    def insert_assignments(self, assignments):
-        for assig in assignments:
-            assig_dir = AssignmentDirectory(assig)
-            assig_dir.getattr()
-            assig_dir.insert(AssignmentSettingsFile(assig['id']))
+class CourseDirectory(ServerDirectory):
+    def __init__(self, cgapi, course):
+        super(CourseDirectory, self).__init__(cgapi, course)
+        self.getattr()
+
+        for assig in course['assignments']:
+            assig_dir = AssignmentDirectory(self.cgapi, assig)
+            assig_dir.insert(AssignmentSettingsFile(self.cgapi, assig['id']))
             assig_dir.insert(
                 RubricEditorFile(
-                    assig['id'], self.rubric_append_only
+                    self.cgapi, assig['id'], rubric_append_only
                 )
             )
             assig_dir.insert(HelpFile(RubricEditorFile))
@@ -195,15 +202,14 @@ class CourseDirectory(Directory):
         self.children_loaded = True
 
 
-class AssignmentDirectory(Directory):
-    def get_file(self, path):
-        if not self.children_loaded:
-            self.load_submissions()
-        return super(AssignmentDirectory, self).get_file(self, path)
+class AssignmentDirectory(ServerDirectory):
+    def __init__(self, cgapi, assig):
+        super(AssignmentDirectory, self).__init__(cgapi, assig)
+        self.getattr()
 
-    def load_submissions(self, latest_only):
+    def load_submissions(self, latest_only=True):
         try:
-            submissions = __cgapi__.get_submissions(self.id)
+            submissions = self.cgapi.get_submissions(self.id)
         except CGAPIException as e:  # pragma: no cover
             handle_cgapi_exception(e)
 
@@ -213,52 +219,54 @@ class AssignmentDirectory(Directory):
             if sub['user']['id'] in seen:
                 continue
 
-            sub_dir = SubmissionDirectory(
-                sub,
-                name=sub['user']['name'] + ' - ' + sub['created_at'],
-                writable=True
-            )
+            sub_dir = SubmissionDirectory(self.cgapi, sub)
 
             if latest_only:
                 seen.add(sub['user']['id'])
 
-            sub_dir.getattr()
-            sub_dir.insert(RubricSelectFile(sub['id'], sub['user']))
-            sub_dir.insert(GradeFile(sub['id']))
-            sub_dir.insert(FeedbackFile(sub['id']))
+            sub_dir.insert(RubricSelectFile(self.cgapi, sub['id'], sub['user']))
+            sub_dir.insert(GradeFile(self.cgapi, sub['id']))
+            sub_dir.insert(FeedbackFile(self.cgapi, sub['id']))
             self.insert(sub_dir)
 
         self.children_loaded = True
 
-
-class SubmissionDirectory(Directory):
     def get_file(self, path):
         if not self.children_loaded:
-            self.load_files()
-        return super(SubmissionDirectory, self).get_file(self, path)
+            self.load_submissions()
+        return super(AssignmentDirectory, self).get_file(path)
 
-    def get_full_path(self, path, is_dir=False):
-        parts = split_path(path)
-        full_path = self.tld + '/' + '/'.join(parts)
-        if (is_dir):
-            full_path += '/'
-        return full_path
+    def read(self):
+        if not self.children_loaded:
+            self.load_submissions()
+        return super(AssignmentDirectory, self).read()
+
+
+class SubmissionDirectory(ServerDirectory):
+    def __init__(self, cgapi, sub):
+        super(SubmissionDirectory, self).__init__(
+            cgapi,
+            sub,
+            name=sub['user']['name'] + ' - ' + sub['created_at'],
+            writable=True
+        )
+        self.getattr()
 
     def load_files(self, submission):
         try:
-            files = __cgapi__.get_submission_files(self.id)
+            files = self.cgapi.get_submission_files(self.id)
         except CGAPIException as e:
             handle_cgapi_exception(e)
 
         def insert_tree(dir, tree):
             for item in tree['entries']:
                 if 'entries' in item:
-                    new_dir = RegularDirectory(item, writable=self.writable)
+                    new_dir = RegularDirectory(item)
                     new_dir.getattr()
                     dir.insert(new_dir)
                     insert_tree(new_dir, item)
                 else:
-                    dir.insert(File(item))
+                    dir.insert(ServerFile(self.cgapi, item))
             dir.children_loaded = True
 
         insert_tree(self, files)
@@ -270,9 +278,27 @@ class SubmissionDirectory(Directory):
         self.tld = files['name']
         self.children_loaded = True
 
+    def get_file(self, path):
+        if not self.children_loaded:
+            self.load_files()
+        return super(SubmissionDirectory, self).get_file(path)
+
+    def read(self):
+        if not self.children_loaded:
+            self.load_submission_files(dir)
+        return super(SubmissionDirectory, self).read()
+
+    def get_full_path(self, path, is_dir=False):
+        parts = split_path(path)
+        full_path = self.tld + '/' + '/'.join(parts)
+        if (is_dir):
+            full_path += '/'
+        return full_path
+
 
 class RegularDirectory(Directory):
-    pass
+    def __init__(self, data):
+        super(RegularDirectory, self).__init__(data, writable=True)
 
 
 class TempDirectory(Directory):
@@ -384,13 +410,14 @@ class HelpFile(SpecialFile):
 class CachedSpecialFile(SpecialFile):
     DELTA = datetime.timedelta(seconds=60)
 
-    def __init__(self, name):
+    def __init__(self, cgapi, name):
         super(CachedSpecialFile, self).__init__(name=name)
         self.data = None
         self.time = None
         self.mtime = time()
         self.mode = 0o770
         self.overwrite = False
+        self.cgapi = cgapi
 
     def get_st_mtime(self):
         return self.mtime
@@ -478,12 +505,12 @@ class CachedSpecialFile(SpecialFile):
 class FeedbackFile(CachedSpecialFile):
     NAME = '.cg-feedback'
 
-    def __init__(self, submission_id):
-        super(FeedbackFile, self).__init__(name=self.NAME)
+    def __init__(self, cgapi, submission_id):
+        super(FeedbackFile, self).__init__(cgapi, name=self.NAME)
         self.submission_id = submission_id
 
     def get_online_data(self):
-        feedback = __cgapi__.get_submission(self.submission_id)['comment']
+        feedback = self.cgapi.get_submission(self.submission_id)['comment']
         if not feedback:
             return b''
 
@@ -507,19 +534,19 @@ class FeedbackFile(CachedSpecialFile):
         return ''.join(res).strip()
 
     def send_back(self, feedback):
-        __cgapi__.set_submission(self.submission_id, feedback=feedback)
+        self.cgapi.set_submission(self.submission_id, feedback=feedback)
 
 
 class GradeFile(CachedSpecialFile):
     NAME = '.cg-grade'
 
-    def __init__(self, submission_id):
+    def __init__(self, cgapi, submission_id):
         self.grade = None
-        super(GradeFile, self).__init__(name=self.NAME)
+        super(GradeFile, self).__init__(cgapi, name=self.NAME)
         self.submission_id = submission_id
 
     def get_online_data(self):
-        grade = __cgapi__.get_submission(self.submission_id)['grade']
+        grade = self.cgapi.get_submission(self.submission_id)['grade']
 
         if grade is None:
             return b''
@@ -546,14 +573,14 @@ class GradeFile(CachedSpecialFile):
             if grade < 0 or grade > 10:
                 raise FuseOSError(EPERM)
 
-        __cgapi__.set_submission(self.submission_id, grade=grade)
+        self.cgapi.set_submission(self.submission_id, grade=grade)
 
 
 class RubricSelectFile(CachedSpecialFile):
     NAME = '.cg-rubric.md'
 
-    def __init__(self, submission_id, user):
-        super(RubricSelectFile, self).__init__(name=self.NAME)
+    def __init__(self, cgapi, submission_id, user):
+        super(RubricSelectFile, self).__init__(cgapi, name=self.NAME)
         self.submission_id = submission_id
         self.user = user
         self.lookup = {}
@@ -561,7 +588,7 @@ class RubricSelectFile(CachedSpecialFile):
     def get_online_data(self):
         res = []
         self.lookup = {}
-        d = __cgapi__.get_submission_rubric(self.submission_id)
+        d = self.cgapi.get_submission_rubric(self.submission_id)
         sel = set(i['id'] for i in d['selected'])
         l_num = 0
         if d['rubrics']:
@@ -619,7 +646,7 @@ class RubricSelectFile(CachedSpecialFile):
         return sel
 
     def send_back(self, sel):
-        __cgapi__.select_rubricitems(self.submission_id, sel)
+        self.cgapi.select_rubricitems(self.submission_id, sel)
 
 
 class RubricEditorFile(CachedSpecialFile):
@@ -678,8 +705,8 @@ class RubricEditorFile(CachedSpecialFile):
     """
     NAME = '.cg-edit-rubric.md'
 
-    def __init__(self, assignment_id, append_only=True):
-        super(RubricEditorFile, self).__init__(name=self.NAME)
+    def __init__(self, cgapi, assignment_id, append_only=True):
+        super(RubricEditorFile, self).__init__(cgapi, name=self.NAME)
         self.assignment_id = assignment_id
         self.append_only = append_only
         self.lookup = {}
@@ -693,7 +720,7 @@ class RubricEditorFile(CachedSpecialFile):
         res = []
         self.lookup = {}
 
-        for rub in __cgapi__.get_assignment_rubric(self.assignment_id):
+        for rub in self.cgapi.get_assignment_rubric(self.assignment_id):
             res.append('# ')
             res.append('[{}] '.format(self.hash_id(rub['id'])))
             res.append(rub['header'])
@@ -880,23 +907,23 @@ class RubricEditorFile(CachedSpecialFile):
             raise FuseOSError(EPERM)
 
         self.lookup = new_lookup
-        __cgapi__.set_assignment_rubric(self.assignment_id, {'rows': res})
+        self.cgapi.set_assignment_rubric(self.assignment_id, {'rows': res})
 
 
 class AssignmentSettingsFile(CachedSpecialFile):
     TO_USE = {'state', 'deadline', 'name'}
 
-    def __init__(self, assignment_id):
+    def __init__(self, cgapi, assignment_id):
         super(AssignmentSettingsFile,
-              self).__init__(name='.cg-assignment-settings.ini')
+              self).__init__(cgapi, name='.cg-assignment-settings.ini')
         self.assignment_id = assignment_id
 
     def send_back(self, data):
-        __cgapi__.set_assignment(self.assignment_id, data)
+        self.cgapi.set_assignment(self.assignment_id, data)
 
     def get_online_data(self):
         lines = []
-        for k, v in __cgapi__.get_assignment(self.assignment_id).items():
+        for k, v in self.cgapi.get_assignment(self.assignment_id).items():
             if k not in self.TO_USE:
                 continue
 
@@ -1011,17 +1038,18 @@ class TempFile(SingleFile):
             self._handle.flush()
 
 
-class File(BaseFile, SingleFile):
-    def __init__(self, data, name=None):
-        super(File, self).__init__(data, name)
+class ServerFile(BaseFile, SingleFile):
+    def __init__(self, cgapi, data, name=None):
+        super(ServerFile, self).__init__(data, name)
 
+        self.cgapi = cgapi
         self._data = None
         self.dirty = False
 
     @property
     def data(self):
         if self._data is None:
-            self._data = __cgapi__.get_file(self.id)
+            self._data = self.cgapi.get_file(self.id)
             self.stat['st_size'] = len(self._data)
         return self._data
 
@@ -1033,9 +1061,14 @@ class File(BaseFile, SingleFile):
 
     def getattr(self, submission=None, path=None):
         if self.stat is None:
-            super(File, self).getattr(submission, path)
+            super(ServerFile, self).getattr(submission, path)
             self.stat['st_mode'] = S_IFREG | 0o770
             self.stat['st_nlink'] = 1
+
+            if submission is not None and path is not None:
+                stat = __cgapi__.get_file_meta(submission.id, path)
+                self.stat['st_size'] = stat['size']
+                self.stat['st_mtime'] = stat['modification_date']
 
         if self.stat['st_size'] is None:
             self.stat['st_size'] = len(self.data)
@@ -1059,7 +1092,7 @@ class File(BaseFile, SingleFile):
         assert self._data is not None
 
         try:
-            res = __cgapi__.patch_file(self.id, self._data)
+            res = self.cgapi.patch_file(self.id, self._data)
         except CGAPIException as e:
             self.data = None
             self.dirty = False
@@ -1113,7 +1146,8 @@ class File(BaseFile, SingleFile):
 class APIHandler:
     OPS = {'set_feedback', 'get_feedback', 'delete_feedback', 'is_file'}
 
-    def __init__(self, cgfs):
+    def __init__(self, cgapi, cgfs):
+        self.cgapi = cgapi
         self.cgfs = cgfs
         self.stop = False
 
@@ -1168,7 +1202,7 @@ class APIHandler:
                 return {'ok': False, 'error': 'File not found'}
 
             try:
-                res = __cgapi__.delete_feedback(f.id, line)
+                res = self.cgapi.delete_feedback(f.id, line)
             except:
                 return {'ok': False, 'error': 'The server returned an error'}
 
@@ -1183,7 +1217,7 @@ class APIHandler:
             except:
                 return {'ok': False, 'error': 'File not found'}
 
-            return {'ok': isinstance(f, File)}
+            return {'ok': isinstance(f, ServerFile)}
 
     def get_feedback(self, payload):
         f_name = self.cgfs.strippath(payload['file'])
@@ -1198,7 +1232,7 @@ class APIHandler:
                 return {'ok': False, 'error': 'File not a sever file'}
 
             try:
-                res = __cgapi__.get_feedback(f.id)
+                res = self.cgapi.get_feedback(f.id)
             except:
                 return {'ok': False, 'error': 'The server returned an error'}
 
@@ -1219,7 +1253,7 @@ class APIHandler:
                 return {'ok': False, 'error': 'File not a sever file'}
 
             try:
-                __cgapi__.add_feedback(f.id, line, message)
+                self.cgapi.add_feedback(f.id, line, message)
             except:
                 return {'ok': False, 'error': 'The server returned an error'}
 
@@ -1231,6 +1265,7 @@ class CGFS(LoggingMixIn, Operations):
 
     def __init__(
         self,
+        cgapi,
         latest_only,
         socketfile,
         mountpoint,
@@ -1239,6 +1274,7 @@ class CGFS(LoggingMixIn, Operations):
         rubric_append_only=True,
         quiet=False,
     ):
+        self.cgapi = cgapi
         self.latest_only = latest_only
         self.fixed = fixed
         self.files = {}
@@ -1254,7 +1290,7 @@ class CGFS(LoggingMixIn, Operations):
         self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.socket.bind(self._socketfile)
         self.socket.listen()
-        self.api_handler = APIHandler(self)
+        self.api_handler = APIHandler(self.cgapi, self)
         threading.Thread(
             target=self.api_handler.run, args=(self.socket, )
         ).start()
@@ -1264,22 +1300,16 @@ class CGFS(LoggingMixIn, Operations):
 
         self.rubric_append_only = rubric_append_only
 
-        self.files = RootDirectory(
-            {
-                'id': None,
-                'name': 'root'
-            }
-        )
+        self.files = RootDirectory(cgapi)
 
         with self._lock:
-            self.files.getattr()
             self.files.insert(self.special_socketfile)
             self.files.insert(
                 SpecialFile(
                     '.cg-mode', b'FIXED\n' if self.fixed else b'NOT_FIXED\n'
                 )
             )
-            self.load_courses()
+
         if not self.quiet:
             print('Mounted')
 
@@ -1299,13 +1329,14 @@ class CGFS(LoggingMixIn, Operations):
         return submission
 
     def get_file(self, path, start=None, expect_type=None):
-        dir = start if start is not None else self.files
+        file = start if start is not None else self.files
 
-        if not isinstance(dir, Directory):
+        if not isinstance(file, Directory):
             raise FuseOSError(ENOTDIR)
 
         parts = split_path(path)
-        file = dir.get_file(parts, expect_type)
+        if parts:
+            file = file.get_file(parts)
 
         if expect_type is not None:
             if not isinstance(file, expect_type):
@@ -1313,6 +1344,8 @@ class CGFS(LoggingMixIn, Operations):
                     raise FuseOSError(ENOTDIR)
                 elif issubclass(expect_type, SingleFile):
                     raise FuseOSError(EISDIR)
+
+        return file
 
     def get_dir(self, path, start=None):
         return self.get_file(path, start=start, expect_type=Directory)
@@ -1344,11 +1377,11 @@ class CGFS(LoggingMixIn, Operations):
             file = TempFile(fname, self._tmpdir)
         else:
             try:
-                fdata = __cgapi__.create_file(submission.id, query_path)
+                fdata = self.cgapi.create_file(submission.id, query_path)
             except CGAPIException as e:
                 handle_cgapi_exception(e)
 
-            file = File(fdata, name=fname)
+            file = ServerFile(fdata, name=fname)
             file.setattr('st_size', fdata['size'])
             file.setattr('st_mtime', fdata['modification_date'])
 
@@ -1388,10 +1421,12 @@ class CGFS(LoggingMixIn, Operations):
         else:
             file = self._open_files[fh]
 
+        print('file', file)
+
         if isinstance(file, (TempFile, SpecialFile)):
             return file.getattr()
 
-        if file.stat is None and len(parts) > 3:
+        if file.stat is None and isinstance(file, ServerFile):
             try:
                 submission = self.get_submission(path)
             except CGAPIException as e:
@@ -1399,16 +1434,12 @@ class CGFS(LoggingMixIn, Operations):
 
             query_path = submission.get_full_path(parts[3:])
 
-            if isinstance(file, Directory):
-                query_path += '/'
-        else:
-            submission = None
-            query_path = None
+            attrs = file.getattr(submission, query_path)
+            if self.fixed:
+                attrs['st_mode'] &= ~0o222
+            return attrs
 
-        attrs = file.getattr(submission, query_path)
-        if self.fixed and isinstance(file, File):
-            attrs['st_mode'] &= ~0o222
-        return attrs
+        return file.getattr()
 
     # TODO?: Add xattr support
     def getxattr(self, path, name, position=0):
@@ -1436,7 +1467,7 @@ class CGFS(LoggingMixIn, Operations):
         else:
             submission = self.get_submission(path)
             query_path = submission.get_full_path(parts[3:], is_dir=True)
-            ddata = __cgapi__.create_file(submission.id, query_path)
+            ddata = self.cgapi.create_file(submission.id, query_path)
 
             parent.insert(Directory(ddata, name=dname, writable=True))
 
@@ -1471,13 +1502,6 @@ class CGFS(LoggingMixIn, Operations):
     def readdir(self, path, fh):
         with self._lock:
             dir = self.get_dir(path)
-
-            if not dir.children_loaded:
-                if isinstance(dir, AssignmentDirectory):
-                    self.load_submissions(dir)
-                elif isinstance(dir, SubmissionDirectory):
-                    self.load_submission_files(dir)
-
             return dir.read()
 
     def readlink(self, path):
@@ -1525,7 +1549,7 @@ class CGFS(LoggingMixIn, Operations):
                 raise FuseOSError(EPERM)
 
             try:
-                res = __cgapi__.rename_file(file.id, new_query_path)
+                res = self.cgapi.rename_file(file.id, new_query_path)
             except CGAPIException as e:
                 handle_cgapi_exception(e)
 
@@ -1554,7 +1578,7 @@ class CGFS(LoggingMixIn, Operations):
                 raise FuseOSError(EPERM)
 
             try:
-                __cgapi__.delete_file(dir.id)
+                self.cgapi.delete_file(dir.id)
             except CGAPIException as e:
                 handle_cgapi_exception(e)
 
@@ -1608,7 +1632,7 @@ class CGFS(LoggingMixIn, Operations):
                     raise FuseOSError(EPERM)
 
                 try:
-                    __cgapi__.delete_file(file.id)
+                    self.cgapi.delete_file(file.id)
                 except CGAPIException as e:
                     handle_cgapi_exception(e)
 
@@ -1620,7 +1644,7 @@ class CGFS(LoggingMixIn, Operations):
             assert file is not None
             atime, mtime = times or (time(), time())
 
-            if isinstance(file, File) and self.fixed:
+            if isinstance(file, ServerFile) and self.fixed:
                 raise FuseOSError(EPERM)
 
             file.utimens(atime, mtime)
@@ -1727,7 +1751,7 @@ if __name__ == '__main__':
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    __cgapi__ = CGAPI(
+    cgapi = CGAPI(
         username, password, args.url or getenv('CGAPI_BASE_URL', None)
     )
 
@@ -1735,6 +1759,7 @@ if __name__ == '__main__':
         sockfile = tempfile.NamedTemporaryFile().name
         try:
             fs = CGFS(
+                cgapi,
                 latest_only,
                 socketfile=sockfile,
                 fixed=fixed,
