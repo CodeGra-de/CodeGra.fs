@@ -208,9 +208,12 @@ class AssignmentDirectory(Directory):
 
 
 class SubmissionDirectory(Directory):
-    def get_full_path(self, path):
         parts = split_path(path) if isinstance(path, str) else path
-        return self.tld + '/' + '/'.join(parts)
+    def get_full_path(self, path, is_dir=False):
+        full_path = self.tld + '/' + '/'.join(parts)
+        if (is_dir):
+            full_path += '/'
+        return full_path
 
     def load_files(self, submission):
         try:
@@ -1424,7 +1427,7 @@ class CGFS(LoggingMixIn, Operations):
             parent.insert(TempDirectory({}, name=dname, writable=True))
         else:
             submission = self.get_submission(path)
-            query_path = submission.get_full_path(parts[3:]) + '/'
+            query_path = submission.get_full_path(parts[3:], is_dir=True)
             ddata = cgapi.create_file(submission.id, query_path)
 
             parent.insert(Directory(ddata, name=dname, writable=True))
