@@ -93,7 +93,7 @@ class BaseFile():
             }
 
             if submission is not None and path is not None:
-                stat = cgapi.get_file_meta(submission.id, path)
+                stat = __cgapi__.get_file_meta(submission.id, path)
                 self.stat['st_size'] = stat['size']
                 self.stat['st_mtime'] = stat['modification_date']
 
@@ -171,7 +171,7 @@ class Directory(BaseFile):
 
 class RootDirectory(Directory):
     def load_courses(self):
-        for course in cgapi.get_courses():
+        for course in __cgapi__.get_courses():
             course_dir = CourseDirectory(course)
             course_dir.getattr()
             course_dir.insert_assignments(course['assignments'])
@@ -184,10 +184,10 @@ class CourseDirectory(Directory):
         for assig in assignments:
             assig_dir = AssignmentDirectory(assig)
             assig_dir.getattr()
-            assig_dir.insert(AssignmentSettingsFile(cgapi, assig['id']))
+            assig_dir.insert(AssignmentSettingsFile(assig['id']))
             assig_dir.insert(
                 RubricEditorFile(
-                    cgapi, assig['id'], self.rubric_append_only
+                    assig['id'], self.rubric_append_only
                 )
             )
             assig_dir.insert(HelpFile(RubricEditorFile))
@@ -204,7 +204,7 @@ class CourseDirectory(Directory):
 class AssignmentDirectory(Directory):
     def load_submissions(self, latest_only):
         try:
-            submissions = cgapi.get_submissions(self.id)
+            submissions = __cgapi__.get_submissions(self.id)
         except CGAPIException as e:  # pragma: no cover
             handle_cgapi_exception(e)
 
@@ -224,9 +224,9 @@ class AssignmentDirectory(Directory):
                 seen.add(sub['user']['id'])
 
             sub_dir.getattr()
-            sub_dir.insert(RubricSelectFile(cgapi, sub['id'], sub['user']))
-            sub_dir.insert(GradeFile(cgapi, sub['id']))
-            sub_dir.insert(FeedbackFile(cgapi, sub['id']))
+            sub_dir.insert(RubricSelectFile(sub['id'], sub['user']))
+            sub_dir.insert(GradeFile(sub['id']))
+            sub_dir.insert(FeedbackFile(sub['id']))
             self.insert(sub_dir)
 
         self.children_loaded = True
@@ -242,7 +242,7 @@ class SubmissionDirectory(Directory):
 
     def load_files(self, submission):
         try:
-            files = cgapi.get_submission_files(self.id)
+            files = __cgapi__.get_submission_files(self.id)
         except CGAPIException as e:
             handle_cgapi_exception(e)
 
@@ -474,13 +474,12 @@ class CachedSpecialFile(SpecialFile):
 class FeedbackFile(CachedSpecialFile):
     NAME = '.cg-feedback'
 
-    def __init__(self, api, submission_id):
-        self.api = api
+    def __init__(self, submission_id):
         super(FeedbackFile, self).__init__(name=self.NAME)
         self.submission_id = submission_id
 
     def get_online_data(self):
-        feedback = self.api.get_submission(self.submission_id)['comment']
+        feedback = __cgapi__.get_submission(self.submission_id)['comment']
         if not feedback:
             return b''
 
@@ -504,20 +503,19 @@ class FeedbackFile(CachedSpecialFile):
         return ''.join(res).strip()
 
     def send_back(self, feedback):
-        self.api.set_submission(self.submission_id, feedback=feedback)
+        __cgapi__.set_submission(self.submission_id, feedback=feedback)
 
 
 class GradeFile(CachedSpecialFile):
     NAME = '.cg-grade'
 
-    def __init__(self, api, submission_id):
-        self.api = api
+    def __init__(self, submission_id):
         self.grade = None
         super(GradeFile, self).__init__(name=self.NAME)
         self.submission_id = submission_id
 
     def get_online_data(self):
-        grade = self.api.get_submission(self.submission_id)['grade']
+        grade = __cgapi__.get_submission(self.submission_id)['grade']
 
         if grade is None:
             return b''
@@ -544,23 +542,22 @@ class GradeFile(CachedSpecialFile):
             if grade < 0 or grade > 10:
                 raise FuseOSError(EPERM)
 
-        self.api.set_submission(self.submission_id, grade=grade)
+        __cgapi__.set_submission(self.submission_id, grade=grade)
 
 
 class RubricSelectFile(CachedSpecialFile):
     NAME = '.cg-rubric.md'
 
-    def __init__(self, api, submission_id, user):
+    def __init__(self, submission_id, user):
         super(RubricSelectFile, self).__init__(name=self.NAME)
         self.submission_id = submission_id
         self.user = user
         self.lookup = {}
-        self.api = api
 
     def get_online_data(self):
         res = []
         self.lookup = {}
-        d = self.api.get_submission_rubric(self.submission_id)
+        d = __cgapi__.get_submission_rubric(self.submission_id)
         sel = set(i['id'] for i in d['selected'])
         l_num = 0
         if d['rubrics']:
@@ -618,7 +615,7 @@ class RubricSelectFile(CachedSpecialFile):
         return sel
 
     def send_back(self, sel):
-        self.api.select_rubricitems(self.submission_id, sel)
+        __cgapi__.select_rubricitems(self.submission_id, sel)
 
 
 class RubricEditorFile(CachedSpecialFile):
@@ -677,9 +674,8 @@ class RubricEditorFile(CachedSpecialFile):
     """
     NAME = '.cg-edit-rubric.md'
 
-    def __init__(self, api, assignment_id, append_only=True):
+    def __init__(self, assignment_id, append_only=True):
         super(RubricEditorFile, self).__init__(name=self.NAME)
-        self.api = api
         self.assignment_id = assignment_id
         self.append_only = append_only
         self.lookup = {}
@@ -693,7 +689,7 @@ class RubricEditorFile(CachedSpecialFile):
         res = []
         self.lookup = {}
 
-        for rub in self.api.get_assignment_rubric(self.assignment_id):
+        for rub in __cgapi__.get_assignment_rubric(self.assignment_id):
             res.append('# ')
             res.append('[{}] '.format(self.hash_id(rub['id'])))
             res.append(rub['header'])
@@ -880,24 +876,23 @@ class RubricEditorFile(CachedSpecialFile):
             raise FuseOSError(EPERM)
 
         self.lookup = new_lookup
-        self.api.set_assignment_rubric(self.assignment_id, {'rows': res})
+        __cgapi__.set_assignment_rubric(self.assignment_id, {'rows': res})
 
 
 class AssignmentSettingsFile(CachedSpecialFile):
     TO_USE = {'state', 'deadline', 'name'}
 
-    def __init__(self, api, assignment_id):
+    def __init__(self, assignment_id):
         super(AssignmentSettingsFile,
               self).__init__(name='.cg-assignment-settings.ini')
         self.assignment_id = assignment_id
-        self.api = api
 
     def send_back(self, data):
-        self.api.set_assignment(self.assignment_id, data)
+        __cgapi__.set_assignment(self.assignment_id, data)
 
     def get_online_data(self):
         lines = []
-        for k, v in self.api.get_assignment(self.assignment_id).items():
+        for k, v in __cgapi__.get_assignment(self.assignment_id).items():
             if k not in self.TO_USE:
                 continue
 
@@ -1022,7 +1017,7 @@ class File(BaseFile, SingleFile):
     @property
     def data(self):
         if self._data is None:
-            self._data = cgapi.get_file(self.id)
+            self._data = __cgapi__.get_file(self.id)
             self.stat['st_size'] = len(self._data)
         return self._data
 
@@ -1060,7 +1055,7 @@ class File(BaseFile, SingleFile):
         assert self._data is not None
 
         try:
-            res = cgapi.patch_file(self.id, self._data)
+            res = __cgapi__.patch_file(self.id, self._data)
         except CGAPIException as e:
             self.data = None
             self.dirty = False
@@ -1169,7 +1164,7 @@ class APIHandler:
                 return {'ok': False, 'error': 'File not found'}
 
             try:
-                res = cgapi.delete_feedback(f.id, line)
+                res = __cgapi__.delete_feedback(f.id, line)
             except:
                 return {'ok': False, 'error': 'The server returned an error'}
 
@@ -1199,7 +1194,7 @@ class APIHandler:
                 return {'ok': False, 'error': 'File not a sever file'}
 
             try:
-                res = cgapi.get_feedback(f.id)
+                res = __cgapi__.get_feedback(f.id)
             except:
                 return {'ok': False, 'error': 'The server returned an error'}
 
@@ -1220,7 +1215,7 @@ class APIHandler:
                 return {'ok': False, 'error': 'File not a sever file'}
 
             try:
-                cgapi.add_feedback(f.id, line, message)
+                __cgapi__.add_feedback(f.id, line, message)
             except:
                 return {'ok': False, 'error': 'The server returned an error'}
 
@@ -1345,7 +1340,7 @@ class CGFS(LoggingMixIn, Operations):
             file = TempFile(fname, self._tmpdir)
         else:
             try:
-                fdata = cgapi.create_file(submission.id, query_path)
+                fdata = __cgapi__.create_file(submission.id, query_path)
             except CGAPIException as e:
                 handle_cgapi_exception(e)
 
@@ -1437,7 +1432,7 @@ class CGFS(LoggingMixIn, Operations):
         else:
             submission = self.get_submission(path)
             query_path = submission.get_full_path(parts[3:], is_dir=True)
-            ddata = cgapi.create_file(submission.id, query_path)
+            ddata = __cgapi__.create_file(submission.id, query_path)
 
             parent.insert(Directory(ddata, name=dname, writable=True))
 
@@ -1526,7 +1521,7 @@ class CGFS(LoggingMixIn, Operations):
                 raise FuseOSError(EPERM)
 
             try:
-                res = cgapi.rename_file(file.id, new_query_path)
+                res = __cgapi__.rename_file(file.id, new_query_path)
             except CGAPIException as e:
                 handle_cgapi_exception(e)
 
@@ -1555,7 +1550,7 @@ class CGFS(LoggingMixIn, Operations):
                 raise FuseOSError(EPERM)
 
             try:
-                cgapi.delete_file(dir.id)
+                __cgapi__.delete_file(dir.id)
             except CGAPIException as e:
                 handle_cgapi_exception(e)
 
@@ -1609,7 +1604,7 @@ class CGFS(LoggingMixIn, Operations):
                     raise FuseOSError(EPERM)
 
                 try:
-                    cgapi.delete_file(file.id)
+                    __cgapi__.delete_file(file.id)
                 except CGAPIException as e:
                     handle_cgapi_exception(e)
 
@@ -1728,7 +1723,7 @@ if __name__ == '__main__':
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    cgapi = CGAPI(
+    __cgapi__ = CGAPI(
         username, password, args.url or getenv('CGAPI_BASE_URL', None)
     )
 
