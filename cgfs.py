@@ -145,12 +145,6 @@ class Directory(BaseFile):
         name = parts[0]
         parts = parts[1:]
 
-        if not self.children_loaded:
-            if isinstance(self, AssignmentDirectory):
-                self.load_submissions()
-            elif isinstance(self, SubmissionDirectory):
-                self.load_files()
-
         if not name in self.children:
             raise FuseOSError(ENOENT)
 
@@ -202,6 +196,11 @@ class CourseDirectory(Directory):
 
 
 class AssignmentDirectory(Directory):
+    def get_file(self, path):
+        if not self.children_loaded:
+            self.load_submissions()
+        return super(AssignmentDirectory, self).get_file(self, path)
+
     def load_submissions(self, latest_only):
         try:
             submissions = __cgapi__.get_submissions(self.id)
@@ -233,6 +232,11 @@ class AssignmentDirectory(Directory):
 
 
 class SubmissionDirectory(Directory):
+    def get_file(self, path):
+        if not self.children_loaded:
+            self.load_files()
+        return super(SubmissionDirectory, self).get_file(self, path)
+
     def get_full_path(self, path, is_dir=False):
         parts = split_path(path)
         full_path = self.tld + '/' + '/'.join(parts)
