@@ -1117,6 +1117,7 @@ class CGFS(LoggingMixIn, Operations):
         tmpdir=None,
         rubric_append_only=True,
         quiet=False,
+        assigned_only=False,
     ):
         self.latest_only = latest_only
         self.fixed = fixed
@@ -1126,6 +1127,7 @@ class CGFS(LoggingMixIn, Operations):
         self._lock = threading.RLock()
         self._open_files = {}
         self.quiet = quiet
+        self.assigned_only = assigned_only
 
         self._tmpdir = tmpdir
 
@@ -1201,9 +1203,18 @@ class CGFS(LoggingMixIn, Operations):
             handle_cgapi_exception(e)
 
         seen = set()
+        my_id = cgapi.user['id']
+        user_assigned = self.assigned_only and any(
+            s['assignee']['id'] == my_id for s in submissions
+        )
 
         for sub in submissions:
             if sub['user']['id'] in seen:
+                continue
+            elif user_assigned and my_id not in {
+                sub['assignee']['id'],
+                sub['user']['id'],
+            }:
                 continue
 
             sub_dir = Directory(
@@ -1691,6 +1702,15 @@ if __name__ == '__main__':
         `.cg-edit-rubric.md` files. Note: this feature is experimental and can
         lead to data loss!"""
     )
+    argparser.add_argument(
+        '-m',
+        '--assigned-to-me',
+        dest='assigned_only',
+        default=False,
+        action='store_true',
+        help="""Only show items that are assigned to you if items are assigned
+        and you are part of the assignee's."""
+    )
     args = argparser.parse_args()
 
     mountpoint = os.path.abspath(args.mountpoint)
@@ -1700,6 +1720,7 @@ if __name__ == '__main__':
     rubric_append_only = args.rubric_append_only
     fixed = args.fixed
     quiet = args.quiet
+    assigned_only = args.assigned_only
 
     if not quiet:
         print('Mounting... ')
@@ -1722,6 +1743,7 @@ if __name__ == '__main__':
                 tmpdir=tmpdir,
                 rubric_append_only=rubric_append_only,
                 quiet=quiet,
+                assigned_only=assigned_only,
             )
             fuse = FUSE(
                 fs,
