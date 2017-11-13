@@ -27,6 +27,8 @@ from fuse import FUSE, Operations, FuseOSError, LoggingMixIn
 
 from cgapi import CGAPI, APICodes, CGAPIException
 
+MAX_WRAP_LENGTH = 100000
+
 
 def handle_cgapi_exception(ex):
     if ex.code == APICodes.OBJECT_ID_NOT_FOUND.name:
@@ -53,9 +55,12 @@ def wrap_string(string, prefix, max_len):
                     res.append((_prefix + string[:i]) if i else '')
                     res.append('')
                     string = string[i + 1:]
-                    while string.strip(' ')[0] == '\n':
-                        res.append('')
-                        string = string.strip(' ')[1:]
+                    try:
+                        while string.strip(' ')[0] == '\n':
+                            res.append('')
+                            string = string.strip(' ')[1:]
+                    except IndexError:
+                        pass
                     last_word = None
                     break
 
@@ -362,6 +367,8 @@ class FeedbackFile(CachedSpecialFile):
         if not feedback:
             return b''
 
+        if len(feedback) > MAX_WRAP_LENGTH:  # pragma: no cover
+            return bytes(feedback, 'utf8') + b'\n'
         return bytes(wrap_string(feedback, '', 79)[0], 'utf8') + b'\n'
 
     def parse(self, data):
@@ -1671,7 +1678,8 @@ if __name__ == '__main__':
         action='store_true',
         default=False,
         help="""Mount the original files as read only. It is still possible to
-        create new files, but it is not possible to alter existing files."""
+        create new files, but it is not possible to alter existing
+        files. The files shown are always the student revision files."""
     )
     argparser.add_argument(
         '-q',
@@ -1708,7 +1716,10 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG)
 
     cgapi = CGAPI(
-        username, password, args.url or getenv('CGAPI_BASE_URL', None)
+        username,
+        password,
+        args.url or getenv('CGAPI_BASE_URL', None),
+        fixed=fixed,
     )
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
