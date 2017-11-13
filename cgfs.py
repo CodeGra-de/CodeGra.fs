@@ -1258,6 +1258,7 @@ class CGFS(LoggingMixIn, Operations):
         try:
             submission.tld
         except AttributeError:
+            assert submission.children_loaded
             self.load_submission_files(submission)
 
         return submission
@@ -1271,10 +1272,7 @@ class CGFS(LoggingMixIn, Operations):
                 continue
 
             try:
-                if not any(
-                    not isinstance(f, SpecialFile)
-                    for f in file.children.values()
-                ):
+                if not file.children_loaded:
                     if file.type == DirTypes.ASSIGNMENT:
                         self.load_submissions(file)
                     elif file.type == DirTypes.SUBMISSION:
