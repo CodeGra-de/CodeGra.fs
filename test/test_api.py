@@ -377,38 +377,37 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 
     print(f)
     assert run_shell([
-        './api_consumer.py',
+        'cgapi-consumer',
         'get-comment',
     ]).returncode == 1
     s = run_shell([
-        './api_consumer.py',
+        'cgapi-consumer',
         'get-comment',
         '/etc',
     ])
     assert s.returncode == 3
 
-    print(run_shell(['./api_consumer.py', 'get-comment', f]).stdout)
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    print(run_shell(['cgapi-consumer', 'get-comment', f]).stdout)
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert res == b'[]\n'
 
     assert run_shell([
-        './api_consumer.py',
+        'cgapi-consumer',
         'set-comment',
         '/etc',
     ]).returncode == 3
-    assert run_shell(
-        ['./api_consumer.py', 'set-comment', '/etc', '5', 'hello']
-    ).returncode == 3
+    assert run_shell(['cgapi-consumer', 'set-comment', '/etc', '5',
+                      'hello']).returncode == 3
 
-    s = run_shell(['./api_consumer.py', 'set-comment', f, '5'])
+    s = run_shell(['cgapi-consumer', 'set-comment', f, '5'])
     print(s.stderr, s.stdout)
     assert s.returncode == 1
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'set-comment', f, '5', 'Feedback message']
+        ['cgapi-consumer', 'set-comment', f, '5', 'Feedback message']
     ) == b''
 
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
@@ -419,9 +418,9 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'set-comment', f, '1', 'Message']
+        ['cgapi-consumer', 'set-comment', f, '1', 'Message']
     ) == b''
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
@@ -436,9 +435,9 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'set-comment', f, '5', '']
+        ['cgapi-consumer', 'set-comment', f, '5', '']
     ) == b''
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
@@ -453,27 +452,25 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert run_shell([
-        './api_consumer.py',
+        'cgapi-consumer',
         'delete-comment',
         f,
         '4',
     ]).returncode == 2
 
     # Don't change after a wrong delete
-    assert res == subprocess.check_output(
-        ['./api_consumer.py', 'get-comment', f]
-    )
+    assert res == subprocess.check_output(['cgapi-consumer', 'get-comment', f])
 
     assert subprocess.check_output(
         [
-            './api_consumer.py',
+            'cgapi-consumer',
             'delete-comment',
             f,
             '5',
         ]
     ) == b''
 
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
@@ -484,14 +481,14 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output([
-        './api_consumer.py',
+        'cgapi-consumer',
         'is-file',
         f,
     ]) == b''
-    assert run_shell(['./api_consumer.py', 'is-file', '/etc']).returncode == 3
+    assert run_shell(['cgapi-consumer', 'is-file', '/etc']).returncode == 3
     assert run_shell(
         [
-            './api_consumer.py',
+            'cgapi-consumer',
             'is-file',
             join(sub_done, '.cg-rubric.md'),
         ]
