@@ -25,7 +25,9 @@ from argparse import ArgumentParser
 
 from fuse import FUSE, Operations, FuseOSError, LoggingMixIn
 
-from cgapi import CGAPI, APICodes, CGAPIException
+from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
+
+cgapi = None
 
 
 def handle_cgapi_exception(ex):
@@ -35,38 +37,6 @@ def handle_cgapi_exception(ex):
         raise FuseOSError(EPERM)
     else:
         raise ex
-
-
-def wrap_string(string, prefix, max_len):
-    res = []
-    first = True
-    _prefix = ''
-    while string:
-        last_word = 0
-        if len(string) <= max_len and '\n' not in string:
-            last_word = max_len
-        else:
-            for i in range(min(max_len, len(string))):
-                if string[i] == ' ':
-                    last_word = i
-                elif string[i] == '\n':
-                    res.append((_prefix + string[:i]) if i else '')
-                    res.append('')
-                    string = string[i + 1:]
-                    while string.strip(' ')[0] == '\n':
-                        res.append('')
-                        string = string.strip(' ')[1:]
-                    last_word = None
-                    break
-
-        if last_word is not None:
-            res.append(_prefix + string[:last_word or max_len])
-            string = string[last_word + 1 if last_word else max_len:]
-        if first:
-            _prefix = prefix
-            max_len -= len(prefix)
-            first = False
-    return ('\n').join(res), len(res) - 1
 
 
 class DirTypes(IntEnum):
@@ -307,13 +277,17 @@ class CachedSpecialFile(SpecialFile):
     def fsync(self):
         return self.flush()
 
-    def unlink(self):
+    def reset_data(self):
         self.overwrite = False
         self.data = None
-        raise ValueError
+        self.data = self.get_data()
 
     def flush(self):
         if not self.overwrite:
+            return
+
+        if self.data.strip() == b'__RESET__':
+            self.reset_data()
             return
 
         try:
@@ -324,10 +298,12 @@ class CachedSpecialFile(SpecialFile):
         try:
             self.send_back(parsed)
         except CGAPIException as e:
-            print('error from server:', e.message)
+            logging.error(
+                'error from server: {} ({})'.format(e.message, e.description)
+            )
             handle_cgapi_exception(e)
         except:
-            traceback.print_exc()
+            logging.critical(traceback.format_exc())
             raise
 
         self.overwrite = False
@@ -361,25 +337,10 @@ class FeedbackFile(CachedSpecialFile):
         feedback = self.api.get_submission(self.submission_id)['comment']
         if not feedback:
             return b''
-
-        return bytes(wrap_string(feedback, '', 79)[0], 'utf8') + b'\n'
+        return bytes(feedback, 'utf8')
 
     def parse(self, data):
-        data = data.decode('utf8').split('\n')
-        if len(data) == 1 and data[0] == '':
-            return ''
-
-        res = []
-        for line in data:
-            line = line.strip()
-            if line:
-                if res and res[-1] != '\n':
-                    res.append(' ')
-                res.append(line)
-            else:
-                res.append('\n')
-
-        return ''.join(res).strip()
+        return data.decode('utf8')
 
     def send_back(self, feedback):
         self.api.set_submission(self.submission_id, feedback=feedback)
@@ -404,10 +365,11 @@ class GradeFile(CachedSpecialFile):
         return bytes(str(self.grade) + '\n', 'utf8')
 
     def parse(self, data):
-        if not data:
+        data = data.decode('utf8')
+        if not data.strip():
             return 'delete'
 
-        data = [d for d in data.decode('utf8').split('\n') if d]
+        data = [d for d in data.split('\n') if d]
 
         if len(data) != 1:
             raise ValueError
@@ -452,31 +414,30 @@ class RubricSelectFile(CachedSpecialFile):
             res.append('## ')
             res.append(rub['header'])
             res.append('\n')
+            l_num += 1
 
-            new, num = wrap_string(' ' + rub['description'], ' ', 80)
-            res.append(new)
-            res.append('\n')
+            if rub['description']:
+                res.append('  ')
+                res.append(rub['description'].replace('\n', '\n  '))
+                res.append('\n')
+                l_num += rub['description'].count('\n') + 1
+
             res.append('-' * 79)
             res.append('\n')
 
-            l_num += num + 3
+            l_num += 1
 
             rub['items'].sort(key=lambda i: i['points'])
             for item in rub['items']:
                 self.lookup[l_num] = item['id']
-                new, num = wrap_string(
-                    '- [{}] {} ({}) - {}'.format(
-                        'x' if item['id'] in sel else ' ',
-                        item['header'],
-                        item['points'],
-                        item['description'],
-                    ),
-                    '  ',
-                    80,
-                )
-                res.append(new)
+                res.append('- [{}] '.format('x' if item['id'] in sel else ' '))
+                res.append(item['header'].replace('\n', '\n  '))
+                res.append(' ({}) - '.format(item['points']))
+                res.append(item['description'].replace('\n', '\n  '))
                 res.append('\n')
-                l_num += num + 1
+
+                l_num += item['header'].count('\n') + item['description'
+                                                           ].count('\n') + 1
 
             res.append('\n')
             l_num += 1
@@ -491,6 +452,9 @@ class RubricSelectFile(CachedSpecialFile):
                 try:
                     sel.append(self.lookup[i])
                 except KeyError:
+                    logging.warning(
+                        'Item on line {} ({}) not found!'.format(i, line)
+                    )
                     raise FuseOSError(EPERM)
 
         return sel
@@ -577,27 +541,22 @@ class RubricEditorFile(CachedSpecialFile):
             res.append(rub['header'])
             res.append('\n')
 
-            new, _ = wrap_string(' ' + rub['description'], ' ', 80)
-            res.append(new)
-            res.append('\n')
+            if rub['description']:
+                res.append('  ')
+                res.append(rub['description'].replace('\n', '\n  '))
+                res.append('\n')
+
             res.append('-' * 79)
             res.append('\n')
 
             rub['items'].sort(key=lambda i: i['points'])
             for item in rub['items']:
-                new, _ = wrap_string(
-                    '- [{}] ({}) {} - {}'.format(
-                        self.hash_id(item['id']),
-                        item['points'],
-                        item['header'],
-                        item['description'],
-                    ),
-                    '  ',
-                    80,
-                )
-                res.append(new)
+                res.append('- [{}] '.format(self.hash_id(item['id'])))
+                res.append('({}) '.format(item['points']))
+                res.append(item['header'].replace('\n', '\n  '))
+                res.append(' - ')
+                res.append(item['description'].replace('\n', '\n  '))
                 res.append('\n')
-
             res.append('\n')
 
         if not res:
@@ -610,42 +569,52 @@ class RubricEditorFile(CachedSpecialFile):
         i = 0
 
         def strip_spaces(i):
-            while data[i] == ' ':
-                i += 1
+            try:
+                while data[i] == ' ':
+                    i += 1
+            except IndexError:
+                pass
 
             return i
 
         def parse_line(i):
             res = []
 
-            while data[i] != '\n':
-                res.append(data[i])
-                i += 1
+            try:
+                while data[i] != '\n':
+                    res.append(data[i])
+                    i += 1
+            except IndexError:
+                pass
 
             return ''.join(res), i + 1
 
-        def parse_description(i, end=None):
+        def parse_description(
+            i,
+            end=None,
+            strip_leading=True,
+            strip_trailing=False,
+        ):
             if end is None:
                 end = ['-']
             lines = []
             while True:
-                if i == len(data) or data[i] in end:
-                    while lines and lines[-1] in ['\n', ' ']:
-                        lines.pop()
-                    return ''.join(lines), i
+                if any(data[i:].startswith(e) for e in end):
+                    break
 
-                stripped_i = strip_spaces(i)
+                if strip_leading:
+                    i = strip_spaces(i)
 
-                if data[stripped_i] == '\n':
-                    if lines and lines[-1] == ' ':
-                        lines[-1] = '\n'
-                    else:
-                        lines.append('\n')
-                    i = stripped_i + 1
-                else:
-                    line, i = parse_line(i)
-                    lines.append(line.strip())
-                    lines.append(' ')
+                if i >= len(data):
+                    break
+
+                item, i = parse_line(i)
+                lines.append(item)
+
+            if strip_trailing:
+                while lines and lines[-1].strip() == '':
+                    lines.pop()
+            return '\n'.join(lines), i
 
         def parse_list(i):
             items = []
@@ -674,10 +643,18 @@ class RubricEditorFile(CachedSpecialFile):
                 header = []
                 while data[i] != '-':
                     header.append(data[i])
-                    i += 1
+                    if data[i] == '\n':
+                        i = strip_spaces(i)
+                    else:
+                        i += 1
+
                 i = strip_spaces(i + 1)
                 header = ''.join(header).strip()
-                desc, i = parse_description(i, end=['-', '#'])
+
+                desc, i = parse_description(
+                    i, end=['-', '#'], strip_trailing=True
+                )
+
                 items.append((item_id, points, header, desc))
 
             return items, i
@@ -696,10 +673,13 @@ class RubricEditorFile(CachedSpecialFile):
                 item_id = ''.join(h)
             else:
                 item_id = None
+
             name, i = parse_line(i)
-            desc, i = parse_description(i)
+            desc, i = parse_description(i, end=['---'])
+
             while data[i] != '\n':
                 i += 1
+
             items, i = parse_list(i + 1)
             return (name, item_id, desc, items), i
 
@@ -713,7 +693,8 @@ class RubricEditorFile(CachedSpecialFile):
             return items
 
         except (IndexError, KeyError, AssertionError) as _:
-            traceback.print_exc()
+            logging.debug(traceback.format_exc())
+            logging.warning('The rubric could not parsed!')
             raise FuseOSError(EPERM)
 
     def send_back(self, parsed):
@@ -1008,7 +989,7 @@ class APIHandler:
             return
 
         with self.cgfs._lock:
-            data = json.loads(data)
+            data = json.loads(data.decode())
             op = data['op']
             if op not in self.OPS:
                 conn.send(b'{"ok": false, "error": "unkown op"}')
@@ -1018,7 +999,7 @@ class APIHandler:
                 res = getattr(self, op)(payload)
                 conn.send(bytes(json.dumps(res).encode('utf8')))
             except:
-                traceback.print_exc()
+                logging.debug(traceback.format_exc())
                 conn.send(b'{"ok": false, "error": "Unkown error"}')
 
     def run(self, sock):
@@ -1047,7 +1028,7 @@ class APIHandler:
                 return {'ok': False, 'error': 'File not found'}
 
             try:
-                res = cgapi.delete_feedback(f.id, line)
+                cgapi.delete_feedback(f.id, line)
             except:
                 return {'ok': False, 'error': 'The server returned an error'}
 
@@ -1116,7 +1097,6 @@ class CGFS(LoggingMixIn, Operations):
         fixed=False,
         tmpdir=None,
         rubric_append_only=True,
-        quiet=False,
     ):
         self.latest_only = latest_only
         self.fixed = fixed
@@ -1125,7 +1105,6 @@ class CGFS(LoggingMixIn, Operations):
         self.mountpoint = mountpoint
         self._lock = threading.RLock()
         self._open_files = {}
-        self.quiet = quiet
 
         self._tmpdir = tmpdir
 
@@ -1159,8 +1138,7 @@ class CGFS(LoggingMixIn, Operations):
                 )
             )
             self.load_courses()
-        if not self.quiet:
-            print('Mounted')
+        logging.info('Mounted')
 
     def strippath(self, path):
         path = os.path.abspath(path)
@@ -1615,7 +1593,9 @@ class CGFS(LoggingMixIn, Operations):
             return file.write(data, offset)
 
 
-if __name__ == '__main__':
+def main():
+    global cgapi
+
     argparser = ArgumentParser(description='CodeGra.de file system')
     argparser.add_argument(
         'username',
@@ -1699,13 +1679,15 @@ if __name__ == '__main__':
     latest_only = args.latest_only
     rubric_append_only = args.rubric_append_only
     fixed = args.fixed
-    quiet = args.quiet
 
-    if not quiet:
-        print('Mounting... ')
-
-    if args.debug:
+    if args.quiet:
+        logging.basicConfig(level=logging.WARNING)
+    elif args.debug:
         logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
+    logging.info('Mounting... ')
 
     cgapi = CGAPI(
         username, password, args.url or getenv('CGAPI_BASE_URL', None)
@@ -1721,9 +1703,8 @@ if __name__ == '__main__':
                 mountpoint=mountpoint,
                 tmpdir=tmpdir,
                 rubric_append_only=rubric_append_only,
-                quiet=quiet,
             )
-            fuse = FUSE(
+            FUSE(
                 fs,
                 mountpoint,
                 nothreads=True,
@@ -1731,7 +1712,11 @@ if __name__ == '__main__':
                 direct_io=True
             )
         except RuntimeError:  # pragma: no cover
-            traceback.print_exc()
+            logging.critical(traceback.format_exc())
         finally:
             fs.api_handler.stop = True
             os.unlink(sockfile)
+
+
+if __name__ == '__main__':
+    main()
