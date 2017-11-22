@@ -2,16 +2,18 @@
 
 from enum import IntEnum
 
+import logging
 import requests
 
 DEFAULT_CGAPI_BASE_URL = 'https://codegra.de/api/v1'
 
 
 class APIRoutes():
-    def __init__(self, base):
+    def __init__(self, base, owner='auto'):
         while base and base[-1] == '/':  # pragma: no cover
             base = base[:-1]
 
+        self.owner = owner
         self.base = base
 
     def get_login(self):
@@ -26,16 +28,22 @@ class APIRoutes():
         )
 
     def get_files(self, submission_id):
-        return '{base}/submissions/{submission_id}/files/?owner=auto'.format(
-            base=self.base, submission_id=submission_id
-        )
+        return ('{base}/submissions/{submission_id}'
+                '/files/?owner={owner}').format(
+                    base=self.base,
+                    submission_id=submission_id,
+                    owner=self.owner,
+                )
 
     def get_file(self, submission_id, path):
         return (
             '{base}/submissions/{submission_id}/'
-            'files/?path={path}&owner=auto'
+            'files/?path={path}&owner={owner}'
         ).format(
-            base=self.base, submission_id=submission_id, path=path
+            base=self.base,
+            submission_id=submission_id,
+            path=path,
+            owner=self.owner
         )
 
     def get_file_buf(self, file_id):
@@ -127,8 +135,10 @@ class CGAPIException(Exception):
 
 
 class CGAPI():
-    def __init__(self, username, password, base=None):
-        self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL)
+    def __init__(self, username, password, base=None, fixed=False):
+        owner = 'student' if fixed else 'auto'
+        self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL, owner)
+
         r = requests.post(
             self.routes.get_login(),
             json={
@@ -143,6 +153,7 @@ class CGAPI():
         self.user = json['user']
         self.access_token = json['access_token']
         self.s = requests.Session()
+        self.fixed = fixed
 
         self.s.headers = {
             'Authorization': 'Bearer ' + self.access_token,

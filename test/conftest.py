@@ -52,8 +52,8 @@ def mount(
 
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
         args = [
-            'coverage', 'run', '-a', 'cgfs.py', '--verbose', '--password',
-            password, username, mount_dir
+            'coverage', 'run', '-a', './codegra_fs/cgfs.py', '--verbose',
+            '--password', password, username, mount_dir
         ]
         if not latest_only:
             args.append('-a')
