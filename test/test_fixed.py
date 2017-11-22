@@ -14,18 +14,18 @@ from helpers import (
 
 @pytest.fixture(autouse=True)
 def username():
-    yield 'thomas'
+    yield 'stupid1'
 
 
 @pytest.fixture(autouse=True)
 def password():
-    yield 'Thomas Schaper'
+    yield 'Stupid1'
 
 
 @pytest.mark.parametrize('fixed', [False], indirect=True)
-def test_deleting_file_in_fixed(sub_done, mount):
-    fname = join(sub_done, 'new_test_file')
-    fname2 = join(sub_done, 'new_test_file2')
+def test_deleting_file_in_fixed(sub_open, mount):
+    fname = join(sub_open, 'new_test_file')
+    fname2 = join(sub_open, 'new_test_file2')
 
     # Make sure we cannot delete existing files in fixed mode
     assert not isfile(fname)
@@ -79,10 +79,10 @@ def test_deleting_file_in_fixed(sub_done, mount):
     assert not isfile(fname2)
 
 
-def test_renaming_file_in_fixed(sub_done, mount):
-    fname = join(sub_done, 'new_test_file')
-    fname2 = join(sub_done, 'new_test_file2')
-    fname3 = join(sub_done, 'new_test_file3')
+def test_renaming_file_in_fixed(sub_open, mount):
+    fname = join(sub_open, 'new_test_file')
+    fname2 = join(sub_open, 'new_test_file2')
+    fname3 = join(sub_open, 'new_test_file3')
 
     # Make sure we cannot delete existing files in fixed mode
     assert not isfile(fname)
@@ -113,10 +113,10 @@ def test_renaming_file_in_fixed(sub_done, mount):
     assert not isfile(fname3)
 
 
-def test_deleting_directory_in_fixed(sub_done, mount):
-    fdir = join(sub_done, 'new_test_file')
-    fdir2 = join(sub_done, 'new_test_file2')
-    fdir3 = join(sub_done, 'new_test_file3')
+def test_deleting_directory_in_fixed(sub_open, mount):
+    fdir = join(sub_open, 'new_test_file')
+    fdir2 = join(sub_open, 'new_test_file2')
+    fdir3 = join(sub_open, 'new_test_file3')
 
     # Make sure we cannot delete existing files in fixed mode
     assert not isdir(fdir)
@@ -144,8 +144,8 @@ def test_deleting_directory_in_fixed(sub_done, mount):
     assert not isdir(fdir3)
 
 
-def test_editing_file_in_fixed(sub_done, mount):
-    fname = join(sub_done, 'new_test_file')
+def test_editing_file_in_fixed(sub_open, mount):
+    fname = join(sub_open, 'new_test_file')
 
     # Make sure we cannot delete existing files in fixed mode
     assert not isfile(fname)
@@ -160,9 +160,10 @@ def test_editing_file_in_fixed(sub_done, mount):
         with open(fname, 'w') as f:
             f.write('hello\n')
 
+
 @pytest.mark.parametrize('fixed', [True], indirect=True)
-def test_truncate_fixed(sub_done):
-    fname = join(sub_done, 'new_file')
+def test_truncate_fixed(sub_open):
+    fname = join(sub_open, 'new_file')
 
     f = open(fname, 'w')
     f.write('hello\n')

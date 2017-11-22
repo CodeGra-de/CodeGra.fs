@@ -1651,7 +1651,8 @@ def main():
         action='store_true',
         default=False,
         help="""Mount the original files as read only. It is still possible to
-        create new files, but it is not possible to alter existing files."""
+        create new files, but it is not possible to alter existing
+        files. The files shown are always the student revision files."""
     )
     argparser.add_argument(
         '-q',
@@ -1690,7 +1691,10 @@ def main():
     logging.info('Mounting... ')
 
     cgapi = CGAPI(
-        username, password, args.url or getenv('CGAPI_BASE_URL', None)
+        username,
+        password,
+        args.url or getenv('CGAPI_BASE_URL', None),
+        fixed=fixed,
     )
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
