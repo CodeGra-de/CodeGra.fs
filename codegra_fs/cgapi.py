@@ -2,6 +2,7 @@
 
 from enum import IntEnum
 
+import logging
 import requests
 
 DEFAULT_CGAPI_BASE_URL = 'https://codegra.de/api/v1'
@@ -135,7 +136,9 @@ class CGAPIException(Exception):
 
 class CGAPI():
     def __init__(self, username, password, base=None, fixed=False):
-        self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL)
+        owner = 'student' if fixed else 'auto'
+        self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL, owner)
+
         r = requests.post(
             self.routes.get_login(),
             json={
