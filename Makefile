@@ -1,4 +1,5 @@
 export PYTHONPATH=$(CURDIR)
+TEST_FILE?=test/
 TEST_FLAGS?=
 PYTEST?=pytest
 
@@ -14,9 +15,9 @@ format:
 test:
 	which cgfs
 	coverage erase
-	$(PYTEST) test/ -vvvvvvvvv $(TEST_FLAGS)
+	$(PYTEST) $(TEST_FILE) -vvvvvvvvv $(TEST_FLAGS)
 	coverage report -m codegra_fs/cgfs.py
 
 .PHONY: test_quick
-test-quick: TEST_FLAGS += -x
-test-quick: test
+test_quick: TEST_FLAGS += -x
+test_quick: test
