@@ -265,7 +265,7 @@ def test_set_utime(sub_done, mount):
     mount(fixed=True)
 
     with pytest.raises(PermissionError):
-        os.utime(fname, (100, 1235))
+        os.utime(join(sub_done, 'dir', 'single_file_work'), (100, 1235))
 
     open(fname2, 'w').close()
 
