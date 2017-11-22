@@ -1180,17 +1180,22 @@ class CGFS(LoggingMixIn, Operations):
         except CGAPIException as e:  # pragma: no cover
             handle_cgapi_exception(e)
 
+        def get_assignee_id(sub):
+            if isinstance(sub['assignee'], dict):
+                return sub['assignee']['id']
+            return None
+
         seen = set()
         my_id = cgapi.user['id']
         user_assigned = self.assigned_only and any(
-            s['assignee']['id'] == my_id for s in submissions
+            get_assignee_id(s) == my_id for s in submissions
         )
 
         for sub in submissions:
             if sub['user']['id'] in seen:
                 continue
             elif user_assigned and my_id not in {
-                sub['assignee']['id'],
+                get_assignee_id(sub),
                 sub['user']['id'],
             }:
                 continue
