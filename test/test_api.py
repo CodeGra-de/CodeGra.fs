@@ -36,7 +36,7 @@ def password():
         (
             b'# Header\nDescription\n----\n- (1.0) Item - Desc\n', (
                 [('Header', 'Description', [(1.0, 'Item', 'Desc')])],
-                '# \[{id}\] Header\n Description\n-+\n- '
+                '# \[{id}\] Header\n  Description\n-+\n- '
                 '\[{id}\] \(1\.0\) Item - Desc\n'
             )
         ),
@@ -48,27 +48,27 @@ def password():
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (4.0, 'Item2', 'Desc2')]
                     )
-                ], '# \[{id}\] Header\n Description\n-+\n- \[{id}\] \(1\.0\)'
+                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
                 ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n'
             )
         ),
         (
             b'# Header\nDescription\n----\n- (1.0) Item - Desc\n- (4.0) Item2 '
             b'- Desc2\n\n# Header 2\nDescription 2\n------\n- (2.5) I - D\n   '
-            b'C\n  \nA\n\n\nM\n', (
+            b'C\n  \nA\n\n  \nM\n', (
                 [
                     (
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (4.0, 'Item2', 'Desc2')]
                     ), (
                         'Header 2', 'Description 2', [
-                            (2.5, 'I', 'D C\nA\n\nM'),
+                            (2.5, 'I', 'D\nC\n\nA\n\n\nM'),
                         ]
                     )
-                ], '# \[{id}\] Header\n Description\n-+\n- \[{id}\] \(1\.0\)'
+                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
                 ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n\n#'
-                ' \[{id}\] Header 2\n Description 2\n-+\n- \[{id}\] \(2\.5\) I'
-                ' - D C\n\n  A\n\n\n  M\n'
+                ' \[{id}\] Header 2\n  Description 2\n-+\n- \[{id}\] \(2\.5\) I'
+                ' - D\n  C\n  \n  A\n  \n  \n  M\n'
             )
         ),
         (b'hello', False),
@@ -143,7 +143,7 @@ def test_get_set_rubric(
         with pytest.raises(PermissionError):
             f.close()
 
-        rm(r_file)
+        open(r_file, 'w').write('__RESET__\n')
 
         with open(r_file, 'r') as r:
             assert r.read() == ''
@@ -159,7 +159,7 @@ def test_get_set_rubric(
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (4.0, 'Item2', 'Desc2')]
                     )
-                ], '# \[{id}\] Header\n Description\n-+\n- \[{id}\] \(1\.0\)'
+                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
                 ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n'
             ), '- (5.0) Item4 - Desc4\n', (
                 [
@@ -167,7 +167,7 @@ def test_get_set_rubric(
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (5.0, 'Item4', 'Desc4')]
                     )
-                ], '# \[{id}\] Header\n Description\n-+\n- \[{id}\] \(1\.0\)'
+                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
                 ' Item - Desc\n- \[{id}\] \(5\.0\) Item4 - Desc4\n'
             )
         ),
@@ -244,7 +244,7 @@ def test_remove_add_rubric_item(
         with pytest.raises(PermissionError):
             with open(r_file, 'w') as f:
                 f.write(read)
-        rm(r_file)
+        open(r_file, 'w').write('__RESET__\n\n')
         test_correct(res)
     else:
         with open(r_file, 'w') as f:
@@ -377,38 +377,37 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 
     print(f)
     assert run_shell([
-        './api_consumer.py',
+        'cgapi-consumer',
         'get-comment',
     ]).returncode == 1
     s = run_shell([
-        './api_consumer.py',
+        'cgapi-consumer',
         'get-comment',
         '/etc',
     ])
     assert s.returncode == 3
 
-    print(run_shell(['./api_consumer.py', 'get-comment', f]).stdout)
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    print(run_shell(['cgapi-consumer', 'get-comment', f]).stdout)
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert res == b'[]\n'
 
     assert run_shell([
-        './api_consumer.py',
+        'cgapi-consumer',
         'set-comment',
         '/etc',
     ]).returncode == 3
-    assert run_shell(
-        ['./api_consumer.py', 'set-comment', '/etc', '5', 'hello']
-    ).returncode == 3
+    assert run_shell(['cgapi-consumer', 'set-comment', '/etc', '5',
+                      'hello']).returncode == 3
 
-    s = run_shell(['./api_consumer.py', 'set-comment', f, '5'])
+    s = run_shell(['cgapi-consumer', 'set-comment', f, '5'])
     print(s.stderr, s.stdout)
     assert s.returncode == 1
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'set-comment', f, '5', 'Feedback message']
+        ['cgapi-consumer', 'set-comment', f, '5', 'Feedback message']
     ) == b''
 
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
@@ -419,9 +418,9 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'set-comment', f, '1', 'Message']
+        ['cgapi-consumer', 'set-comment', f, '1', 'Message']
     ) == b''
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
@@ -436,9 +435,9 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output(
-        ['./api_consumer.py', 'set-comment', f, '5', '']
+        ['cgapi-consumer', 'set-comment', f, '5', '']
     ) == b''
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
@@ -453,27 +452,25 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert run_shell([
-        './api_consumer.py',
+        'cgapi-consumer',
         'delete-comment',
         f,
         '4',
     ]).returncode == 2
 
     # Don't change after a wrong delete
-    assert res == subprocess.check_output(
-        ['./api_consumer.py', 'get-comment', f]
-    )
+    assert res == subprocess.check_output(['cgapi-consumer', 'get-comment', f])
 
     assert subprocess.check_output(
         [
-            './api_consumer.py',
+            'cgapi-consumer',
             'delete-comment',
             f,
             '5',
         ]
     ) == b''
 
-    res = subprocess.check_output(['./api_consumer.py', 'get-comment', f])
+    res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
     assert json.loads(res) == [
         {
@@ -484,14 +481,14 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]
 
     assert subprocess.check_output([
-        './api_consumer.py',
+        'cgapi-consumer',
         'is-file',
         f,
     ]) == b''
-    assert run_shell(['./api_consumer.py', 'is-file', '/etc']).returncode == 3
+    assert run_shell(['cgapi-consumer', 'is-file', '/etc']).returncode == 3
     assert run_shell(
         [
-            './api_consumer.py',
+            'cgapi-consumer',
             'is-file',
             join(sub_done, '.cg-rubric.md'),
         ]
@@ -520,7 +517,7 @@ def test_grade_file(sub_done):
         with open(g_file, 'w') as f:
             f.write('5.5\n5.3')
 
-    rm(g_file)
+    open(g_file, 'w').write('\n__RESET__\n\n')
 
     with open(g_file, 'r') as f:
         assert f.read() == '5.5\n'
@@ -545,16 +542,19 @@ def test_grade_file(sub_done):
         pass
 
 
-def test_feedback_file(sub_done):
+@pytest.mark.parametrize(
+    'data', ['hello\nThomas\n\nBye we', '', 'ss' * 80 + '\nsds']
+)
+def test_feedback_file(sub_done, data):
     f_file = join(sub_done, '.cg-feedback')
     with open(f_file, 'r') as f:
         assert f.read() == ''
 
     with open(f_file, 'w') as f:
-        f.write('hello\nThomas\n\nBye we')
+        f.write(data)
 
     with open(f_file, 'r') as f:
-        assert f.read() == 'hello Thomas\n\nBye we\n'
+        assert f.read() == data
 
     with open(f_file, 'w') as f:
         pass

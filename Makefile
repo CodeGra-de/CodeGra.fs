@@ -12,9 +12,10 @@ format:
 
 .PHONY: test
 test:
+	which cgfs
 	coverage erase
 	$(PYTEST) test/ -vvvvvvvvv $(TEST_FLAGS)
-	coverage report -m cgfs.py
+	coverage report -m codegra_fs/cgfs.py
 
 .PHONY: test_quick
 test-quick: TEST_FLAGS += -x

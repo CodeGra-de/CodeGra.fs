@@ -28,7 +28,8 @@ def recv(s):
         message += m
         if len(m) < 1024:
             break
-    return message
+
+    return message.decode()
 
 
 def is_file(s, file):
