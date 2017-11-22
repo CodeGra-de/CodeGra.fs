@@ -39,15 +39,23 @@ def latest_only(request):
     return request.param
 
 
+@pytest.fixture(params=[False])
+def assigned_to_me(request):
+    return request.param
+
+
 @pytest.fixture(autouse=True)
 def mount(
-    username, password, mount_dir, latest_only, fixed, rubric_append_only
+    username, password, mount_dir, latest_only, fixed, rubric_append_only,
+    assigned_to_me
 ):
     proc = None
     r_fixed = fixed
     del fixed
+    r_assigned_to_me = assigned_to_me
+    del assigned_to_me
 
-    def do_mount(fixed=r_fixed):
+    def do_mount(fixed=r_fixed, assigned_to_me=r_assigned_to_me):
         nonlocal proc
 
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
@@ -61,6 +69,8 @@ def mount(
             args.append('--fixed')
         if not rubric_append_only:
             args.append('--rubric-edit')
+        if assigned_to_me:
+            args.append('--assigned-to-me')
 
         proc = subprocess.Popen(args, stdout=sys.stdout, stderr=sys.stderr)
         check_dir = os.path.join(mount_dir, 'Programmeertalen')
@@ -77,9 +87,9 @@ def mount(
             proc.kill()
             proc.wait()
 
-    def do_remount(fixed=r_fixed):
+    def do_remount(fixed=r_fixed, assigned_to_me=r_assigned_to_me):
         do_umount()
-        do_mount(fixed=fixed)
+        do_mount(fixed=fixed, assigned_to_me=assigned_to_me)
 
     do_mount()
     yield do_remount

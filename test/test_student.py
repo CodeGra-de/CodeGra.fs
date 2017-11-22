@@ -29,10 +29,16 @@ def test_list_assignments(mount_dir):
         assert isdir(course_dir, assig)
 
 
-def test_list_submissions(mount_dir):
+def test_list_submissions(mount_dir, mount):
     course_dir = join(mount_dir, 'Programmeertalen')
     assert isdir(mount_dir)
     assert isdir(course_dir)
+
+    for assig in ls(course_dir):
+        for sub in ls(course_dir, assig):
+            assert 'Stupid1' in sub or sub[0] == '.'
+
+    mount(assigned_to_me=True)
 
     for assig in ls(course_dir):
         for sub in ls(course_dir, assig):
