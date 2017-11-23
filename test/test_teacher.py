@@ -53,7 +53,7 @@ def test_list_assignments(mount_dir):
         assert isdir(mount_dir, 'Programmeertalen', assig)
 
 
-def test_list_submissions(mount_dir, mount):
+def test_list_submissions(mount_dir):
     for course in ['Besturingssystemen', 'Programmeertalen']:
         for assig in ls(mount_dir, course):
             for sub in ls(mount_dir, course, assig):
