@@ -1097,6 +1097,7 @@ class CGFS(LoggingMixIn, Operations):
         fixed=False,
         tmpdir=None,
         rubric_append_only=True,
+        assigned_only=False,
     ):
         self.latest_only = latest_only
         self.fixed = fixed
@@ -1105,6 +1106,7 @@ class CGFS(LoggingMixIn, Operations):
         self.mountpoint = mountpoint
         self._lock = threading.RLock()
         self._open_files = {}
+        self.assigned_only = assigned_only
 
         self._tmpdir = tmpdir
 
@@ -1178,10 +1180,24 @@ class CGFS(LoggingMixIn, Operations):
         except CGAPIException as e:  # pragma: no cover
             handle_cgapi_exception(e)
 
+        def get_assignee_id(sub):
+            if isinstance(sub['assignee'], dict):
+                return sub['assignee']['id']
+            return None
+
         seen = set()
+        my_id = cgapi.user['id']
+        user_assigned = self.assigned_only and any(
+            get_assignee_id(s) == my_id for s in submissions
+        )
 
         for sub in submissions:
             if sub['user']['id'] in seen:
+                continue
+            elif user_assigned and my_id not in {
+                get_assignee_id(sub),
+                sub['user']['id'],
+            }:
                 continue
 
             sub_dir = Directory(
@@ -1672,6 +1688,15 @@ def main():
         `.cg-edit-rubric.md` files. Note: this feature is experimental and can
         lead to data loss!"""
     )
+    argparser.add_argument(
+        '-m',
+        '--assigned-to-me',
+        dest='assigned_only',
+        default=False,
+        action='store_true',
+        help="""Only show items that are assigned to you if items are assigned
+        and you are part of the assignee's."""
+    )
     args = argparser.parse_args()
 
     mountpoint = os.path.abspath(args.mountpoint)
@@ -1680,6 +1705,7 @@ def main():
     latest_only = args.latest_only
     rubric_append_only = args.rubric_append_only
     fixed = args.fixed
+    assigned_only = args.assigned_only
 
     if args.quiet:
         logging.basicConfig(level=logging.WARNING)
@@ -1707,6 +1733,7 @@ def main():
                 mountpoint=mountpoint,
                 tmpdir=tmpdir,
                 rubric_append_only=rubric_append_only,
+                assigned_only=assigned_only,
             )
             FUSE(
                 fs,

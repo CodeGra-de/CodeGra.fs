@@ -1,4 +1,5 @@
 import pytest
+import requests
 
 from helpers import ls, rm, join, isdir, mkdir, rm_rf, rmdir, isfile
 
@@ -11,6 +12,16 @@ def username():
 @pytest.fixture(autouse=True)
 def password():
     yield 'Thomas Schaper'
+
+
+@pytest.fixture
+def teacher_id(username, password):
+    req = requests.post(
+        'http://localhost:5000/api/v1/login',
+        json={'username': username,
+              'password': password}
+    )
+    return req.json()['user']['id']
 
 
 def test_list_courses(mount_dir):
@@ -53,6 +64,30 @@ def test_list_submissions(mount_dir):
     for assig in ls(mount_dir, 'Project Software Engineering'):
         for sub in ls(mount_dir, 'Project Software Engineering', assig):
             assert 'Thomas Schaper' in sub or sub[0] == '.'
+
+
+def test_list_assigned_submissions(mount, mount_dir, teacher_jwt, teacher_id):
+    course = 'Programmeertalen'
+
+    for assig in ls(mount_dir, course):
+        for sub in ls(mount_dir, course, assig):
+            if 'Stupid1' in sub:
+                with open(join(mount_dir, course, assig, sub, '.cg-submission-id')) as f:
+                    sub_id = f.read().strip()
+                r = requests.patch(
+                    f'http://localhost:5000/api/v1/submissions/{sub_id}/grader',
+                    json={'user_id': teacher_id},
+                    headers={
+                        'Authorization': 'Bearer ' + teacher_jwt,
+                    }
+                )
+                assert r.status_code == 204
+
+    mount(assigned_to_me=True)
+
+    for assig in ls(mount_dir, course):
+        for sub in ls(mount_dir, course, assig):
+            assert 'Stupid1' in sub or sub[0] == '.'
 
 
 def test_create_files(mount_dir, sub_open, sub_done):

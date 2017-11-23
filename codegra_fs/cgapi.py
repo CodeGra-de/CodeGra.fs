@@ -148,8 +148,10 @@ class CGAPI():
         )
 
         self._handle_response_error(r)
+        json = r.json()
 
-        self.access_token = r.json()['access_token']
+        self.user = json['user']
+        self.access_token = json['access_token']
         self.s = requests.Session()
         self.fixed = fixed
 
