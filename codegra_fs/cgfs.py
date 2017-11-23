@@ -1641,7 +1641,7 @@ def main():
         type=str,
         dest='url',
         help="""The url to find the api. This defaults to
-        'https://codegra.de/api/v1/'. It can also be passed as a environment
+        'https://codegra.de/api/v1/'. It can also be passed as an environment
         variable 'CGAPI_BASE_URL'"""
     )
     argparser.add_argument(
