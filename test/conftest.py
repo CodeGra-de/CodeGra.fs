@@ -8,8 +8,9 @@ import tempfile
 import contextlib
 import subprocess
 
-import pytest
 import requests
+
+import pytest
 
 
 @pytest.fixture(autouse=True)
@@ -110,7 +111,7 @@ def assig_done(mount, shell_id, mount_dir):
 def sub_done2(assig_done):
     print(os.listdir(assig_done))
     for path in reversed(sorted(os.listdir(assig_done))):
-        if 'Stupid2' in path:
+        if 'Student2' in path:
             return os.path.join(assig_done, path)
 
 
@@ -118,14 +119,14 @@ def sub_done2(assig_done):
 def sub_done(assig_done):
     print(os.listdir(assig_done))
     for path in reversed(sorted(os.listdir(assig_done))):
-        if 'Stupid1' in path:
+        if 'Student1' in path:
             return os.path.join(assig_done, path)
 
 
 @pytest.fixture(autouse=True)
 def sub_open(assig_open):
     for path in reversed(sorted(os.listdir(assig_open))):
-        if 'Stupid1' in path:
+        if 'Student1' in path:
             return os.path.join(assig_open, path)
 
 
@@ -143,8 +144,8 @@ def teacher_jwt():
 def student_jwt():
     req = requests.post(
         'http://localhost:5000/api/v1/login',
-        json={'username': 'stupid1',
-              'password': 'Stupid1'}
+        json={'username': 'student1',
+              'password': 'Student1'}
     )
     return req.json()['access_token']
 

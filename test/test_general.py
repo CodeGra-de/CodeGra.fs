@@ -5,7 +5,6 @@ import subprocess
 import urllib.request
 
 import pytest
-
 from helpers import (
     ls, rm, join, chmod, chown, isdir, mkdir, rm_rf, rmdir, isfile, rename,
     symlink
@@ -192,7 +191,7 @@ def test_compiling_program(sub_done, mount, fixed):
 def test_latest_only(assig_done, latest_only):
     amount = 0
     for item in ls(assig_done):
-        amount += 1 if 'Stupid1' in item else 0
+        amount += 1 if 'Student1' in item else 0
     if latest_only:
         assert amount == 1
     else:

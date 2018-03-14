@@ -24,7 +24,6 @@ from pathlib import Path
 from argparse import ArgumentParser
 
 from fuse import FUSE, Operations, FuseOSError, LoggingMixIn
-
 from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
 
 cgapi = None
@@ -37,6 +36,12 @@ def handle_cgapi_exception(ex):
         raise FuseOSError(EPERM)
     else:
         raise ex
+
+
+class ParseException(ValueError):
+    def __init__(self, message, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.message = message
 
 
 class DirTypes(IntEnum):
@@ -644,7 +649,10 @@ class RubricEditorFile(CachedSpecialFile):
                 while data[i] != '-':
                     header.append(data[i])
                     if data[i] == '\n':
-                        i = strip_spaces(i)
+                        raise ParseException(
+                            'Item header cannot contain a newline, you '
+                            'probably missed a "-" in your header'
+                        )
                     else:
                         i += 1
 
@@ -692,9 +700,12 @@ class RubricEditorFile(CachedSpecialFile):
                 items.append(item)
             return items
 
-        except (IndexError, KeyError, AssertionError) as _:
+        except (IndexError, KeyError, AssertionError, ParseException) as e:
             logging.debug(traceback.format_exc())
-            logging.warning('The rubric could not parsed!')
+            if isinstance(e, ParseException):
+                logging.warning(e.message)
+            else:
+                logging.warning('The rubric could not parsed!')
             raise FuseOSError(EPERM)
 
     def send_back(self, parsed):

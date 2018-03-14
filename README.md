@@ -33,10 +33,11 @@
 
 ## Installation
 You can install this package using `pip`. At the moment this package is not yet
-in the pip repositories, however you can install it directly from git: `pip3
-install --user git+https://github.com/CodeGra-de/CodeGra.fs.git`. This installs
-to scripts, `cgfs` used to mount the file-system and `cgapi-consumer` used by
-editor plugins.
+in the pip repositories, however you can install it directly from git: `sudo
+pip3 install git+https://github.com/CodeGra-de/CodeGra.fs.git`. This installs
+two scripts, `cgfs` used to mount the file-system and `cgapi-consumer` used by
+editor plugins. You can also install `cgfs` by giving `pip` the `--user` flag,
+however make sure `$HOME/.local/bin` is in your `$PATH` in this case.
 
 Please note that `pip3` is used, this because CodeGra.fs only with works with
 python **3.5** or higher. It depends on:

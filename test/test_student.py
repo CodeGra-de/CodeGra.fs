@@ -1,16 +1,15 @@
 import pytest
-
 from helpers import ls, rm, join, isdir, mkdir, rm_rf, rmdir, isfile
 
 
 @pytest.fixture(autouse=True)
 def username():
-    yield 'stupid1'
+    yield 'student1'
 
 
 @pytest.fixture(autouse=True)
 def password():
-    yield 'Stupid1'
+    yield 'Student1'
 
 
 def test_list_courses(mount_dir):
@@ -36,13 +35,13 @@ def test_list_submissions(mount_dir, mount):
 
     for assig in ls(course_dir):
         for sub in ls(course_dir, assig):
-            assert 'Stupid1' in sub or sub[0] == '.'
+            assert 'Student1' in sub or sub[0] == '.'
 
     mount(assigned_to_me=True)
 
     for assig in ls(course_dir):
         for sub in ls(course_dir, assig):
-            assert 'Stupid1' in sub or sub[0] == '.'
+            assert 'Student1' in sub or sub[0] == '.'
 
 
 def test_create_files(mount_dir, sub_open, sub_done):
