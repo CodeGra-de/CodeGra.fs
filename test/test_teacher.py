@@ -1,17 +1,17 @@
-import pytest
 import requests
 
+import pytest
 from helpers import ls, rm, join, isdir, mkdir, rm_rf, rmdir, isfile
 
 
-@pytest.fixture(autouse=True)
-def username():
-    yield 'thomas'
+@pytest.fixture(autouse=True, params=['robin'])
+def username(request):
+    yield request.param
 
 
-@pytest.fixture(autouse=True)
-def password():
-    yield 'Thomas Schaper'
+@pytest.fixture(autouse=True, params=['Robin'])
+def password(request):
+    yield request.param
 
 
 @pytest.fixture
@@ -53,12 +53,14 @@ def test_list_assignments(mount_dir):
         assert isdir(mount_dir, 'Programmeertalen', assig)
 
 
+@pytest.mark.parametrize('username', ['thomas'], indirect=True)
+@pytest.mark.parametrize('password', ['Thomas Schaper'], indirect=True)
 def test_list_submissions(mount_dir):
     for course in ['Besturingssystemen', 'Programmeertalen']:
         for assig in ls(mount_dir, course):
             for sub in ls(mount_dir, course, assig):
                 assert any(
-                    'Stupid{i}'.format(i=i) in sub for i in range(1, 5)
+                    'Student{i}'.format(i=i) in sub for i in range(1, 5)
                 ) or 'Œlµo' in sub or sub[0] == '.'
 
     for assig in ls(mount_dir, 'Project Software Engineering'):
@@ -71,7 +73,7 @@ def test_list_assigned_submissions(mount, mount_dir, teacher_jwt, teacher_id):
 
     for assig in ls(mount_dir, course):
         for sub in ls(mount_dir, course, assig):
-            if 'Stupid1' in sub:
+            if 'Student1' in sub:
                 with open(join(mount_dir, course, assig, sub, '.cg-submission-id')) as f:
                     sub_id = f.read().strip()
                 r = requests.patch(
@@ -87,7 +89,7 @@ def test_list_assigned_submissions(mount, mount_dir, teacher_jwt, teacher_id):
 
     for assig in ls(mount_dir, course):
         for sub in ls(mount_dir, course, assig):
-            assert 'Stupid1' in sub or sub[0] == '.'
+            assert 'Student1' in sub or sub[0] == '.'
 
 
 def test_create_files(mount_dir, sub_open, sub_done):

@@ -6,9 +6,9 @@ import tarfile
 import subprocess
 import urllib.request
 
-import pytest
 import requests
 
+import pytest
 from helpers import (
     ls, rm, join, chmod, chown, isdir, mkdir, rm_rf, rmdir, isfile, rename,
     symlink
@@ -23,12 +23,12 @@ def run_shell(prog, **kwargs):
 
 @pytest.fixture(autouse=True)
 def username():
-    yield 'thomas'
+    yield 'robin'
 
 
 @pytest.fixture(autouse=True)
 def password():
-    yield 'Thomas Schaper'
+    yield 'Robin'
 
 
 @pytest.mark.parametrize(
@@ -80,6 +80,7 @@ def password():
         (b'# Header\nDescription\n----\n(1.0) Item - Desc', False),
         (b'# Header\nDescription\n----\n- (1.0) Item - Desc\n# C', False),
         (b'# Header\nDescription\n----\n- [noid] (1.0) Item - Desc\n', False),
+        (b'# Header\nDescription\n----\n- (1.0) Item\n', False),
     ]
 )
 def test_get_set_rubric(

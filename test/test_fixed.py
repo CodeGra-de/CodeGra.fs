@@ -5,7 +5,6 @@ import subprocess
 import urllib.request
 
 import pytest
-
 from helpers import (
     ls, rm, join, chmod, chown, isdir, mkdir, rm_rf, rmdir, isfile, rename,
     symlink
@@ -14,12 +13,12 @@ from helpers import (
 
 @pytest.fixture(autouse=True)
 def username():
-    yield 'stupid1'
+    yield 'student1'
 
 
 @pytest.fixture(autouse=True)
 def password():
-    yield 'Stupid1'
+    yield 'Student1'
 
 
 @pytest.mark.parametrize('fixed', [False], indirect=True)
