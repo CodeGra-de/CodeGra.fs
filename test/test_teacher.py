@@ -4,14 +4,14 @@ import pytest
 from helpers import ls, rm, join, isdir, mkdir, rm_rf, rmdir, isfile
 
 
-@pytest.fixture(autouse=True)
-def username():
-    yield 'robin'
+@pytest.fixture(autouse=True, params=['robin'])
+def username(request):
+    yield request.param
 
 
-@pytest.fixture(autouse=True)
-def password():
-    yield 'Robin'
+@pytest.fixture(autouse=True, params=['Robin'])
+def password(request):
+    yield request.param
 
 
 @pytest.fixture
@@ -53,6 +53,8 @@ def test_list_assignments(mount_dir):
         assert isdir(mount_dir, 'Programmeertalen', assig)
 
 
+@pytest.mark.parametrize('username', ['thomas'], indirect=True)
+@pytest.mark.parametrize('password', ['Thomas Schaper'], indirect=True)
 def test_list_submissions(mount_dir):
     for course in ['Besturingssystemen', 'Programmeertalen']:
         for assig in ls(mount_dir, course):
