@@ -3,7 +3,7 @@
 import sys
 from distutils.core import setup
 
-version = '0.3.0'
+version = '0.3.1'
 
 if sys.version_info < (3, 5):
     print('Sorry only python 3.5 and up is supported', file=sys.stderr)
