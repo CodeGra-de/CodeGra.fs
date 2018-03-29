@@ -134,7 +134,7 @@ class CGAPIException(Exception):
         self.message = data['message']
         self.code = data['code']
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return 'codegra_fs.cgapi.CGAPIException: {} - {} [{}]'.format(
             self.message, self.description, self.code
         )
