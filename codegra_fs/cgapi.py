@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from enum import IntEnum
-
 import logging
+from enum import IntEnum
+from urllib.parse import quote
+
 import requests
 
 DEFAULT_CGAPI_BASE_URL = 'https://codegra.de/api/v1'
@@ -42,7 +43,7 @@ class APIRoutes():
         ).format(
             base=self.base,
             submission_id=submission_id,
-            path=path,
+            path=quote(path),
             owner=self.owner
         )
 
@@ -76,7 +77,7 @@ class APIRoutes():
             '{base}/code/{file_id}?operation='
             'rename&new_path={new_path}'
         ).format(
-            base=self.base, file_id=file_id, new_path=new_path
+            base=self.base, file_id=file_id, new_path=quote(new_path)
         )
 
     def get_feedbacks(self, assignment_id):
@@ -126,12 +127,17 @@ class APICodes(IntEnum):
 class CGAPIException(Exception):
     def __init__(self, response):
         data = response.json()
-        super(CGAPIException, self).__init__(data['message'])
+        super().__init__(data['message'])
 
         self.status_code = response.status_code
         self.description = data['description']
         self.message = data['message']
         self.code = data['code']
+
+    def __str__(self):  # pragma: no cover
+        return 'codegra_fs.cgapi.CGAPIException: {} - {} [{}]'.format(
+            self.message, self.description, self.code
+        )
 
 
 class CGAPI():
