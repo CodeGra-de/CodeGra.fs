@@ -562,3 +562,28 @@ def test_feedback_file(sub_done, data):
 
     with open(f_file, 'r') as f:
         assert f.read() == ''
+
+@pytest.mark.parametrize(
+    'path', ['c++', 'c++/file.cpp'],
+)
+def test_quote_paths(sub_done, path):
+    dirs = path.split('/')[:-1]
+    if len(dirs):
+        mkdir(join(sub_done, *dirs))
+
+    f_path = join(sub_done, path)
+    with open(join(sub_done, f_path), 'w') as f:
+        assert f.write('abc') == 3
+
+    tmp_path = join(sub_done, 'abc')
+    rename([f_path], [tmp_path])
+    assert not isfile(f_path)
+    assert isfile(tmp_path)
+
+    rename([tmp_path], [f_path])
+    assert isfile(f_path)
+    assert not isfile(tmp_path)
+
+    rm(f_path)
+    if len(dirs):
+        rmdir(join(sub_done, *dirs))
