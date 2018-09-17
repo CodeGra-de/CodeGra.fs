@@ -65,13 +65,18 @@ def mount(
             'coverage', 'run', '-a', './codegra_fs/cgfs.py', '--verbose',
             username, mount_dir
         ]
+        stdin = None
 
         os.environ.pop('CGFS_PASSWORD', None)
         if password_pass == 0:
             args.extend(['--password', password])
         elif password_pass == 1:
             os.environ['CGFS_PASSWORD'] = password
-        password_pass = (password_pass) % 2
+        elif password_pass == 2:
+            stdin = tempfile.TemporaryFile(mode='r+')
+            stdin.write(password)
+            stdin.seek(0)
+        password_pass = (password_pass + 1) % 3
 
         if not latest_only:
             args.append('-a')
@@ -82,7 +87,7 @@ def mount(
         if assigned_to_me:
             args.append('--assigned-to-me')
 
-        proc = subprocess.Popen(args, stdout=sys.stdout, stderr=sys.stderr)
+        proc = subprocess.Popen(args, stdin=stdin, stdout=sys.stdout, stderr=sys.stderr)
         check_dir = os.path.join(mount_dir, 'Programmeertalen')
         i = 0.001
         while not os.path.isdir(check_dir):
