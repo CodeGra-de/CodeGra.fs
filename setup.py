@@ -4,7 +4,7 @@ import sys
 
 from setuptools import setup
 
-version = '0.3.2'
+version = '0.3.3'
 
 if sys.version_info < (3, 5):
     print('Sorry only python 3.5 and up is supported', file=sys.stderr)

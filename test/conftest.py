@@ -8,10 +8,10 @@ import tempfile
 import contextlib
 import subprocess
 
+import pytest
 import requests
 
-import pytest
-
+password_pass = 0
 
 @pytest.fixture(autouse=True)
 def setup():
@@ -57,13 +57,27 @@ def mount(
     del assigned_to_me
 
     def do_mount(fixed=r_fixed, assigned_to_me=r_assigned_to_me):
+        global password_pass
         nonlocal proc
 
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
         args = [
             'coverage', 'run', '-a', './codegra_fs/cgfs.py', '--verbose',
-            '--password', password, username, mount_dir
+            username, mount_dir
         ]
+        stdin = None
+
+        os.environ.pop('CGFS_PASSWORD', None)
+        if password_pass == 0:
+            args.extend(['--password', password])
+        elif password_pass == 1:
+            os.environ['CGFS_PASSWORD'] = password
+        elif password_pass == 2:
+            stdin = tempfile.TemporaryFile(mode='r+')
+            stdin.write(password)
+            stdin.seek(0)
+        password_pass = (password_pass + 1) % 3
+
         if not latest_only:
             args.append('-a')
         if fixed:
@@ -73,7 +87,7 @@ def mount(
         if assigned_to_me:
             args.append('--assigned-to-me')
 
-        proc = subprocess.Popen(args, stdout=sys.stdout, stderr=sys.stderr)
+        proc = subprocess.Popen(args, stdin=stdin, stdout=sys.stdout, stderr=sys.stderr)
         check_dir = os.path.join(mount_dir, 'Programmeertalen')
         i = 0.001
         while not os.path.isdir(check_dir):
