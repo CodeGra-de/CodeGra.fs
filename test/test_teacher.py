@@ -1,6 +1,8 @@
-import requests
+import os
 
 import pytest
+import requests
+
 from helpers import ls, rm, join, isdir, mkdir, rm_rf, rmdir, isfile
 
 
@@ -215,3 +217,21 @@ def test_make_directories(mount_dir, sub_done, sub_open):
 
     rmdir(sub_done, 'dir')
     assert 'dir' not in ls(sub_done)
+
+
+def test_bug_fsync(mount_dir, sub_done):
+    # The `fsync` function didn't return the value of `flush` so editing a
+    # teacher file didn't update the internal id of the file.
+    p = join(sub_done, 'dir', 'single_file_work')
+
+    assert isfile(p)
+    with open(p, 'r') as f:
+        old = f.read()
+    new = 'NEW CONTENT' + old
+
+    fd = os.open(p, os.O_WRONLY | os.O_TRUNC)
+    os.write(fd, bytes(new, 'utf8'))
+    os.fsync(fd)
+    os.close(fd)
+    with open(p, 'r') as f:
+        assert new == f.read()
