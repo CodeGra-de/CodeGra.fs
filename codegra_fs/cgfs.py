@@ -1643,7 +1643,8 @@ def main():
         type=str,
         dest='password',
         help="""Your CodeGra.de password, don't pass this option if you want to
-        pass your password over stdin."""
+        pass your password over stdin. You can also use the `CGFS_PASSWORD`
+        environment variable to pass your password."""
     )
     argparser.add_argument(
         '-u',
@@ -1712,7 +1713,14 @@ def main():
 
     mountpoint = os.path.abspath(args.mountpoint)
     username = args.username
-    password = args.password if args.password is not None else getpass()
+
+    password = args.password or getenv('CGFS_PASSWORD', None)
+    if password is None and sys.stdin.isatty():
+        password = getpass('Password: ')
+    elif password is None:
+        print('Password:', end=' ')
+        password = sys.stdin.readline().rstrip()
+
     latest_only = args.latest_only
     rubric_append_only = args.rubric_append_only
     fixed = args.fixed

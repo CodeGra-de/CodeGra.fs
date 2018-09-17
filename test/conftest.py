@@ -8,10 +8,10 @@ import tempfile
 import contextlib
 import subprocess
 
+import pytest
 import requests
 
-import pytest
-
+password_pass = 0
 
 @pytest.fixture(autouse=True)
 def setup():
@@ -57,13 +57,22 @@ def mount(
     del assigned_to_me
 
     def do_mount(fixed=r_fixed, assigned_to_me=r_assigned_to_me):
+        global password_pass
         nonlocal proc
 
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
         args = [
             'coverage', 'run', '-a', './codegra_fs/cgfs.py', '--verbose',
-            '--password', password, username, mount_dir
+            username, mount_dir
         ]
+
+        os.environ.pop('CGFS_PASSWORD', None)
+        if password_pass == 0:
+            args.extend(['--password', password])
+        elif password_pass == 1:
+            os.environ['CGFS_PASSWORD'] = password
+        password_pass = (password_pass) % 2
+
         if not latest_only:
             args.append('-a')
         if fixed:
