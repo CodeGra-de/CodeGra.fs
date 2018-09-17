@@ -978,7 +978,7 @@ class File(BaseFile, SingleFile):
         return len(data)
 
     def fsync(self):
-        self.flush()
+        return self.flush()
 
 
 class APIHandler:

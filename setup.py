@@ -16,7 +16,7 @@ setup(
     version=version,
     description='File-system for CodeGra.de instances',
     long_description=open('README.md').read(),
-    install_requires=['requests>=2.18.4', 'fusepy>=2.0.4'],
+    install_requires=['requests>=2.18.4', 'fusepy>=2.0.4, <3.0.0'],
     packages=['codegra_fs'],
     entry_points={
         'console_scripts':
