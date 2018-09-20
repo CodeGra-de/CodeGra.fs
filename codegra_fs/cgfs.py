@@ -9,6 +9,7 @@ import socket
 import hashlib
 import logging
 import datetime
+import platform
 import tempfile
 import threading
 import traceback
@@ -1744,6 +1745,16 @@ def main():
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
+        kwargs = {}
+        if platform.system() == 'Darwin':
+            # Fix OSX encoding issue as described here:
+            # https://web.archive.org/web/20180920131107/https://github.com/osxfuse/osxfuse/issues/71
+            kwargs = {
+                'from_code': 'UTF-8',
+                'to_code': 'UTF-8-MAC',
+                'modules': 'iconv',
+            }
+
         try:
             fs = CGFS(
                 latest_only,
@@ -1759,7 +1770,8 @@ def main():
                 mountpoint,
                 nothreads=True,
                 foreground=True,
-                direct_io=True
+                direct_io=True,
+                **kwargs,
             )
         except RuntimeError:  # pragma: no cover
             logging.critical(traceback.format_exc())
