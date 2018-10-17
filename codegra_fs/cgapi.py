@@ -2,6 +2,7 @@
 
 import logging
 from enum import IntEnum
+import typing as t
 from urllib.parse import quote
 
 import requests
@@ -28,7 +29,7 @@ class APIRoutes():
             base=self.base, assignment_id=assignment_id
         )
 
-    def get_files(self, submission_id):
+    def get_files(self, submission_id: int) -> str:
         return ('{base}/submissions/{submission_id}'
                 '/files/?owner={owner}').format(
                     base=self.base,
@@ -36,7 +37,7 @@ class APIRoutes():
                     owner=self.owner,
                 )
 
-    def get_file(self, submission_id, path):
+    def get_file(self, submission_id: int, path: str) -> str:
         return (
             '{base}/submissions/{submission_id}/'
             'files/?path={path}&owner={owner}'
@@ -141,7 +142,13 @@ class CGAPIException(Exception):
 
 
 class CGAPI():
-    def __init__(self, username, password, base=None, fixed=False):
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        base: t.Optional[str] = None,
+        fixed: bool = False
+    ) -> None:
         owner = 'student' if fixed else 'auto'
         self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL, owner)
 
@@ -216,7 +223,7 @@ class CGAPI():
 
         return r.json()
 
-    def get_file(self, file_id):
+    def get_file(self, file_id: int) -> bytes:
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.get(url)
 
@@ -224,7 +231,7 @@ class CGAPI():
 
         return r.content
 
-    def patch_file(self, file_id, buf):
+    def patch_file(self, file_id:  int, buf: bytes) -> t.Dict[str, t.Any]:
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.patch(url, data=buf)
 
@@ -319,13 +326,21 @@ class CGAPI():
 
         return r.json()
 
-    def set_submission(self, submission_id, grade=None, feedback=None):
+    def set_submission(
+        self,
+        submission_id: int,
+        grade: t.Union[None, float, str] = None,
+        feedback: t.Optional[bytes] = None
+    ):
         url = self.routes.set_submission(submission_id)
-        d = {}
+        d: t.Dict[str, t.Union[bytes, float, None]] = {}
         if grade is not None:
-            d['grade'] = grade
-        if grade == 'delete':
-            d['grade'] = None
+            if grade == 'delete':
+                d['grade'] = None
+            else:
+                assert not isinstance(grade, str)
+                d['grade'] = grade
+
         if feedback is not None:
             d['feedback'] = feedback
         r = self.s.patch(url, json=d)

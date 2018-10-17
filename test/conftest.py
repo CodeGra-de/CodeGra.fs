@@ -61,6 +61,7 @@ def mount(
         nonlocal proc
 
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
+        os.environ['CGFS_TESTING'] = True
         args = [
             'coverage', 'run', '-a', './codegra_fs/cgfs.py', '--verbose',
             username, mount_dir

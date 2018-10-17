@@ -16,7 +16,7 @@ setup(
     author_email='info@codegra.de',
     version=version,
     description='File-system for CodeGrade instances',
-    install_requires=['requests>=2.18.4', 'fusepy>=2.0.4,<3.0.0'],
+    install_requires=['requests>=2.18.4', 'fusepy>3.0.0'],
     long_description=open('README.md', 'r', encoding='utf-8').read(),
     long_description_content_type="text/markdown",
     packages=['codegra_fs'],
