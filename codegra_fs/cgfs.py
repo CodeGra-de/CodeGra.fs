@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import os
+import abc
 import sys
 import json
 import uuid
 import socket
-import abc
 import typing as t
 import hashlib
 import logging
@@ -1321,13 +1321,14 @@ class CGFS(LoggingMixIn, Operations):
         self._tmpdir = tmpdir
 
         self._socketfile = socketfile
-        # self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.socket.bind(self._socketfile)
-        # self.socket.listen()
-        # self.api_handler = APIHandler(self)
-        # threading.Thread(
-        #     target=self.api_handler.run, args=(self.socket, )
-        # ).start()
+        if not sys.platform.startswith('win32'):
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.bind(self._socketfile)
+            self.socket.listen()
+            self.api_handler = APIHandler(self)
+            threading.Thread(
+                target=self.api_handler.run, args=(self.socket, )
+            ).start()
         self.special_socketfile = SocketFile(
             bytes(socketfile, 'utf8'), '.api.socket'
         )
