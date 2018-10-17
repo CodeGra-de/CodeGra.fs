@@ -110,7 +110,7 @@ def handle_cgapi_exception(ex) -> t.NoReturn:
 
 
 class ParseException(ValueError):
-    def __init__(self, message: str, *args: object, **kwargs: object):
+    def __init__(self, message: str, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
         self.message = message
 
@@ -688,7 +688,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
 
     def __init__(
         self, api: CGAPI, assignment_id: int, append_only: bool = True
-    ):
+    ) -> None:
         super(RubricEditorFile, self).__init__(name=self.NAME)
         self.api = api
         self.assignment_id = assignment_id
@@ -1308,7 +1308,7 @@ class CGFS(LoggingMixIn, Operations):
         fixed: bool = False,
         rubric_append_only: bool = True,
         assigned_only: bool = False,
-    ):
+    ) -> None:
         self.latest_only = latest_only
         self.fixed = fixed
         self.fd = FileHandle(1)
@@ -1323,7 +1323,8 @@ class CGFS(LoggingMixIn, Operations):
         if not sys.platform.startswith('win32'):
             self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.socket.bind(self._socketfile)
-            self.socket.listen()
+            # Typeshed bug: https://github.com/python/typeshed/issues/2526
+            self.socket.listen()  # type: ignore
             self.api_handler = APIHandler(self)
             threading.Thread(
                 target=self.api_handler.run, args=(self.socket, )
@@ -1642,8 +1643,11 @@ class CGFS(LoggingMixIn, Operations):
         if self.fixed:
             parent.insert(TempDirectory({}, name=dname, writable=True))
         else:
+            assert cgapi is not None
+
             submission = self.get_submission(path)
-            assert isinstance(submission, str)
+            assert isinstance(submission.tld, str)
+
             query_path = submission.tld + '/' + '/'.join(parts[3:]) + '/'
             ddata = cgapi.create_file(submission.id, query_path)
 
