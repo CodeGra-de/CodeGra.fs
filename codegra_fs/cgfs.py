@@ -1321,7 +1321,7 @@ class CGFS(LoggingMixIn, Operations):
 
         self._socketfile = socketfile
         if not sys.platform.startswith('win32'):
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.socket.bind(self._socketfile)
             self.socket.listen()
             self.api_handler = APIHandler(self)
