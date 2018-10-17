@@ -33,7 +33,7 @@ before_install:
 
 install:
   - pip install -U wheel
-  - pip install coveralls pytest-cov codecov mypy
+  - pip install coveralls pytest-cov codecov
   - pip install .
   - which cgfs
   - pip install celery[redis]
@@ -61,6 +61,7 @@ before_script:
 
 script:
   - make test
+  - pip install mypy
   - mypy codegra_fs
 
 after_script:
