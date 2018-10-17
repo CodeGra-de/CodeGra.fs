@@ -26,8 +26,7 @@ from pathlib import Path
 from argparse import ArgumentParser
 
 from fuse import FUSE, Operations, FuseOSError, LoggingMixIn  # type: ignore
-
-from .cgapi import CGAPI, APICodes, CGAPIException
+from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
 
 cgapi: t.Optional[CGAPI] = None
 
