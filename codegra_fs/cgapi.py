@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: AGPL-3.0-only
 
+import typing as t
 import logging
 from enum import IntEnum
-import typing as t
 from urllib.parse import quote
 
 import requests

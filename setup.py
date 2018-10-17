@@ -4,7 +4,9 @@ import sys
 
 from setuptools import setup
 
-version = '0.3.4'
+import codegra_fs
+
+version = '.'.join(map(str, codegra_fs.__version__))
 
 if sys.version_info < (3, 5):
     print('Sorry only python 3.5 and up is supported', file=sys.stderr)

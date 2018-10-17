@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: AGPL-3.0-only
 
 import os
 import abc
@@ -25,6 +26,9 @@ from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser
 
+import requests
+
+import codegra_fs
 from fuse import FUSE, Operations, FuseOSError, LoggingMixIn  # type: ignore
 from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
 
@@ -1864,6 +1868,21 @@ class CGFS(LoggingMixIn, Operations):
 
 def main() -> None:
     global cgapi
+
+    req = requests.get('https://codegra.de/.cgfs.version')
+    if req.status_code < 300:
+        if tuple(
+            int(p) for p in req.content.decode('utf8').strip().split('.')
+        ) > codegra_fs.__version__:
+            print(
+                '------------------------------'
+                '--------------------------------------------\n'
+                '| You are running an outdated version of'
+                ' CGFS, please consider upgrading |\n'
+                '------------------------------'
+                '--------------------------------------------\n',
+                file=sys.stderr,
+            )
 
     argparser = ArgumentParser(description='CodeGra.de file system')
     argparser.add_argument(
