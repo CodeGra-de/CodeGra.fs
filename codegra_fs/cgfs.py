@@ -156,7 +156,7 @@ class BaseFile():
             self.stat = self.getattr()
 
         if CGFS_TESTING:
-            assert key in ('st_size', 'st_mtime')
+            assert key in ('st_size', 'st_mtime', 'st_atime', 'st_mtime')
 
         self.stat[key] = value  # type: ignore
 
@@ -994,7 +994,8 @@ class TempFile(SingleFile):
         stat['st_mode'] = S_IFREG | create_permission(True, True, True)
         return t.cast(FullStat, stat)
 
-    def getattr(self,
+    def getattr(
+        self,
         submission: t.Optional[Directory] = None,
         path: t.Optional[str] = None
     ) -> FullStat:
@@ -1778,7 +1779,12 @@ class CGFS(LoggingMixIn, Operations):
 
     # TODO?: Add xattr support
     def setxattr(
-        self, path: str, name: str, value: object, options: object, position: int=0
+        self,
+        path: str,
+        name: str,
+        value: object,
+        options: object,
+        position: int = 0
     ) -> None:  # pragma: no cover
         raise FuseOSError(ENOTSUP)
 
@@ -1792,7 +1798,9 @@ class CGFS(LoggingMixIn, Operations):
     def symlink(self, target: str, source: str) -> None:
         raise FuseOSError(EPERM)
 
-    def truncate(self, path: str, length: int, fh: OptFileHandle=None) -> None:
+    def truncate(
+        self, path: str, length: int, fh: OptFileHandle = None
+    ) -> None:
         with self._lock:
             if length < 0:  # pragma: no cover
                 raise FuseOSError(EINVAL)
@@ -1831,7 +1839,7 @@ class CGFS(LoggingMixIn, Operations):
 
             parent.pop(fname)
 
-    def utimens(self, path: str, times: t.Tuple[float, float]=None) -> None:
+    def utimens(self, path: str, times: t.Tuple[float, float] = None) -> None:
         with self._lock:
             file = self.get_file(path, expect_type=SingleFile)
             assert file is not None
@@ -1842,7 +1850,9 @@ class CGFS(LoggingMixIn, Operations):
 
             file.utimens(atime, mtime)
 
-    def write(self, path: str, data: bytes, offset: int, fh: FileHandle) -> int:
+    def write(
+        self, path: str, data: bytes, offset: int, fh: FileHandle
+    ) -> int:
         with self._lock:
             file = self._open_files[fh]
 
