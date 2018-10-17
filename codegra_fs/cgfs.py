@@ -1998,7 +1998,7 @@ def main() -> None:
                 mountpoint,
                 nothreads=True,
                 foreground=True,
-                allow_other=True,
+                direct_io=True,
                 **kwargs,
             )
         except RuntimeError:  # pragma: no cover
