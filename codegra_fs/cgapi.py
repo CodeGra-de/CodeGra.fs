@@ -4,11 +4,14 @@
 import typing as t
 import logging
 from enum import IntEnum
+from functools import partial
 from urllib.parse import quote
 
 import requests
 
 DEFAULT_CGAPI_BASE_URL = 'https://codegra.de/api/v1'
+
+logger = logging.getLogger(__name__)
 
 
 class APIRoutes():
@@ -147,8 +150,8 @@ class CGAPI():
         self,
         username: str,
         password: str,
-        base: t.Optional[str] = None,
-        fixed: bool = False
+        base: t.Optional[str]=None,
+        fixed: bool=False
     ) -> None:
         owner = 'student' if fixed else 'auto'
         self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL, owner)
@@ -172,6 +175,11 @@ class CGAPI():
         self.s.headers = {
             'Authorization': 'Bearer ' + self.access_token,
         }
+        self.s.get = partial(self.s.get, timeout=3)  # type: ignore
+        self.s.patch = partial(self.s.patch, timeout=3)  # type: ignore
+        self.s.post = partial(self.s.post, timeout=3)  # type: ignore
+        self.s.delete = partial(self.s.delete, timeout=3)  # type: ignore
+        self.s.put = partial(self.s.put, timeout=3)  # type: ignore
 
     def _handle_response_error(self, request):
         if request.status_code >= 400:
@@ -232,7 +240,7 @@ class CGAPI():
 
         return r.content
 
-    def patch_file(self, file_id:  int, buf: bytes) -> t.Dict[str, t.Any]:
+    def patch_file(self, file_id: int, buf: bytes) -> t.Dict[str, t.Any]:
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.patch(url, data=buf)
 
@@ -330,8 +338,8 @@ class CGAPI():
     def set_submission(
         self,
         submission_id: int,
-        grade: t.Union[None, float, str] = None,
-        feedback: t.Optional[bytes] = None
+        grade: t.Union[None, float, str]=None,
+        feedback: t.Optional[bytes]=None
     ):
         url = self.routes.set_submission(submission_id)
         d: t.Dict[str, t.Union[bytes, float, None]] = {}

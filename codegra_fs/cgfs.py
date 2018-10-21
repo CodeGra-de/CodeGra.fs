@@ -7,6 +7,7 @@ import abc
 import sys
 import json
 import uuid
+import ctypes
 import socket
 import typing as t
 import hashlib
@@ -26,17 +27,22 @@ from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser
 
+import fuse  # type: ignore
 import requests
-
 import codegra_fs
+import codegra_fs.constants as constants
 from fuse import FUSE, Operations, FuseOSError, LoggingMixIn  # type: ignore
 from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
 
 cgapi: t.Optional[CGAPI] = None
 
+fuse_ptr = None
+
 CGFS_TESTING: bool = bool(os.getenv('CGFS_TESTING', False))
 
 T = t.TypeVar('T')
+
+logger = logging.getLogger(__name__)
 
 try:
     from mypy_extensions import TypedDict
@@ -77,7 +83,7 @@ except ImportError:
 
 
 def remove_permission(
-    perm: int, read: bool = False, write: bool = False, execute: bool = False
+    perm: int, read: bool=False, write: bool=False, execute: bool=False
 ) -> int:
     return perm & ~create_permission(read, write, execute)
 
@@ -129,13 +135,13 @@ class DirTypes(IntEnum):
 
 class BaseFile():
     def __init__(self, data: t.Dict[str, t.Any],
-                 name: t.Optional[str] = None) -> None:
+                 name: t.Optional[str]=None) -> None:
         self.id = data.get('id', None)
         self.name = name if name is not None else data['name']
         self.stat: t.Optional[PartialStat] = None
 
     def getattr(
-        self, submission: t.Optional['Directory'] = None, path: str = None
+        self, submission: t.Optional['Directory']=None, path: str=None
     ) -> PartialStat:
         if self.stat is None:
             self.stat = {
@@ -172,9 +178,9 @@ class Directory(BaseFile):
     def __init__(
         self,
         data: t.Dict[str, t.Any],
-        name: t.Optional[str] = None,
-        type: DirTypes = DirTypes.REGDIR,
-        writable: bool = False
+        name: t.Optional[str]=None,
+        type: DirTypes=DirTypes.REGDIR,
+        writable: bool=False
     ) -> None:
         super(Directory, self).__init__(data, name)
 
@@ -188,8 +194,8 @@ class Directory(BaseFile):
 
     def getattr(
         self,
-        submission: t.Optional['Directory'] = None,
-        path: t.Optional[str] = None
+        submission: t.Optional['Directory']=None,
+        path: t.Optional[str]=None
     ) -> FullStat:
         if self.stat is None:
             self.stat = t.cast(
@@ -249,13 +255,13 @@ class SingleFile(BaseFile):
     stat: FullStat
 
     def base_getattr(
-        self, submission: t.Optional['Directory'] = None, path: str = None
+        self, submission: t.Optional['Directory']=None, path: str=None
     ) -> PartialStat:
         return super().getattr(submission, path)
 
     @abc.abstractclassmethod
     def getattr(
-        self, submission: t.Optional['Directory'] = None, path: str = None
+        self, submission: t.Optional['Directory']=None, path: str=None
     ) -> FullStat:
         raise NotImplementedError
 
@@ -287,7 +293,7 @@ class SingleFile(BaseFile):
 class SpecialFile(SingleFile):
     NAME = 'default special file'
 
-    def __init__(self, name: str, data: bytes = b'') -> None:
+    def __init__(self, name: str, data: bytes=b'') -> None:
         self.mode = create_permission(read=True, write=False, execute=True)
         self.name = name
         self.data = data
@@ -386,6 +392,7 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
         self.mtime = time()
         self.mode = create_permission(True, True, True)
         self.overwrite = False
+        self.show_exception = True
 
     def get_st_mtime(self) -> float:
         return self.mtime
@@ -463,12 +470,14 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
         try:
             self.send_back(parsed)
         except CGAPIException as e:
-            logging.error(
+            logger.error(
                 'error from server: {} ({})'.format(e.message, e.description)
             )
             handle_cgapi_exception(e)
         except:
-            logging.critical(traceback.format_exc())
+            if self.show_exception:
+                logger.critical(traceback.format_exc())
+            self.show_exception = True
             raise
 
         self.overwrite = False
@@ -619,7 +628,7 @@ class RubricSelectFile(CachedSpecialFile[t.List[str]]):
                 try:
                     sel.append(self.lookup[i])
                 except KeyError:
-                    logging.warning(
+                    logger.warning(
                         'Item on line {} ({}) not found!'.format(i, line)
                     )
                     raise FuseOSError(EPERM)
@@ -640,29 +649,29 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
     The format is as follows:
 
     file:
-      rubric file |  
+      rubric file |
     newline:
       '\\n'
     rubric:
       header newline description sep newline items
     id_hash:
-      '[' (ANY_NON_SPACE_CHAR * 16) '] ' |  
+      '[' (ANY_NON_SPACE_CHAR * 16) '] ' |
     header:
       '# ' id_hash ' ANY_NON_NEWLINE_CHAR
     description:
       description_line description?
     description?:
-      description_line description? |  
+      description_line description? |
     description_line:
       '  ' ANY_NON_NEWLINE_CHAR newline
     sep?:
-      '-' |  
+      '-' |
     sep:
       '-' sep?
     items:
       item items?
     items?:
-      item items? |  
+      item items? |
     float:
       ALPHANUM_CHARS | ALPHANUM_CHARS '.' ALPHANUM_CHARS
     title:
@@ -691,7 +700,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
     NAME = '.cg-edit-rubric.md'
 
     def __init__(
-        self, api: CGAPI, assignment_id: int, append_only: bool = True
+        self, api: CGAPI, assignment_id: int, append_only: bool=True
     ) -> None:
         super(RubricEditorFile, self).__init__(name=self.NAME)
         self.api = api
@@ -764,9 +773,9 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
 
         def parse_description(
             i: int,
-            end: t.Optional[t.List[str]] = None,
-            strip_leading: bool = True,
-            strip_trailing: bool = False,
+            end: t.Optional[t.List[str]]=None,
+            strip_leading: bool=True,
+            strip_trailing: bool=False,
         ) -> t.Tuple[str, int]:
             if end is None:
                 end = ['-']
@@ -871,11 +880,11 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
             return items
 
         except (IndexError, KeyError, AssertionError, ParseException) as e:
-            logging.debug(traceback.format_exc())
+            logger.debug(traceback.format_exc())
             if isinstance(e, ParseException):
-                logging.warning(e.message)
+                logger.warning(e.message)
             else:
-                logging.warning('The rubric could not parsed!')
+                logger.warning('The rubric could not parsed!')
             raise FuseOSError(EPERM)
 
     def send_back(self, parsed: t.List[RubricRow]) -> None:
@@ -917,6 +926,10 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                 res[-1]['id'] = get_from_lookup(row_id)
 
         if self.append_only and new_lookup:
+            self.show_exception = False
+            logging.critical(
+                'You cannot delete rubric items using the file system.'
+            )
             raise FuseOSError(EPERM)
 
         self.lookup = new_lookup
@@ -1000,8 +1013,8 @@ class TempFile(SingleFile):
 
     def getattr(
         self,
-        submission: t.Optional[Directory] = None,
-        path: t.Optional[str] = None
+        submission: t.Optional[Directory]=None,
+        path: t.Optional[str]=None
     ) -> FullStat:
         return self.stat
 
@@ -1058,7 +1071,7 @@ class TempFile(SingleFile):
 
 class File(SingleFile):
     def __init__(self, data: t.Dict[str, t.Any],
-                 name: t.Optional[str] = None) -> None:
+                 name: t.Optional[str]=None) -> None:
         super(File, self).__init__(data, name)
 
         self._data: t.Optional[bytes] = None
@@ -1081,8 +1094,8 @@ class File(SingleFile):
 
     def getattr(
         self,
-        submission: t.Optional[Directory] = None,
-        path: t.Optional[str] = None
+        submission: t.Optional[Directory]=None,
+        path: t.Optional[str]=None
     ) -> FullStat:
         if self.stat is None:
             self.stat = self.base_getattr(submission, path)
@@ -1203,7 +1216,7 @@ class APIHandler:
                 res = self.ops[op](payload)
                 conn.send(bytes(json.dumps(res).encode('utf8')))
             except:
-                logging.debug(traceback.format_exc())
+                logger.debug(traceback.format_exc())
                 conn.send(b'{"ok": false, "error": "Unkown error"}')
 
     def run(self, sock: socket.socket) -> None:
@@ -1304,15 +1317,21 @@ OptFileHandle = t.Optional[FileHandle]
 class CGFS(LoggingMixIn, Operations):
     API_FD = 0
 
+    def init(self, path: str) -> None:
+        global fuse_ptr
+        fuse_ptr = ctypes.c_void_p(
+            fuse._libfuse.fuse_get_context().contents.fuse
+        )
+
     def __init__(
         self,
         latest_only: bool,
         socketfile: str,
         mountpoint: str,
         tmpdir: str,
-        fixed: bool = False,
-        rubric_append_only: bool = True,
-        assigned_only: bool = False,
+        fixed: bool=False,
+        rubric_append_only: bool=True,
+        assigned_only: bool=False,
     ) -> None:
         self.latest_only = latest_only
         self.fixed = fixed
@@ -1356,7 +1375,7 @@ class CGFS(LoggingMixIn, Operations):
                 )
             )
             self.load_courses()
-        logging.info('Mounted')
+        logger.info('Mounted')
 
     def strippath(self, path: str) -> str:
         path = os.path.abspath(path)
@@ -1479,8 +1498,8 @@ class CGFS(LoggingMixIn, Operations):
     def get_file(
         self,
         path: t.Union[str, t.List[str]],
-        start: t.Optional[Directory] = None,
-        expect_type: t.Type[T] = None
+        start: t.Optional[Directory]=None,
+        expect_type: t.Type[T]=None
     ) -> T:
         file = start if start is not None else self.files
         parts = self.split_path(path) if isinstance(path, str) else path
@@ -1516,7 +1535,7 @@ class CGFS(LoggingMixIn, Operations):
     def get_dir(
         self,
         path: t.Union[str, t.List[str]],
-        start: t.Optional[Directory] = None
+        start: t.Optional[Directory]=None
     ) -> Directory:
         return self.get_file(path, start=start, expect_type=Directory)
 
@@ -1586,7 +1605,7 @@ class CGFS(LoggingMixIn, Operations):
             if res is not None:
                 file.id = res['id']
 
-    def getattr(self, path: str, fh: OptFileHandle = None) -> FullStat:
+    def getattr(self, path: str, fh: OptFileHandle=None) -> FullStat:
         with self._lock:
             return self._getattr(path, fh)
 
@@ -1625,7 +1644,7 @@ class CGFS(LoggingMixIn, Operations):
         return attrs
 
     # TODO?: Add xattr support
-    def getxattr(self, path: str, name: str, position: int = 0) -> None:
+    def getxattr(self, path: str, name: str, position: int=0) -> None:
         raise FuseOSError(ENOTSUP)
 
     # TODO?: Add xattr support
@@ -1788,7 +1807,7 @@ class CGFS(LoggingMixIn, Operations):
         name: str,
         value: object,
         options: object,
-        position: int = 0
+        position: int=0
     ) -> None:  # pragma: no cover
         raise FuseOSError(ENOTSUP)
 
@@ -1802,9 +1821,7 @@ class CGFS(LoggingMixIn, Operations):
     def symlink(self, target: str, source: str) -> None:
         raise FuseOSError(EPERM)
 
-    def truncate(
-        self, path: str, length: int, fh: OptFileHandle = None
-    ) -> None:
+    def truncate(self, path: str, length: int, fh: OptFileHandle=None) -> None:
         with self._lock:
             if length < 0:  # pragma: no cover
                 raise FuseOSError(EINVAL)
@@ -1843,7 +1860,7 @@ class CGFS(LoggingMixIn, Operations):
 
             parent.pop(fname)
 
-    def utimens(self, path: str, times: t.Tuple[float, float] = None) -> None:
+    def utimens(self, path: str, times: t.Tuple[float, float]=None) -> None:
         with self._lock:
             file = self.get_file(path, expect_type=SingleFile)
             assert file is not None
@@ -1866,140 +1883,23 @@ class CGFS(LoggingMixIn, Operations):
             return file.write(data, offset)
 
 
-def main() -> None:
+def create_and_mount_fs(
+    username: str,
+    password: str,
+    url: t.Optional[str],
+    fixed: bool,
+    assigned_only: bool,
+    latest_only: bool,
+    mountpoint: str,
+    rubric_append_only: bool,
+) -> None:
     global cgapi
-
-    req = requests.get('https://codegra.de/.cgfs.version')
-    if req.status_code < 300:
-        if tuple(
-            int(p) for p in req.content.decode('utf8').strip().split('.')
-        ) > codegra_fs.__version__:
-            print(
-                '------------------------------'
-                '--------------------------------------------\n'
-                '| You are running an outdated version of'
-                ' CGFS, please consider upgrading |\n'
-                '------------------------------'
-                '--------------------------------------------\n',
-                file=sys.stderr,
-            )
-
-    argparser = ArgumentParser(description='CodeGra.de file system')
-    argparser.add_argument(
-        'username',
-        metavar='USERNAME',
-        type=str,
-        help='Your CodeGra.de username'
-    )
-    argparser.add_argument(
-        'mountpoint',
-        metavar='MOUNTPOINT',
-        type=str,
-        help='Mountpoint for the file system'
-    )
-    argparser.add_argument(
-        '-p',
-        '--password',
-        metavar='PASSWORD',
-        type=str,
-        dest='password',
-        help="""Your CodeGra.de password, don't pass this option if you want to
-        pass your password over stdin. You can also use the `CGFS_PASSWORD`
-        environment variable to pass your password."""
-    )
-    argparser.add_argument(
-        '-u',
-        '--url',
-        metavar='URL',
-        type=str,
-        dest='url',
-        help="""The url to find the api. This defaults to
-        'https://codegra.de/api/v1/'. It can also be passed as an environment
-        variable 'CGAPI_BASE_URL'"""
-    )
-    argparser.add_argument(
-        '-v',
-        '--verbose',
-        dest='debug',
-        action='store_true',
-        default=False,
-        help='Verbose mode: print all system calls (produces a LOT of output).'
-    )
-    argparser.add_argument(
-        '-a',
-        '--all-submissions',
-        dest='latest_only',
-        action='store_false',
-        default=True,
-        help='See all submissions not just the latest submissions of students.'
-    )
-    argparser.add_argument(
-        '-f',
-        '--fixed',
-        dest='fixed',
-        action='store_true',
-        default=False,
-        help="""Mount the original files as read only. It is still possible to
-        create new files, but it is not possible to alter existing
-        files. The files shown are always the student revision files."""
-    )
-    argparser.add_argument(
-        '-q',
-        '--quiet',
-        dest='quiet',
-        action='store_true',
-        default=False,
-        help="""Only output error messages.""",
-    )
-    argparser.add_argument(
-        '-r',
-        '--rubric-edit',
-        dest='rubric_append_only',
-        action='store_false',
-        default=True,
-        help="""Make it possible to delete rubric items or categories using the
-        `.cg-edit-rubric.md` files. Note: this feature is experimental and can
-        lead to data loss!"""
-    )
-    argparser.add_argument(
-        '-m',
-        '--assigned-to-me',
-        dest='assigned_only',
-        default=False,
-        action='store_true',
-        help="""Only show items that are assigned to you if items are assigned
-        and you are part of the assignee's."""
-    )
-    args = argparser.parse_args()
-
-    mountpoint = os.path.abspath(args.mountpoint)
-    username = args.username
-
-    password = args.password or getenv('CGFS_PASSWORD', None)
-    if password is None and sys.stdin.isatty():
-        password = getpass('Password: ')
-    elif password is None:
-        print('Password:', end=' ')
-        password = sys.stdin.readline().rstrip()
-
-    latest_only = args.latest_only
-    rubric_append_only = args.rubric_append_only
-    fixed = args.fixed
-    assigned_only = args.assigned_only
-
-    if args.quiet:
-        logging.basicConfig(level=logging.WARNING)
-    elif args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-
-    logging.info('Mounting... ')
+    logger.info('Mounting... ')
 
     cgapi = CGAPI(
         username,
         password,
-        args.url or getenv('CGAPI_BASE_URL', None),
+        url,
         fixed=fixed,
     )
 
@@ -2035,11 +1935,151 @@ def main() -> None:
                 **kwargs,
             )
         except RuntimeError:  # pragma: no cover
-            logging.critical(traceback.format_exc())
+            logger.critical(traceback.format_exc())
         finally:
-            if fs is not None:
+            if fs is not None and hasattr(fs, 'api_handler'):
                 fs.api_handler.stop = True
             os.unlink(sockfile)
+
+
+def newer_version_available() -> bool:
+    req = requests.get('https://codegra.de/.cgfs.version')
+    return req.status_code < 300 and tuple(
+        int(p) for p in req.content.decode('utf8').strip().split('.')
+    ) > codegra_fs.__version__
+
+
+def check_version() -> None:
+    if newer_version_available():
+        msg = [
+            (
+                'You are running an outdated version of'
+                ' CGFS, please consider upgrading.'
+            ),
+            'You can do this at https://github.com/CodeGra-de/CodeGra.fs/',
+        ]
+        print('-' * (max(len(l) for l in msg) + 4), file=sys.stderr)
+        for line in msg:
+            print('| {} |'.format(line), file=sys.stderr)
+        print('-' * (max(len(l) for l in msg) + 4), file=sys.stderr)
+
+
+def main() -> None:
+    global cgapi
+
+    check_version()
+
+    argparser = ArgumentParser(description='CodeGra.de file system')
+    argparser.add_argument(
+        'username',
+        metavar='USERNAME',
+        type=str,
+        help='Your CodeGra.de username'
+    )
+    argparser.add_argument(
+        'mountpoint',
+        metavar='MOUNTPOINT',
+        type=str,
+        help=constants.mountpoint_help,
+    )
+    argparser.add_argument(
+        '-p',
+        '--password',
+        metavar='PASSWORD',
+        type=str,
+        dest='password',
+        help=constants.password_help,
+    )
+    argparser.add_argument(
+        '-u',
+        '--url',
+        metavar='URL',
+        type=str,
+        dest='url',
+        help=constants.url_help
+    )
+    argparser.add_argument(
+        '-v',
+        '--verbose',
+        dest='debug',
+        action='store_true',
+        default=False,
+        help='Verbose mode: print all system calls (produces a LOT of output).'
+    )
+    argparser.add_argument(
+        '-a',
+        '--all-submissions',
+        dest='latest_only',
+        action='store_false',
+        default=True,
+        help=constants.all_submissions_help,
+    )
+    argparser.add_argument(
+        '-f',
+        '--fixed',
+        dest='fixed',
+        action='store_true',
+        default=False,
+        help=constants.fixed_mode_help,
+    )
+    argparser.add_argument(
+        '-q',
+        '--quiet',
+        dest='quiet',
+        action='store_true',
+        default=False,
+        help="""Only output error messages.""",
+    )
+    argparser.add_argument(
+        '-r',
+        '--rubric-edit',
+        dest='rubric_append_only',
+        action='store_false',
+        default=True,
+        help=constants.rubric_edit_help,
+    )
+    argparser.add_argument(
+        '-m',
+        '--assigned-to-me',
+        dest='assigned_only',
+        default=False,
+        action='store_true',
+        help=constants.assigned_only_help,
+    )
+    args = argparser.parse_args()
+
+    mountpoint = os.path.abspath(args.mountpoint)
+    username = args.username
+
+    password = args.password or getenv('CGFS_PASSWORD', None)
+    if password is None and sys.stdin.isatty():
+        password = getpass('Password: ')
+    elif password is None:
+        print('Password:', end=' ')
+        password = sys.stdin.readline().rstrip()
+
+    latest_only = args.latest_only
+    rubric_append_only = args.rubric_append_only
+    fixed = args.fixed
+    assigned_only = args.assigned_only
+
+    if args.quiet:
+        logging.basicConfig(level=logging.WARNING)
+    elif args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
+    create_and_mount_fs(
+        username=username,
+        password=password,
+        url=args.url or getenv('CGAPI_BASE_URL', None),
+        fixed=fixed,
+        assigned_only=assigned_only,
+        latest_only=latest_only,
+        mountpoint=mountpoint,
+        rubric_append_only=rubric_append_only,
+    )
 
 
 if __name__ == '__main__':
