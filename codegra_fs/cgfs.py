@@ -1343,16 +1343,21 @@ class CGFS(LoggingMixIn, Operations):
 
         self._tmpdir = tmpdir
 
-        self._socketfile = socketfile
-        if not sys.platform.startswith('win32'):
+        if sys.platform.startswith('win32'):
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.bind(('localhost', 0))
+            socketfile = str(self.socket.getsockname()[1])
+        else:
             self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.socket.bind(self._socketfile)
-            # Typeshed bug: https://github.com/python/typeshed/issues/2526
-            self.socket.listen()  # type: ignore
-            self.api_handler = APIHandler(self)
-            threading.Thread(
-                target=self.api_handler.run, args=(self.socket, )
-            ).start()
+            self.socket.bind(socketfile)
+
+        # Typeshed bug: https://github.com/python/typeshed/issues/2526
+        self.socket.listen()  # type: ignore
+        self.api_handler = APIHandler(self)
+        threading.Thread(
+            target=self.api_handler.run, args=(self.socket, )
+        ).start()
+
         self.special_socketfile = SocketFile(
             bytes(socketfile, 'utf8'), '.api.socket'
         )
@@ -2045,6 +2050,15 @@ def main() -> None:
         default=False,
         action='store_true',
         help=constants.assigned_only_help,
+    )
+    argparser.add_argument(
+        '--version',
+        dest='version',
+        action='version',
+        version=(
+            '%(prog)s {}'.format('.'.join(map(str, codegra_fs.__version__)))
+        ),
+        help='Display version',
     )
     args = argparser.parse_args()
 
