@@ -1956,7 +1956,7 @@ def check_version() -> None:
                 'You are running an outdated version of'
                 ' CGFS, please consider upgrading.'
             ),
-            'You can do this at https://github.com/CodeGra-de/CodeGra.fs/',
+            'You can do this at https://codegra.de/codegra_fs/latest/',
         ]
         print('-' * (max(len(l) for l in msg) + 4), file=sys.stderr)
         for line in msg:

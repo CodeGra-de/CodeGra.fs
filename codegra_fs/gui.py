@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (  # type: ignore
 PREVIOUS_VALUES_PATH: str
 
 
-class ValueObject(abc.ABC):
+class ValueObject:
     @property
     @abc.abstractmethod
     def value(self):
@@ -380,6 +380,19 @@ class CGFSUi(QWidget):
         self.__form_wrapper = wrapper
 
         res = QVBoxLayout(wrapper)
+
+        if cgfs.newer_version_available() or True:
+            version_label = QLabel(
+                'A new version of CodeGra.fs is available.\nYou can download'
+                ' it at <a href="https://codegra.de/codegra_fs/latest"'
+                ' >https://codegra.de/codegra_fs/latest/</a>'
+            )
+            version_label.setTextFormat(Qt.RichText)
+            version_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            version_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            version_label.setOpenExternalLinks(True)
+            res.addWidget(version_label)
+            res.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Minimum))
 
         res.addLayout(form)
         res.addWidget(self.__errs_field)
