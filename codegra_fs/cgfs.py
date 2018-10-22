@@ -1944,11 +1944,12 @@ def create_and_mount_fs(
         finally:
             if fs is not None and hasattr(fs, 'api_handler'):
                 fs.api_handler.stop = True
-            os.unlink(sockfile)
+            if os.path.isfile(sockfile):
+                os.unlink(sockfile)
 
 
 def newer_version_available() -> bool:
-    req = requests.get('https://codegra.de/.cgfs.version')
+    req = requests.get('https://codegra.de/.cgfs.version', timeout=2)
     return req.status_code < 300 and tuple(
         int(p) for p in req.content.decode('utf8').strip().split('.')
     ) > codegra_fs.__version__
