@@ -289,6 +289,14 @@ class SingleFile(BaseFile):
     def write(self, data: bytes, offset: int) -> int:
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def fsync(self) -> t.Optional[t.Dict[str, t.Any]]:
+        ...
+
+    @abc.abstractmethod
+    def flush(self) -> t.Optional[t.Dict[str, t.Any]]:
+        ...
+
 
 class SpecialFile(SingleFile):
     NAME = 'default special file'
@@ -1500,6 +1508,12 @@ class CGFS(LoggingMixIn, Operations):
 
         return submission
 
+    def get_file_with_fh(self, path: str, fh: OptFileHandle) -> SingleFile:
+        if fh is None:
+            return self.get_file(path, expect_type=SingleFile)
+        else:
+            return self._open_files[fh]
+
     def get_file(
         self,
         path: t.Union[str, t.List[str]],
@@ -1602,11 +1616,15 @@ class CGFS(LoggingMixIn, Operations):
 
     def _flush_or_fsync(self, path: str, fh: OptFileHandle, todo: str) -> None:
         with self._lock:
-            if fh is None:  # pragma: no cover
-                file = self.get_file(path, expect_type=SingleFile)
+            file = self.get_file_with_fh(path, fh)
+
+            if todo == 'fsync':
+                res = file.fsync()
+            elif todo == 'flush':
+                res = file.flush()
             else:
-                file = self._open_files[fh]
-            res = getattr(file, todo)()
+                assert False
+
             if res is not None:
                 file.id = res['id']
 
@@ -1831,10 +1849,7 @@ class CGFS(LoggingMixIn, Operations):
             if length < 0:  # pragma: no cover
                 raise FuseOSError(EINVAL)
 
-            if fh is None:
-                file = self.get_file(path, expect_type=SingleFile)
-            else:  # pragma: no cover
-                file = self._open_files[fh]
+            file = self.get_file_with_fh(path, fh)
 
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 raise FuseOSError(EPERM)
