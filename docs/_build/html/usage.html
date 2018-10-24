@@ -1,0 +1,351 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Usage the Filesystem &mdash; CodeGrade Filesystem 1.0 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Editor Plug-ins" href="plugins.html" />
+    <link rel="prev" title="Installation" href="install.html" />
+    <link href="_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html">
+          
+
+          
+            
+            <img src="_static/logo.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">CodeGrade Filesystem</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage the Filesystem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#special-files">Special Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#automatic-grading">Automatic Grading</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="plugins.html">Editor Plug-ins</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CodeGrade Filesystem</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Usage the Filesystem</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="usage-the-filesystem">
+<h1>Usage the Filesystem<a class="headerlink" href="#usage-the-filesystem" title="Permalink to this headline">¶</a></h1>
+<p>After installation, the CodeGrade Filesystem can be used with the <code class="docutils literal notranslate"><span class="pre">cgfs</span></code> command. Before mounting, an empty folder (<code class="docutils literal notranslate"><span class="pre">mnt</span></code>) to mount in has
+to be created, this can be done by <code class="docutils literal notranslate"><span class="pre">mkdir</span> <span class="pre">mnt</span></code>.</p>
+<p>Now CodeGrade Filesystem can mount to this created folder (e.g. <code class="docutils literal notranslate"><span class="pre">mnt</span></code>) with <code class="docutils literal notranslate"><span class="pre">cgfs</span> <span class="pre">-p</span> <span class="pre">PASSWORD</span> <span class="pre">-u</span> <span class="pre">CODEGRADE_URL</span> <span class="pre">USERNAME</span> <span class="pre">mnt/</span></code>. In which
+<code class="docutils literal notranslate"><span class="pre">PASSWORD</span></code> and <code class="docutils literal notranslate"><span class="pre">USERNAME</span></code> should be replaced with valid CodeGrade account details for the CodeGrade instance found at the <code class="docutils literal notranslate"><span class="pre">CODEGRADE_URL</span></code>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The CodeGrade URL given at the <code class="docutils literal notranslate"><span class="pre">-u</span></code> flag should direct to the API and should thus end with <code class="docutils literal notranslate"><span class="pre">api/v1/</span></code> (i.e. <code class="docutils literal notranslate"><span class="pre">https://codegra.de</span></code> will become <code class="docutils literal notranslate"><span class="pre">https://codegra.de/api/v1/</span></code>).</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The <code class="docutils literal notranslate"><span class="pre">CGFS_PASSWORD</span></code> and <code class="docutils literal notranslate"><span class="pre">CGAPI_BASE_URL</span></code> environment variables can be set to respectively pass the password or CodeGrade URL. Additionally, leaving out the <code class="docutils literal notranslate"><span class="pre">-p</span></code> flag will force <code class="docutils literal notranslate"><span class="pre">cgfs</span></code> to prompt for your password.</p>
+</div>
+<p>After mounting the filesystem, navigate to the specified mount folder to find an overview of all visible courses to the logged in user. Navigate
+to a course folder to find an overview of all assignment folders that hold all submissions. This results in the default format of
+<code class="docutils literal notranslate"><span class="pre">/course/assignment/submission</span> <span class="pre">-</span> <span class="pre">submission_time</span></code>. All files and folders in the filesystem can be opened
+as if they were real local files on your system. Editing these files as a teacher results in a new teacher revision, visible to the student.
+Editing these files as a student enables automatic synchronisation to CodeGrade with each save.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Adding or modifying files as teacher when not mounted with <code class="docutils literal notranslate"><span class="pre">--fixed</span></code> flag makes changes public to the student if the student has the <em>View teacher revision</em> permission.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">For more information about the Filesystem and different flags, consult the help menu using the <code class="docutils literal notranslate"><span class="pre">cgfs</span> <span class="pre">--help</span></code> command.</p>
+</div>
+<div class="section" id="special-files">
+<h2>Special Files<a class="headerlink" href="#special-files" title="Permalink to this headline">¶</a></h2>
+<p>The filesystem contains a few special files, these are files that are not submitted by students but can be used to control CodeGrade instead.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Special files are only editable with the right permissions.</p>
+</div>
+<p>These files are validated on a close, which fails if the file format is not correct. In the case the exact format of a special file is not followed and it cannot be easily recovered,
+the <code class="docutils literal notranslate"><span class="pre">__RESET__</span></code> string can be written to any writable special file to reset it to its server state.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="19%" />
+<col width="6%" />
+<col width="7%" />
+<col width="32%" />
+<col width="36%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Name</th>
+<th class="head">Editable</th>
+<th class="head">Location</th>
+<th class="head">Use</th>
+<th class="head">Format</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">.api.socket</span></code></td>
+<td>✗</td>
+<td>Root</td>
+<td>Location of the api socket</td>
+<td>Single line with file location</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">.cg-mode</span></code></td>
+<td>✗</td>
+<td>Root</td>
+<td>Mode file system</td>
+<td><code class="docutils literal notranslate"><span class="pre">FIXED</span></code> or <code class="docutils literal notranslate"><span class="pre">NOT_FIXED</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">.cg-assignment-id</span></code></td>
+<td>✗</td>
+<td>Assignment</td>
+<td>Id of this assignment</td>
+<td>Single line with id</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">.cg-assignment-settings.ini</span></code></td>
+<td>✓</td>
+<td>Assignment</td>
+<td>Settings for this assignment</td>
+<td>Ini file with settings</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">.cg-edit-rubric.md</span></code></td>
+<td>✓</td>
+<td>Assignment</td>
+<td>Rubric for this assignment, editing changes the rubric</td>
+<td>See <code class="docutils literal notranslate"><span class="pre">.cd-edit-rubric.help</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">.cg-edit-rubric.help</span></code></td>
+<td>✗</td>
+<td>Assignment</td>
+<td>Help file for the rubric file</td>
+<td>Plain text file</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">.cg-feedback</span></code></td>
+<td>✓</td>
+<td>Submission</td>
+<td>The general feedback for this submission</td>
+<td>Plain text file</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">.cg-grade</span></code></td>
+<td>✓</td>
+<td>Submission</td>
+<td>The grade for this submission</td>
+<td>Single float or empty to delete or reset the grade</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">.cg-rubric.md</span></code></td>
+<td>✓</td>
+<td>Submission</td>
+<td>The rubric for this submission</td>
+<td>Markdown file where a ticked box means the item is selected.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">.cg-submission-id</span></code></td>
+<td>✗</td>
+<td>Submission</td>
+<td>Id of this submission</td>
+<td>Single line with id</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Only the markdown checkboxes in the <code class="docutils literal notranslate"><span class="pre">.cg-rubric.md</span></code> file should be changed to fill in the rubric.</p>
+</div>
+</div>
+<div class="section" id="automatic-grading">
+<h2>Automatic Grading<a class="headerlink" href="#automatic-grading" title="Permalink to this headline">¶</a></h2>
+<p>The filesystem is especially useful for assignments with automatic grading scripts.
+Automatically generated grades and feedback can be written to respectively the <code class="docutils literal notranslate"><span class="pre">.cg-grade</span></code> and <code class="docutils literal notranslate"><span class="pre">.cg-feedback</span></code> file to submit automatically.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="plugins.html" class="btn btn-neutral float-right" title="Editor Plug-ins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="install.html" class="btn btn-neutral" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, CodeGrade
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

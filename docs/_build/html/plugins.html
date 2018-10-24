@@ -1,0 +1,450 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Editor Plug-ins &mdash; CodeGrade Filesystem 1.0 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Usage the Filesystem" href="usage.html" />
+    <link href="_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html">
+          
+
+          
+            
+            <img src="_static/logo.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">CodeGrade Filesystem</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage the Filesystem</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Editor Plug-ins</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#atom-plug-in">Atom Plug-in</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#vim-plug-in">Vim Plug-in</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#emacs-plug-in">Emacs Plug-in</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#editing-rubric">Editing rubric</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#line-feedback">Line feedback</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#giving-grades">Giving grades</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CodeGrade Filesystem</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Editor Plug-ins</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/plugins.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="editor-plug-ins">
+<h1>Editor Plug-ins<a class="headerlink" href="#editor-plug-ins" title="Permalink to this headline">¶</a></h1>
+<p>Even though the CodeGrade filesystem works together with any editor by manually editing its special files,
+it is recommended to use it in combination with editor plugins.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The CodeGrade filesystem has to be installed and both the <code class="docutils literal notranslate"><span class="pre">cgfs</span></code> and the <code class="docutils literal notranslate"><span class="pre">cgapi-consumer</span></code> helper program must be available from the user’s <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> to successfully install and use the editor plugins.</p>
+</div>
+<div class="section" id="atom-plug-in">
+<h2>Atom Plug-in<a class="headerlink" href="#atom-plug-in" title="Permalink to this headline">¶</a></h2>
+<p>CodeGrade offers a package for <a class="reference external" href="https://atom.io/">Atom</a>, a recent but popular open-source code editor from the GitHub team. This package is also known as <em>CodeGra.atom</em>.</p>
+<div class="section" id="installation">
+<h3>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h3>
+<p>Installing the CodeGrade Atom Plugin (or CodeGra.Atom) can be done via the command line or using the Atom GUI. Installation via the command
+line is done with the following command: <code class="docutils literal notranslate"><span class="pre">apm</span> <span class="pre">install</span> <span class="pre">codegra-atom</span></code>. Installing using the Atom GUI can be done in the <code class="docutils literal notranslate"><span class="pre">Install</span></code> tab
+in the <code class="docutils literal notranslate"><span class="pre">Settings</span></code> or <code class="docutils literal notranslate"><span class="pre">Preferences</span></code> screen. Search for <code class="docutils literal notranslate"><span class="pre">codegra-atom</span></code> in the search dialog and press <code class="docutils literal notranslate"><span class="pre">Install</span></code> to install the plugin.</p>
+</div>
+<div class="section" id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h3>
+<p>After installation, the mounted folder (e.g. <code class="docutils literal notranslate"><span class="pre">mnt/</span></code>) can be opened in Atom to make use of the plugin with the command <code class="docutils literal notranslate"><span class="pre">atom</span> <span class="pre">mnt/</span></code>.
+The following commands are available in Atom when editing a file in the CodeGrade filesystem:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="26%" />
+<col width="9%" />
+<col width="65%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Command</th>
+<th class="head"><code class="docutils literal notranslate"><span class="pre">--fixed</span></code></th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>codegra-atom:edit-line-comment</td>
+<td>✓</td>
+<td>Edit the comment(s) on the line(s) with a cursor on them.</td>
+</tr>
+<tr class="row-odd"><td>codegra-atom:delete-line-comment</td>
+<td>✓</td>
+<td>Delete the comment(s) on the line(s) with a cursor on them.</td>
+</tr>
+<tr class="row-even"><td>codegra-atom:open-rubric-editor</td>
+<td>✗</td>
+<td>Edit the rubric of the assignment of the current file.</td>
+</tr>
+<tr class="row-odd"><td>codegra-atom:open-rubric-selector</td>
+<td>✗</td>
+<td>Open the rubric selector file to fill in the rubric for the current submission.</td>
+</tr>
+<tr class="row-even"><td>codegra-atom:edit-geedback</td>
+<td>✗</td>
+<td>Edit the current submission’s global feedback.</td>
+</tr>
+<tr class="row-odd"><td>codegra-atom:edit-grade</td>
+<td>✗</td>
+<td>Edit the current submission’s grade.</td>
+</tr>
+<tr class="row-even"><td>codegra-atom:select-rubric-item</td>
+<td>✗</td>
+<td>Select the rubric item that the cursor is on, deselecting any other item in the same group.</td>
+</tr>
+<tr class="row-odd"><td>codegra-atom:goto-prev-rubric-header</td>
+<td>✗</td>
+<td>Go to the previous header in a rubric file.</td>
+</tr>
+<tr class="row-even"><td>codegra-atom:goto-next-rubric-header</td>
+<td>✗</td>
+<td>Go to the next header in a rubric file.</td>
+</tr>
+<tr class="row-odd"><td>codegra-atom:goto-prev-rubric-item</td>
+<td>✗</td>
+<td>Go to the previous item in a rubric file.</td>
+</tr>
+<tr class="row-even"><td>codegra-atom:goto-next-rubric-item</td>
+<td>✗</td>
+<td>Go to the next item in a rubric file.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The <code class="docutils literal notranslate"><span class="pre">--fixed</span></code> flag when mounting is required to use line comment commands.</p>
+</div>
+</div>
+</div>
+<div class="section" id="vim-plug-in">
+<h2>Vim Plug-in<a class="headerlink" href="#vim-plug-in" title="Permalink to this headline">¶</a></h2>
+<p>CodeGrade offers a plugin for <a class="reference external" href="https://www.vim.org/">Vim</a>, <em>the editor</em>. This plugin is also known as <em>CodeGra.vim</em>.</p>
+<div class="section" id="id1">
+<h3>Installation<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">Add installation instructions.</p>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>Usage<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>After installation, the mounted folder (e.g. <code class="docutils literal notranslate"><span class="pre">mnt/</span></code>) can be opened in Vim to make use of the plugin with the command <code class="docutils literal notranslate"><span class="pre">vim</span> <span class="pre">mnt/</span></code>.
+The following commands are available in Vim when editing a file in the CodeGrade filesystem:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="10%" />
+<col width="74%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Command</th>
+<th class="head"><code class="docutils literal notranslate"><span class="pre">--fixed</span></code></th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>CGEditFeedback</td>
+<td>✓</td>
+<td>Edit the current submission’s global feedback.</td>
+</tr>
+<tr class="row-odd"><td>CGEditGrade</td>
+<td>✓</td>
+<td>Edit the current submission’s grade.</td>
+</tr>
+<tr class="row-even"><td>CGShowLineFeedback</td>
+<td>✗</td>
+<td>Show the line-feedback for the current buffer in the quickfix list and open the quickfix window.</td>
+</tr>
+<tr class="row-odd"><td>CGEditLineFeedback</td>
+<td>✓</td>
+<td>Edit the comment for the current line in the current buffer.</td>
+</tr>
+<tr class="row-even"><td>CGDeleteLineFeedback</td>
+<td>✓</td>
+<td>Delete the comment for the current line in the current buffer.</td>
+</tr>
+<tr class="row-odd"><td>CGOpenRubricEditor</td>
+<td>✗</td>
+<td>Edit the rubric of the assignment of the current file.</td>
+</tr>
+<tr class="row-even"><td>CGOpenRubricSelector</td>
+<td>✓</td>
+<td>Open the rubric for the current submission.</td>
+</tr>
+<tr class="row-odd"><td>CGRubricPrevSection</td>
+<td>✗</td>
+<td>Go to the previous header in a rubric file.</td>
+</tr>
+<tr class="row-even"><td>CGRubricNextSection</td>
+<td>✗</td>
+<td>Go to the next header in a rubric file.</td>
+</tr>
+<tr class="row-odd"><td>CGRubricSelectItem</td>
+<td>✓</td>
+<td>Select the rubric item on the current line.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The <code class="docutils literal notranslate"><span class="pre">--fixed</span></code> flag when mounting is required to use specific commands.</p>
+</div>
+</div>
+</div>
+<div class="section" id="emacs-plug-in">
+<h2>Emacs Plug-in<a class="headerlink" href="#emacs-plug-in" title="Permalink to this headline">¶</a></h2>
+<p>CodeGrade offers a plugin for the <a class="reference external" href="https://www.gnu.org/software/emacs/">Emacs</a> editor. This plugin is also known as <em>CodeGra.el</em>.</p>
+<div class="section" id="id3">
+<h3>Installation<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>Now clone <a class="reference external" href="https://github.com/CodeGra-de/CodeGra.el">this</a> repository to some local folder (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">git&#64;github.com:CodeGra-de/CodeGra.el.git</span></code>) and add this folder to your <code class="docutils literal notranslate"><span class="pre">load-path</span></code> in emacs.
+After doing this you can add <code class="docutils literal notranslate"><span class="pre">(require</span> <span class="pre">'codegrade)</span></code> to your emacs config.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">In addition to the general dependencies for all plugins, the Emacs plugin depends on the <a class="reference external" href="https://github.com/10sr/switch-buffer-functions-el">switch-buffer-functions</a> package, which can be installed using <code class="docutils literal notranslate"><span class="pre">MELPA</span></code>.</p>
+</div>
+</div>
+<div class="section" id="id4">
+<h3>Usage<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>There are two main functions in this package, editing rubrics and giving line feedback.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">It is important to note that this package does not yet check if the file-system if mounted in <code class="docutils literal notranslate"><span class="pre">--fixed</span></code> mode, please make sure it is when giving line feedback.</p>
+</div>
+<div class="section" id="editing-rubric">
+<h4>Editing rubric<a class="headerlink" href="#editing-rubric" title="Permalink to this headline">¶</a></h4>
+<p>To edit a rubric you call the <code class="docutils literal notranslate"><span class="pre">codegrade-open-rubric</span></code> function.
+This opens a rubric in a new buffer with the major mode <code class="docutils literal notranslate"><span class="pre">codegrade-rubric-mode</span></code> that you can edit.
+To toggle a rubric item you can call <code class="docutils literal notranslate"><span class="pre">codegrade-toggle-rubric-item</span></code> which is bound to <code class="docutils literal notranslate"><span class="pre">c</span></code> and <code class="docutils literal notranslate"><span class="pre">,</span></code> by default
+in the <code class="docutils literal notranslate"><span class="pre">codegrade-rubric-mode</span></code>. You can goto the next item with <code class="docutils literal notranslate"><span class="pre">codegrade-goto-next-item</span></code>
+(bound to n), to the previous item with <code class="docutils literal notranslate"><span class="pre">codegrade-goto-previous-item</span></code> (bound to p).
+To goto next or previous headers use the <code class="docutils literal notranslate"><span class="pre">codegrade-goto-*-header</span></code> functions (bound to N and P by default).
+To quit this rubric you should use the <code class="docutils literal notranslate"><span class="pre">codegrade-rubric-close</span></code> function, bound to q.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The opened buffer follows you around. So if you open another submission by another user the rubric buffer automatically updates. See the first line of this buffer to see which person you are grading.</p>
+</div>
+</div>
+<div class="section" id="line-feedback">
+<h4>Line feedback<a class="headerlink" href="#line-feedback" title="Permalink to this headline">¶</a></h4>
+<p>To edit line feedback you can call the <code class="docutils literal notranslate"><span class="pre">codegrade-add-feedback</span></code> function on a line.
+This opens a new buffer in the <code class="docutils literal notranslate"><span class="pre">codegrade-feedback-mode</span></code> mode. You can save the contents in this buffer and
+quit by calling <code class="docutils literal notranslate"><span class="pre">codegrade-feedback-close</span></code> (bound to C-c C-c by default). To quit without saving you can call
+<code class="docutils literal notranslate"><span class="pre">codegrade-feedback-quit</span></code>, bound to C-c C-k by default.</p>
+<p>You can also delete a line of feedback by calling <code class="docutils literal notranslate"><span class="pre">codegrade-delete-feedback</span></code>.
+To see the feedback of a line you can call <code class="docutils literal notranslate"><span class="pre">codegrade-get-feedback</span></code>.</p>
+</div>
+<div class="section" id="giving-grades">
+<h4>Giving grades<a class="headerlink" href="#giving-grades" title="Permalink to this headline">¶</a></h4>
+<p>You can also give a grade using this plugin. Simply call <code class="docutils literal notranslate"><span class="pre">codegrade-give-grade</span></code> and input a number between 0 and 10.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="usage.html" class="btn btn-neutral" title="Usage the Filesystem" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, CodeGrade
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
