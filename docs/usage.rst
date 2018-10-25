@@ -1,4 +1,4 @@
-Usage the Filesystem
+Using the Filesystem
 ======================
 After installation, the CodeGrade Filesystem can be used with the ``cgfs`` command. Before mounting, an empty folder (``mnt``) to mount in has
 to be created, this can be done by ``mkdir mnt``.
