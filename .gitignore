@@ -1,3 +1,4 @@
+.DS_Store
 /env/
 /__pycache__/
 mount/
@@ -6,3 +7,4 @@ mount/
 .cov2emacs.log
 /.coverage
 /dist/
+docs/_build/
