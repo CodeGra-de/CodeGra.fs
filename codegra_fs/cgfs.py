@@ -27,12 +27,16 @@ from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser
 
-import fuse  # type: ignore
 import requests
 import codegra_fs
 import codegra_fs.constants as constants
-from fuse import FUSE, Operations, FuseOSError, LoggingMixIn  # type: ignore
 from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
+
+try:
+    import fuse  # type: ignore
+    from fuse import FUSE, Operations, FuseOSError, LoggingMixIn  # type: ignore
+except ImportError:
+    pass
 
 cgapi: t.Optional[CGAPI] = None
 
@@ -1994,6 +1998,15 @@ def check_version() -> None:
 
 def main() -> None:
     global cgapi
+
+    msg = codegra_fs.utils.get_fuse_install_message()
+    if msg:
+        err, url = msg
+        print('ERROR!')
+        print(msg, file=sys.stderr)
+        if url:
+            print('You can download it here: {}'.format(url))
+        sys.exit(2)
 
     check_version()
 

@@ -10,7 +10,7 @@ import typing as t
 import logging
 import threading
 
-import fuse  # type: ignore
+import codegra_fs
 import codegra_fs.cgfs as cgfs
 import codegra_fs.constants as constants
 from appdirs import AppDirs  # type: ignore
@@ -21,6 +21,11 @@ from PyQt5.QtWidgets import (  # type: ignore
     QSizePolicy, QSpacerItem, QToolButton, QTreeWidget, QVBoxLayout,
     QApplication, QInputDialog, QRadioButton, QDesktopWidget, QPlainTextEdit
 )
+
+try:
+    import fuse  # type: ignore
+except ImportError:
+    pass
 
 PREVIOUS_VALUES_PATH: str
 
@@ -194,8 +199,22 @@ class CGFSUi(QWidget):
         self.__fields: t.Dict[str, ValueObject]
 
         layout = QVBoxLayout()
-        layout.addWidget(start_form)
-        layout.addWidget(run_dialog)
+        err = codegra_fs.utils.get_fuse_install_message()
+        if err:
+            msg, url = err
+            if url:
+                msg += '\nYou can download it <a href="{}">here</a>'.format(
+                    url
+                )
+            error_label = QLabel(msg)
+            error_label.setTextFormat(Qt.RichText)
+            error_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            error_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            error_label.setOpenExternalLinks(True)
+            layout.addWidget(error_label)
+        else:
+            layout.addWidget(start_form)
+            layout.addWidget(run_dialog)
 
         self.setLayout(layout)
 
@@ -392,7 +411,9 @@ class CGFSUi(QWidget):
             version_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
             version_label.setOpenExternalLinks(True)
             res.addWidget(version_label)
-            res.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Minimum))
+            res.addItem(
+                QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Minimum)
+            )
 
         res.addLayout(form)
         res.addWidget(self.__errs_field)

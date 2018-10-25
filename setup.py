@@ -17,7 +17,12 @@ setup(
     author_email='info@codegra.de',
     version=version,
     description='File-system for CodeGrade instances',
-    install_requires=['requests>=2.18.4', 'fusepy>3.0.0,<4.0.0', 'PyQt5==5.11.3,<6.0.0', 'appdirs>=1.4.3,<2.0.0'],
+    install_requires=[
+        'requests>=2.18.4', 'fusepy>3.0.0,<4.0.0', 'PyQt5==5.11.3,<6.0.0',
+        'appdirs>=1.4.3,<2.0.0'
+        'winfspy >= 0.20;platform_system=="Windows"',
+        'cffi >= 1.0.0;platform_system=="Windows"',
+    ],
     long_description=open('README.md', 'r', encoding='utf-8').read(),
     long_description_content_type="text/markdown",
     packages=['codegra_fs'],
