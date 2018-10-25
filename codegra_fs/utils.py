@@ -12,7 +12,7 @@ def _get_fuse_version_info() -> t.Tuple[int, int]:
     ffi = cffi.FFI()
     res = ffi.new('unsigned int *')
     winfspy.lib.FspVersion(res)
-    return ((res >> 16) & 0xffff, res & 0xffff)
+    return ((res[0] >> 16) & 0xffff, res[0] & 0xffff)
 
 
 def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
