@@ -400,7 +400,7 @@ class CGFSUi(QWidget):
 
         res = QVBoxLayout(wrapper)
 
-        if cgfs.newer_version_available() or True:
+        if cgfs.newer_version_available():
             version_label = QLabel(
                 'A new version of CodeGra.fs is available.\nYou can download'
                 ' it at <a href="https://codegra.de/codegra_fs/latest"'
