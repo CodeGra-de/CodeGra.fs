@@ -431,7 +431,7 @@ def main() -> None:
     )
 
     if not os.path.isdir(appdir.user_data_dir):
-        os.mkdir(appdir.user_data_dir)
+        os.makedirs(appdir.user_data_dir, exist_ok=True)
 
     app = QApplication(sys.argv)
     window = CGFSUi()
