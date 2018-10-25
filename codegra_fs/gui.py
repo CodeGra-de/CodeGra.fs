@@ -269,6 +269,9 @@ class CGFSUi(QWidget):
                     {k: v.value
                      for k, v in f.items() if k != 'password'}, file
                 )
+            mountpoint = f['mountpoint'].value
+            if sys.platform.startswith('win32'):
+                mountpoint = os.path.join(mountpoint, 'codegrade')
             cgfs.create_and_mount_fs(
                 username=f['username'].value,
                 password=f['password'].value,
@@ -276,7 +279,7 @@ class CGFSUi(QWidget):
                 fixed=f['fixed'].value,
                 assigned_only=f['assigned_only'].value,
                 latest_only=not f['all_submissions'].value,
-                mountpoint=f['mountpoint'].value,
+                mountpoint=mountpoint,
                 rubric_append_only=True,
             )
 
