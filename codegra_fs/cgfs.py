@@ -1923,6 +1923,13 @@ def create_and_mount_fs(
         fixed=fixed,
     )
 
+    if not fixed:
+        logger.warning('=====================================================')
+        logger.warning('Mounting in non-fixed mode, all changes will be')
+        logger.warning('visible and additions to students.')
+        logger.warning('Watch out when uploading grading scripts!')
+        logger.warning('=====================================================')
+
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
         kwargs: t.Dict[str, str] = {}
