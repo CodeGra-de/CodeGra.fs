@@ -75,7 +75,7 @@ author = 'CodeGrade Team'
 # version = subprocess.check_output(
 #     ['git', 'describe', '--abbrev=0', '--tags']
 # ).decode('utf-8').strip()
-version = "1.0"
+version = "v1.0.0"
 # The full version, including alpha/beta/rc tags.
 release = version
 
