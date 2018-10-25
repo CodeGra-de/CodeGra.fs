@@ -17,7 +17,7 @@ requires = [
 ]
 if sys.platform.startswith('win32'):
     requires += [
-        'winfspy >= 0.20',
+        'winfspy >= 0.2.0',
         'cffi >= 1.0.0',
     ]
 
