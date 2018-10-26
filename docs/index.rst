@@ -20,3 +20,4 @@ is aimed to drastically enhance the grading experience and make it more efficien
     install
     usage
     plugins
+    Back to CodeGrade Documentation <https://docs.codegra.de>
