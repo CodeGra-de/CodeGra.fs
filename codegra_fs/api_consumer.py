@@ -132,7 +132,7 @@ def main() -> None:
 
     if sys.platform.startswith('win32'):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(('localhost', int(socetfile_content)))
+        s.connect(('localhost', int(socketfile_content)))
     else:
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.connect(socketfile_content)

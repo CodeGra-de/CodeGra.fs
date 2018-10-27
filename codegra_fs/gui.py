@@ -27,7 +27,7 @@ try:
 except ImportError:
     pass
 
-PREVIOUS_VALUES_PATH: str
+PREVIOUS_VALUES_PATH = ''  # type : str
 
 
 class ValueObject:
@@ -41,7 +41,7 @@ class CGFSRadioSelect(QHBoxLayout, ValueObject):
     def __init__(self, options: t.List[str], default) -> None:
         super().__init__()
 
-        self.__buttons: t.List[QRadioButton] = []
+        self.__buttons = []  # type: t.List[QRadioButton]
         for option in options:
             but = QRadioButton(option)
             self.__buttons.append((but, option))
@@ -192,18 +192,15 @@ class CGFSUi(QWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        start_form = self.__create_start_form()
-        run_dialog = self.__create_run_dialog()
-        run_dialog.hide()
         self.setWindowTitle('CodeGra.fs')
-        self.__fields: t.Dict[str, ValueObject]
+        self.__fields = {}  # type: t.Dict[str, ValueObject]
 
         layout = QVBoxLayout()
         err = codegra_fs.utils.get_fuse_install_message()
         if err:
             msg, url = err
             if url:
-                msg += '\nYou can download it <a href="{}">here</a>'.format(
+                msg += '\nYou can download it <a href="{}">here</a>.'.format(
                     url
                 )
             error_label = QLabel(msg)
@@ -213,6 +210,9 @@ class CGFSUi(QWidget):
             error_label.setOpenExternalLinks(True)
             layout.addWidget(error_label)
         else:
+            start_form = self.__create_start_form()
+            run_dialog = self.__create_run_dialog()
+            run_dialog.hide()
             layout.addWidget(start_form)
             layout.addWidget(run_dialog)
 
@@ -224,7 +224,7 @@ class CGFSUi(QWidget):
         left = 40
 
         self.setGeometry(left, top, width, height)
-        self.__run_thread: t.Optional[threading.Thread] = None
+        self.__run_thread = None  # type: t.Optional[threading.Thread]
         self.show()
 
     def __check_options(self) -> t.List[str]:
@@ -285,8 +285,8 @@ class CGFSUi(QWidget):
 
         self.__run_thread = threading.Thread(target=thread)
         self.__run_thread.start()
-        self.__form_wrapper.setVisible(not self.__form_wrapper.isVisible())
-        self.__run_wrapper.setVisible(not self.__form_wrapper.isVisible())
+        self.__form_wrapper.setVisible(False)
+        self.__run_wrapper.setVisible(True)
 
     def stop_cgfs(self) -> None:
         if cgfs.fuse_ptr is not None:
@@ -302,8 +302,8 @@ class CGFSUi(QWidget):
             self.__run_thread.join()
         self.__run_thread = None
 
-        self.__form_wrapper.setVisible(not self.__form_wrapper.isVisible())
-        self.__run_wrapper.setVisible(not self.__form_wrapper.isVisible())
+        self.__form_wrapper.setVisible(True)
+        self.__run_wrapper.setVisible(False)
 
     def __create_run_dialog(self) -> QWidget:
         stop_button = QPushButton('Stop!')
@@ -325,7 +325,7 @@ class CGFSUi(QWidget):
 
         form = CGFSFormLayout()
 
-        fields: t.Dict[str, ValueObject] = {
+        fields = {
             'username':
                 StringInput(default=prev_values.get('username')),
             'password':
@@ -349,7 +349,7 @@ class CGFSUi(QWidget):
                     ['verbose', 'normal', 'quiet'],
                     prev_values.get('verbosity', 'normal')
                 ),
-        }
+        }  # type: t.Dict[str, ValueObject]
 
         form.add_help_row(
             'Username *', fields['username'], 'Your CodeGra.de username'
@@ -413,6 +413,7 @@ class CGFSUi(QWidget):
             version_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             version_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
             version_label.setOpenExternalLinks(True)
+            version_label.setStyleSheet("border: 1px solid gray; padding: 5px;")
             res.addWidget(version_label)
             res.addItem(
                 QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Minimum)

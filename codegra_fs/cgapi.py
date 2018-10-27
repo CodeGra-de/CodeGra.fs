@@ -342,7 +342,7 @@ class CGAPI():
         feedback: t.Optional[bytes]=None
     ):
         url = self.routes.set_submission(submission_id)
-        d: t.Dict[str, t.Union[bytes, float, None]] = {}
+        d = {}  # type: t.Dict[str, t.Union[bytes, float, None]]
         if grade is not None:
             if grade == 'delete':
                 d['grade'] = None

@@ -36,7 +36,7 @@ setup(
             [
                 'cgfs = codegra_fs.cgfs:main',
                 'cgapi-consumer = codegra_fs.api_consumer:main',
-                'cgfs-gui = codegra_fs.gui:main',
+                'cgfs-qt = codegra_fs.gui:main',
             ]
     },
     classifiers=[

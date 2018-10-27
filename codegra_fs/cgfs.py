@@ -5,6 +5,7 @@
 import os
 import abc
 import sys
+import enum
 import json
 import uuid
 import ctypes
@@ -38,52 +39,32 @@ try:
 except ImportError:
     pass
 
-cgapi: t.Optional[CGAPI] = None
+cgapi = None  # type: t.Optional[CGAPI]
 
 fuse_ptr = None
 
-CGFS_TESTING: bool = bool(os.getenv('CGFS_TESTING', False))
+CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
 
 T = t.TypeVar('T')
 
 logger = logging.getLogger(__name__)
 
 try:
-    from mypy_extensions import TypedDict
-    PartialStat = TypedDict(
-        'PartialStat',
-        {
-            'st_size': int,
-            'st_atime': float,
-            'st_mtime': float,
-            'st_ctime': float,
-            'st_uid': int,
-            'st_gid': int,
-        },
-        total=True,
-    )
-
-    class FullStat(PartialStat, total=True):
-        st_nlink: int
-        st_mode: int
-
-    __APIHandlerResponse = TypedDict(
-        '__APIHandlerResponse',
-        {
-            'ok': bool,
-        },
-        total=True,
-    )
-
-    class APIHandlerResponse(__APIHandlerResponse, total=False):
-        error: str
-        data: str
+    # Python 3.5 doesn't support the syntax below
+    if sys.version_info >= (3, 6):
+        from codegra_fs.types import PartialStat, FullStat, APIHandlerResponse
 
 except ImportError:
     # Make sure mypy isn't needed when running
     PartialStat = dict  # type: ignore
     FullStat = dict  # type: ignore
     APIHandlerResponse = dict  # type: ignore
+
+
+@enum.unique
+class FsyncLike(enum.Enum):
+    fsync = enum.auto()
+    flush = enum.auto()
 
 
 def remove_permission(
@@ -142,7 +123,7 @@ class BaseFile():
                  name: t.Optional[str]=None) -> None:
         self.id = data.get('id', None)
         self.name = name if name is not None else data['name']
-        self.stat: t.Optional[PartialStat] = None
+        self.stat = None  # type: t.Optional[PartialStat]
 
     def getattr(
         self, submission: t.Optional['Directory']=None, path: str=None
@@ -190,11 +171,11 @@ class Directory(BaseFile):
 
         self.type = type
         self.writable = writable
-        self.children: t.Dict[str, BaseFile] = {}
+        self.children = {}  # type: t.Dict[str, BaseFile]
         self.children_loaded = False
-        self.stat: t.Optional[FullStat]
+        self.stat = None  # type: t.Optional[FullStat]
 
-        self.tld: t.Union[object, str] = NOT_PRESENT
+        self.tld = NOT_PRESENT  # type: t.Union[object, str]
 
     def getattr(
         self,
@@ -243,7 +224,7 @@ class Directory(BaseFile):
 class TempDirectory(Directory):
     def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
         super(TempDirectory, self).__init__(*args, **kwargs)
-        self.stat: FullStat = {
+        self.stat = {
             'st_uid': getuid(),
             'st_gid': getegid(),
             'st_atime': time(),
@@ -252,11 +233,11 @@ class TempDirectory(Directory):
             'st_mtime': time(),
             'st_mode': S_IFDIR | create_permission(True, True, True),
             'st_nlink': 2,
-        }
+        }  # type: FullStat
 
 
 class SingleFile(BaseFile):
-    stat: FullStat
+    stat = None  # type: t.Optional[FullStat]
 
     def base_getattr(
         self, submission: t.Optional['Directory']=None, path: str=None
@@ -398,7 +379,6 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
     def __init__(self, name: str) -> None:
         super(CachedSpecialFile, self).__init__(name=name)
         self.has_data = False
-        self.has_data = False
         self.data = b''
         self.time = datetime.datetime.utcnow() - self.DELTA
         self.mtime = time()
@@ -538,7 +518,7 @@ class GradeFile(CachedSpecialFile[t.Union[str, float]]):
 
     def __init__(self, api: CGAPI, submission_id: int) -> None:
         self.api = api
-        self.grade: t.Optional[float] = None
+        self.grade = None  # type: t.Optional[float]
         super(GradeFile, self).__init__(name=self.NAME)
         self.submission_id = submission_id
 
@@ -582,7 +562,7 @@ class RubricSelectFile(CachedSpecialFile[t.List[str]]):
         super(RubricSelectFile, self).__init__(name=self.NAME)
         self.submission_id = submission_id
         self.user = user
-        self.lookup: t.Dict[int, str] = {}
+        self.lookup = {}  # type: t.Dict[int, str]
         self.api = api
 
     def get_online_data(self) -> bytes:
@@ -661,29 +641,29 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
     The format is as follows:
 
     file:
-      rubric file |
+      rubric file | ε
     newline:
       '\\n'
     rubric:
       header newline description sep newline items
     id_hash:
-      '[' (ANY_NON_SPACE_CHAR * 16) '] ' |
+      '[' (ANY_NON_SPACE_CHAR * 16) '] ' | ε
     header:
       '# ' id_hash ' ANY_NON_NEWLINE_CHAR
     description:
       description_line description?
     description?:
-      description_line description? |
+      description_line description? | ε
     description_line:
       '  ' ANY_NON_NEWLINE_CHAR newline
     sep?:
-      '-' |
+      '-' | ε
     sep:
       '-' sep?
     items:
       item items?
     items?:
-      item items? |
+      item items? | ε
     float:
       ALPHANUM_CHARS | ALPHANUM_CHARS '.' ALPHANUM_CHARS
     title:
@@ -718,10 +698,10 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
         self.api = api
         self.assignment_id = assignment_id
         self.append_only = append_only
-        self.lookup: t.Dict[str, int] = {}
+        self.lookup = {}  # type: t.Dict[str, int]
 
     def hash_id(self, id: int) -> str:
-        h: str = hashlib.sha256(bytes(id)).hexdigest()[:16]
+        h = hashlib.sha256(bytes(id)).hexdigest()[:16]  # type: str
         self.lookup[h] = id
         return h
 
@@ -814,7 +794,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
             items = []
             while i < len(data) and data[i] != '#':
                 i = strip_spaces(i + 1)
-                item_id: t.Optional[str]
+                item_id = None  # type: t.Optional[str]
                 if data[i] == '[':
                     i += 1
                     item_id_lst = []
@@ -823,8 +803,6 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                         i += 1
                     i = strip_spaces(i + 1)
                     item_id = ''.join(item_id_lst)
-                else:
-                    item_id = None
 
                 assert data[i] == '('
                 i += 1
@@ -859,7 +837,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
 
         def parse_item(i: int) -> t.Tuple[RubricRow, int]:
             i = strip_spaces(i)
-            item_id: t.Optional[str]
+            item_id = None  # type: t.Optional[str]
 
             if data[i] == '[':
                 h = []
@@ -870,8 +848,6 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                 i = strip_spaces(i + 1)
 
                 item_id = ''.join(h)
-            else:
-                item_id = None
 
             name, i = parse_line(i)
             desc, i = parse_description(i, end=['---'])
@@ -883,7 +859,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
             return (name, item_id, desc, items), i
 
         try:
-            items: t.List[RubricRow] = []
+            items = []  # type: t.List[RubricRow]
             data = data_b.decode('utf8')
             while i < len(data):
                 assert data[i] == '#'
@@ -1086,21 +1062,23 @@ class File(SingleFile):
                  name: t.Optional[str]=None) -> None:
         super(File, self).__init__(data, name)
 
-        self._data: t.Optional[bytes] = None
+        self._data = None  # type: t.Optional[bytes]
         self.dirty = False
-        self.stat: FullStat
+        self.stat = None  # type: t.Optional[FullStat]
 
     @property
     def data(self) -> bytes:
         if self._data is None:
             assert cgapi is not None
             self._data = cgapi.get_file(self.id)
+            assert self.stat is not None
             self.stat['st_size'] = len(self._data)
         return self._data
 
     @data.setter
     def data(self, data: t.Optional[bytes]) -> None:
         if data is not None:
+            assert self.stat is not None
             self.stat['st_size'] = len(data)
         self._data = data
 
@@ -1110,7 +1088,7 @@ class File(SingleFile):
         path: t.Optional[str]=None
     ) -> FullStat:
         if self.stat is None:
-            self.stat = self.base_getattr(submission, path)
+            self.stat = t.cast(FullStat, self.base_getattr(submission, path))
             self.stat['st_mode'] = S_IFREG | create_permission(
                 True, True, True
             )
@@ -1122,6 +1100,7 @@ class File(SingleFile):
 
     def open(self, buf: bytes) -> None:
         self.data = buf
+        assert self.stat is not None
         self.stat['st_atime'] = time()
 
     def read(self, offset: int, size: int) -> bytes:
@@ -1164,6 +1143,8 @@ class File(SingleFile):
             self.data = old_data + bytes(
                 '\0' * (length - len(old_data)), 'utf8'
             )
+        assert self.stat is not None
+
         self.stat['st_atime'] = time()
         self.stat['st_mtime'] = time()
         self.dirty = True
@@ -1184,6 +1165,7 @@ class File(SingleFile):
         else:
             self.data = self.data[:offset] + data
 
+        assert self.stat is not None
         self.stat['st_atime'] = time()
         self.stat['st_mtime'] = time()
         self.dirty = True
@@ -1197,12 +1179,12 @@ class APIHandler:
     ReceiveHandler = t.Callable[[t.Dict[str, t.Any]], APIHandlerResponse]
 
     def __init__(self, cgfs: 'CGFS') -> None:
-        self.ops: t.Dict[str, APIHandler.ReceiveHandler] = {
+        self.ops = {
             'set_feedback': self.set_feedback,
             'get_feedback': self.get_feedback,
             'delete_feedback': self.delete_feedback,
             'is_file': self.is_file,
-        }
+        }  # type: t.Dict[str, APIHandler.ReceiveHandler]
         self.cgfs = cgfs
         self.stop = False
 
@@ -1350,7 +1332,7 @@ class CGFS(LoggingMixIn, Operations):
         self.fd = FileHandle(1)
         self.mountpoint = mountpoint
         self._lock = threading.RLock()
-        self._open_files: t.Dict[FileHandle, SingleFile] = {}
+        self._open_files = {}  # type: t.Dict[FileHandle, SingleFile]
         self.assigned_only = assigned_only
 
         self._tmpdir = tmpdir
@@ -1441,7 +1423,7 @@ class CGFS(LoggingMixIn, Operations):
                 return sub['assignee']['id']
             return None
 
-        seen: t.Set[int] = set()
+        seen = set()  # type: t.Set[int]
         my_id = cgapi.user['id']
         user_assigned = self.assigned_only and any(
             get_assignee_id(s) == my_id for s in submissions
@@ -1589,10 +1571,8 @@ class CGFS(LoggingMixIn, Operations):
 
         assert cgapi is not None
 
-        file: SingleFile
-
         if self.fixed:
-            file = TempFile(fname, self._tmpdir)
+            file = TempFile(fname, self._tmpdir)  # type: SingleFile
         else:
             try:
                 fdata = cgapi.create_file(submission.id, query_path)
@@ -1613,18 +1593,20 @@ class CGFS(LoggingMixIn, Operations):
         return self.fd
 
     def fsync(self, path: str, _: object, fh: OptFileHandle) -> None:
-        self._flush_or_fsync(path, fh, 'fsync')
+        self._do_fsync_like(path, fh, FsyncLike.fsync)
 
     def flush(self, path: str, fh: OptFileHandle) -> None:
-        self._flush_or_fsync(path, fh, 'flush')
+        self._do_fsync_like(path, fh, FsyncLike.flush)
 
-    def _flush_or_fsync(self, path: str, fh: OptFileHandle, todo: str) -> None:
+    def _do_fsync_like(
+        self, path: str, fh: OptFileHandle, todo: FsyncLike
+    ) -> None:
         with self._lock:
             file = self.get_file_with_fh(path, fh)
 
-            if todo == 'fsync':
+            if todo == FsyncLike.fsync:
                 res = file.fsync()
-            elif todo == 'flush':
+            elif todo == FsyncLike.flush:
                 res = file.flush()
             else:
                 assert False
@@ -1637,18 +1619,17 @@ class CGFS(LoggingMixIn, Operations):
             return self._getattr(path, fh)
 
     def _getattr(self, path: str, fh: OptFileHandle) -> FullStat:
-        file: t.Union[Directory, SingleFile]
         if fh is None or fh not in self._open_files:
             parts = self.split_path(path)
-            file = self.get_file(parts)
+            file = self.get_file(parts)  # type: t.Union[Directory, SingleFile]
         else:
             file = self._open_files[fh]
 
         if isinstance(file, (TempFile, SpecialFile)):
             return file.getattr()
 
-        submission: t.Optional[Directory]
-        query_path: t.Optional[str]
+        submission = None  # type: t.Optional[Directory]
+        query_path = None  # type: t.Optional[str]
 
         if file.stat is None and len(parts) > 3:
             try:
@@ -1665,7 +1646,7 @@ class CGFS(LoggingMixIn, Operations):
             submission = None
             query_path = None
 
-        attrs: FullStat = file.getattr(submission, query_path)
+        attrs = file.getattr(submission, query_path)  # type: FullStat
         if self.fixed and isinstance(file, File):
             attrs['st_mode'] = remove_permission(attrs['st_mode'], write=True)
         return attrs
@@ -1764,7 +1745,7 @@ class CGFS(LoggingMixIn, Operations):
     def _rename(self, old: str, new: str) -> None:
         old_parts = self.split_path(old)
         old_parent = self.get_dir(old_parts[:-1])
-        file: BaseFile = self.get_file(old_parts[-1], start=old_parent)
+        file = self.get_file(old_parts[-1], start=old_parent)  # type: BaseFile
 
         if isinstance(file, SpecialFile):
             raise FuseOSError(EPERM)
@@ -1936,7 +1917,7 @@ def create_and_mount_fs(
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
-        kwargs: t.Dict[str, str] = {}
+        kwargs = {}  # type: t.Dict[str, str]
         if sys.platform.startswith('darwin'):
             # Fix OSX encoding issue as described here:
             # https://web.archive.org/web/20180920131107/https://github.com/osxfuse/osxfuse/issues/71
