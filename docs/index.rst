@@ -13,6 +13,9 @@ The filesystem can be used for students to locally work on the CodeGrade mount a
 with each save. For teachers the filesystem can be used to locally grade work using an editor of choice without any overhead. The Filesystem
 is aimed to drastically enhance the grading experience and make it more efficient.
 
+The code of the CodeGrade filesystem is open-source and can be found on
+`Github <https://github.com/CodeGra-de/CodeGra.fs>`__.
+
 .. toctree::
     :maxdepth: 2
     :caption: CodeGrade Filesystem
