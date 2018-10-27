@@ -23,7 +23,8 @@ import subprocess
 import sphinx_fontawesome
 from datetime import date
 
-# sys.path.insert(0, os.path.abspath('../'))
+sys.path.append("../")
+import codegra_fs
 
 # -- General configuration ------------------------------------------------
 
@@ -72,10 +73,10 @@ author = 'CodeGrade Team'
 # built documents.
 #
 # The short X.Y version.
-# version = subprocess.check_output(
-#     ['git', 'describe', '--abbrev=0', '--tags']
-# ).decode('utf-8').strip()
-version = "v1.0.0"
+
+version = (str(codegra_fs.__version__[0])
+            + "." + str(codegra_fs.__version__[1]) +
+            "." + str(codegra_fs.__version__[2]))
 # The full version, including alpha/beta/rc tags.
 release = version
 
