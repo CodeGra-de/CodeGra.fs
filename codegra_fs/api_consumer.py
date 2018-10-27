@@ -112,13 +112,17 @@ def set_comment(s: socket.socket, file: str, line: int, message: str) -> int:
 
 
 def main() -> None:
-    path = '/'
+    if sys.platform.startswith('win32'):
+        path = ''
+    else:
+        path = '/'
+
     if len(sys.argv) < 3:
         print_usage()
         sys.exit(1)
 
-    for p in os.path.abspath(sys.argv[2]).split('/'):
-        if not p:
+    for p in os.path.abspath(sys.argv[2]).split(os.sep):
+        if path and not p:
             continue
         path = os.path.join(path, p)
         if os.path.isfile(os.path.join(path, '.api.socket')):
