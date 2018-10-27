@@ -1249,10 +1249,21 @@ class APIHandler:
 
     def is_file(self, payload: t.Dict[str, t.Any]) -> APIHandlerResponse:
         f_name = self.cgfs.strippath(payload['file'])
+        if sys.platform.startswith('win32'):
+            file_parts = []  # type: t.List[str]
+            while f_name:
+                new_f_name, part = os.path.split(f_name)
+                file_parts.append(part)
+                if new_f_name == f_name:
+                    file_parts.append(new_f_name)
+                    break
+                f_name = new_f_name
+        else:
+            file_parts = self.cgfs.split_path(f_name)
 
         with self.cgfs._lock:
             try:
-                f = self.cgfs.get_file(f_name, expect_type=SingleFile)
+                f = self.cgfs.get_file(file_parts, expect_type=SingleFile)
             except:
                 return {'ok': False, 'error': 'File not found'}
 
