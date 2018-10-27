@@ -1918,7 +1918,14 @@ def create_and_mount_fs(
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
         kwargs = {}  # type: t.Dict[str, str]
-        if sys.platform.startswith('darwin'):
+        if sys.platform.startswith('win32'):
+            # Force gid and uid to correct current user values:
+            # https://github.com/billziss-gh/winfsp/issues/79#issuecomment-292806979
+            kwargs = {
+                'uid': '-1',
+                'gid': '-1',
+            }
+        elif sys.platform.startswith('darwin'):
             # Fix OSX encoding issue as described here:
             # https://web.archive.org/web/20180920131107/https://github.com/osxfuse/osxfuse/issues/71
             kwargs = {
