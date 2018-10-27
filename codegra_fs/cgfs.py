@@ -36,6 +36,9 @@ from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
 try:
     import fuse  # type: ignore
     from fuse import FUSE, Operations, FuseOSError, LoggingMixIn  # type: ignore
+    if sys.platform.startswith('win32'):
+        import cffi
+        import winfspy
 except ImportError:
     pass
 
@@ -1228,6 +1231,25 @@ class APIHandler:
             finally:
                 conn.close()
 
+    def _get_file(self,
+                  f_name: str) -> t.Union[APIHandlerResponse, SingleFile]:
+        f_name = self.cgfs.strippath(f_name)
+
+        if sys.platform.startswith('win32'):
+            ffi = cffi.FFI()
+            in_str = ffi.new('wchar_t[]', f_name)
+            out_str = ffi.new('char **')
+            if winfspy.lib.FspPosixMapWindowsToPosixPathEx(
+                in_str, out_str, True
+            ) != 0:
+                return {'ok': False, 'error': 'Winfspy returned an error'}
+            f_name = ffi.string(out_str[0]).decode('utf-8')
+            winfspy.lib.FspPosixDeletePath(out_str[0])
+        try:
+            return self.cgfs.get_file(f_name, expect_type=SingleFile)
+        except:
+            return {'ok': False, 'error': 'File ({}) not found'.format(f_name)}
+
     def delete_feedback(self,
                         payload: t.Dict[str, t.Any]) -> APIHandlerResponse:
         f_name = self.cgfs.strippath(payload['file'])
@@ -1235,10 +1257,9 @@ class APIHandler:
         assert cgapi is not None
 
         with self.cgfs._lock:
-            try:
-                f = self.cgfs.get_file(f_name, expect_type=SingleFile)
-            except:
-                return {'ok': False, 'error': 'File not found'}
+            f = self._get_file(payload['file'])
+            if not isinstance(f, SingleFile):
+                return f
 
             try:
                 cgapi.delete_feedback(f.id, line)
@@ -1249,42 +1270,37 @@ class APIHandler:
 
     def is_file(self, payload: t.Dict[str, t.Any]) -> APIHandlerResponse:
         f_name = self.cgfs.strippath(payload['file'])
+
         if sys.platform.startswith('win32'):
             file_parts = []  # type: t.List[str]
             while f_name:
                 new_f_name, part = os.path.split(f_name)
                 file_parts.append(part)
                 if new_f_name == f_name:
-                    file_parts.append(new_f_name)
                     break
                 f_name = new_f_name
+            file_parts.reverse()
         else:
             file_parts = self.cgfs.split_path(f_name)
 
         with self.cgfs._lock:
-            try:
-                f = self.cgfs.get_file(file_parts, expect_type=SingleFile)
-            except:
-                return {'ok': False, 'error': 'File not found'}
+            f = self._get_file(payload['file'])
+            if not isinstance(f, SingleFile):
+                return f
 
             return {'ok': isinstance(f, File)}
 
     def get_feedback(self, payload: t.Dict[str, t.Any]) -> APIHandlerResponse:
-        f_name = self.cgfs.strippath(payload['file'])
+        assert cgapi is not None
 
         with self.cgfs._lock:
-            try:
-                f = self.cgfs.get_file(f_name, expect_type=SingleFile)
-            except:
-                return {
-                    'ok': False,
-                    'error': 'File ({}) not found'.format(f_name)
-                }
+            f = self._get_file(payload['file'])
+            if not isinstance(f, SingleFile):
+                return f
 
-            if isinstance(f, TempFile):
+            if not isinstance(f, File):
                 return {'ok': False, 'error': 'File not a sever file'}
 
-            assert cgapi is not None
             try:
                 res = cgapi.get_feedback(f.id)
             except:
@@ -1293,14 +1309,15 @@ class APIHandler:
             return {'ok': True, 'data': res}
 
     def set_feedback(self, payload: t.Dict[str, t.Any]) -> APIHandlerResponse:
-        f_name = self.cgfs.strippath(payload['file'])
         line = payload['line']
         message = payload['message']
 
         with self.cgfs._lock:
-            try:
-                f = self.cgfs.get_file(f_name, expect_type=File)
-            except:
+            f = self._get_file(payload['file'])
+            if not isinstance(f, SingleFile):
+                return f
+
+            if not isinstance(f, File):
                 return {
                     'ok': False,
                     'error': 'File not found or not a server file'
