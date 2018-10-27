@@ -11,9 +11,8 @@ def _get_fuse_version_info() -> t.Tuple[int, int]:
     import cffi  # type: ignore
     ffi = cffi.FFI()
     res = ffi.new('unsigned int *')
-    if res != 0:
+    if winfspy.lib.FspVersion(res) != 0:
         return (0, 0)
-    winfspy.lib.FspVersion(res)
     return ((res[0] >> 16) & 0xffff, res[0] & 0xffff)
 
 
