@@ -180,12 +180,13 @@ class CGFSLoggingWindow(QPlainTextEdit):
 
     def set_logging_level(self, level) -> None:
         logging.basicConfig(
-            level=level,
+            level=logging.DEBUG,
             format=
             '%(asctime)-10s - %(module)-8s - %(levelname)-8s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
             handlers=[self.log_handler()]
         )
+        logging.disable(level)
 
 
 class CGFSUi(QWidget):
@@ -254,11 +255,11 @@ class CGFSUi(QWidget):
         self.__errs_field.setVisible(False)
 
         if self.__fields['verbosity'].value == 'quiet':
-            level = logging.WARNING
-        elif self.__fields['verbosity'].value == 'verbose':
-            level = logging.DEBUG
-        else:
             level = logging.INFO
+        elif self.__fields['verbosity'].value == 'verbose':
+            level = logging.NOTSET
+        else:
+            level = logging.DEBUG
         self.__log_window.clear()
         self.__log_window.set_logging_level(level)
 

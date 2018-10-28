@@ -131,7 +131,13 @@ class APICodes(IntEnum):
 
 class CGAPIException(Exception):
     def __init__(self, response):
-        data = response.json()
+        try:
+            data = response.json()
+        except:
+            raise Exception(
+                'Could not get json from server, maybe wrong url? Url should'
+                ' end with "/api/v1/" and start with "https://"'
+            )
         super().__init__(data['message'])
 
         self.status_code = response.status_code
@@ -165,7 +171,13 @@ class CGAPI():
         )
 
         self._handle_response_error(r)
-        json = r.json()
+        try:
+            json = r.json()
+        except:
+            raise Exception(
+                'Could not get json from server, maybe wrong url? Url should'
+                ' end with "/api/v1/" and start with "https://"'
+            )
 
         self.user = json['user']
         self.access_token = json['access_token']

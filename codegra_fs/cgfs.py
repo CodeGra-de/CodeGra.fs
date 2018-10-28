@@ -1935,12 +1935,17 @@ def create_and_mount_fs(
     global cgapi
     logger.info('Mounting... ')
 
-    cgapi = CGAPI(
-        username,
-        password,
-        url,
-        fixed=fixed,
-    )
+    try:
+        cgapi = CGAPI(
+            username,
+            password,
+            url,
+            fixed=fixed,
+        )
+    except:
+        logger.critical('Logging in failed:')
+        logger.critical(traceback.format_exc())
+        raise
 
     if not fixed:
         logger.warning('=====================================================')
