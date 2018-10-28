@@ -2124,12 +2124,18 @@ def main() -> None:
     mountpoint = os.path.abspath(args.mountpoint)
     username = args.username
 
-    password = args.password or getenv('CGFS_PASSWORD', None)
-    if password is None and sys.stdin.isatty():
-        password = getpass('Password: ')
-    elif password is None:
+    password = args.password
+    if password is None and not sys.stdin.isatty():
         print('Password:', end=' ')
-        password = sys.stdin.readline().rstrip()
+        password = sys.stdin.readline()
+        if len(password) and password[-1] == '\n':
+            password = password[:-1]
+        if not password:
+            password = None
+    if password is None:
+        password = getenv('CGFS_PASSWORD')
+    if password is None:
+        password = getpass('Password: ')
 
     latest_only = args.latest_only
     rubric_append_only = args.rubric_append_only
