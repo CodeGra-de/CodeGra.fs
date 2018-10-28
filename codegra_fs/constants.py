@@ -1,6 +1,8 @@
 fixed_mode_help = """Mount the original files as read only. It is still
 possible to create new files, but it is not possible to alter or delete
-existing files. The files shown are always the student revision files."""
+existing files. The files shown are always the student revision files. The
+created new files are only visible during a single session, they are **NOT**
+uploaded to the server."""
 
 rubric_edit_help = """Make it possible to delete rubric items or categories
 using the `.cg-edit-rubric.md` files.
@@ -29,9 +31,7 @@ variable 'CGAPI_BASE_URL'"""
 all_submissions_help = """See all submissions not just the latest submissions
 of students."""
 
-cgfs_epilog="""possible environment variables
-
-
+cgfs_epilog = """supported environment variables:
  CGAPI_BASE_URL         Used as the value for the `--url` flag. It can be very
                         convenient to set this environment variable in your
                         `.bashrc` file (or equivalent).
@@ -53,7 +53,8 @@ examples:
                         mistake. You will be prompted for a password.
   CGFS_PASSWORD=mypass cgfs -u https://uva.codegra.de/api/v1/ -mf user ~/mount
                         Same as above but mount using an environment
-                        variable.
+                        variable. You will not be prompted for a password. This
+                        option can be insecure!
   pass codegrade | cgfs -u https://uva.codegra.de/api/v1/ -mf user ~/mount
                         Same as above but pipe password from your password
                         manager. This is safer than above as your password will
