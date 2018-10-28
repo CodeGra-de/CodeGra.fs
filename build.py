@@ -12,7 +12,7 @@ if sys.platform.startswith('win32'):
             os.path.join('codegra_fs', 'gui.py'),
             '--onefile',
             '--icon',
-            os.path.join('static', 'windows-icon.ico'),
+            os.path.join('static', 'ms-icon.ico'),
             '--noconsole',
         ]
     )
