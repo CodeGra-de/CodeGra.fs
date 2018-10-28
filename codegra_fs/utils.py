@@ -19,7 +19,7 @@ def _get_fuse_version_info() -> t.Tuple[int, int]:
 def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
     try:
         import fuse  # type: ignore
-    except ImportError:
+    except:
         pass
     else:
         if sys.platform.startswith('win32'):

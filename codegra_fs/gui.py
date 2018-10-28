@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import (  # type: ignore
 
 try:
     import fuse  # type: ignore
-except ImportError:
+except:
     pass
 
 PREVIOUS_VALUES_PATH = ''  # type : str

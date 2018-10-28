@@ -39,7 +39,7 @@ try:
     if sys.platform.startswith('win32'):
         import cffi
         import winfspy
-except ImportError:
+except:
     pass
 
 cgapi = None  # type: t.Optional[CGAPI]
@@ -57,7 +57,7 @@ try:
     if sys.version_info >= (3, 6):
         from codegra_fs.types import PartialStat, FullStat, APIHandlerResponse
 
-except ImportError:
+except:
     # Make sure mypy isn't needed when running
     PartialStat = dict  # type: ignore
     FullStat = dict  # type: ignore
