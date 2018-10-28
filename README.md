@@ -71,12 +71,12 @@ the mounted folder you can now browse, alter and delete files submitted by
 yourself and people you have to grade.
 
 ### GUI usage
-If you prefer to use a GUI you can use the `cgfs-qt` command. This is an simple
-GUI that is beta to use CodeGra.fs. To use the GUI fill in all required fields,
-you can get help for each field by clicking the question mark, and click
-mount. You will now see a output field stating 'Mounting...' and a bit later
-'Mounted...'. You can now use the file system as normal. To unmount simply click
-'Stop!'.
+If you prefer to use a GUI you can use the `cgfs-qt` command. This is a simple
+GUI to use CodeGra.fs. Please note that this GUI is still in alpha state. To use
+the GUI fill in all required fields, you can get help for each field by clicking
+the question mark, and click mount. You will now see a output field stating
+'Mounting...' and a bit later 'Mounted...'. You can now use the file system as
+normal. To unmount simply click 'Stop!'.
 
 ### Available files
 The basic layout of the file-system is `/course/assingment/submission -

@@ -14,7 +14,8 @@ import codegra_fs
 import codegra_fs.cgfs as cgfs
 import codegra_fs.constants as constants
 from appdirs import AppDirs  # type: ignore
-from PyQt5.QtCore import Qt, QObject, pyqtSignal  # type: ignore
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal  # type: ignore
 from PyQt5.QtWidgets import (  # type: ignore
     QFrame, QLabel, QStyle, QDialog, QWidget, QCheckBox, QGroupBox, QLineEdit,
     QSplitter, QFileDialog, QFormLayout, QHBoxLayout, QMessageBox, QPushButton,
@@ -85,8 +86,9 @@ class DirectoryButton(QHBoxLayout, ValueObject):
 
 
 class StringInput(QLineEdit, ValueObject):
-    def __init__(self, is_password: bool=False,
-                 default: t.Optional[str]=None) -> None:
+    def __init__(
+        self, is_password: bool = False, default: t.Optional[str] = None
+    ) -> None:
         super().__init__()
         if is_password:
             self.setEchoMode(QLineEdit.Password)
@@ -101,7 +103,7 @@ class StringInput(QLineEdit, ValueObject):
 class CheckBoxInput(QCheckBox, ValueObject):
     def __init__(
         self,
-        default: bool=False,
+        default: bool = False,
     ) -> None:
         super().__init__()
         self.tooltip = 'Hello'
@@ -128,8 +130,9 @@ class CGFSFormLayout(QFormLayout):
 
         help_button = QToolButton()
         help_button.setIcon(
-            QApplication.style()
-            .standardIcon(QStyle.SP_TitleBarContextHelpButton)
+            QApplication.style().standardIcon(
+                QStyle.SP_TitleBarContextHelpButton
+            )
         )
         layout.addWidget(help_button)
         help_button.setStyleSheet('margin-left: 5px;')
@@ -161,6 +164,9 @@ class CGFSLoggingWindow(QPlainTextEdit):
         super().__init__(*args, **kwargs)
 
         self.setReadOnly(True)
+        fixed_font = QFont("monospace")
+        fixed_font.setStyleHint(QFont.TypeWriter)
+        self.setFont(fixed_font)
         outer_self = self
 
         class QTextEditLogger(logging.Handler):
@@ -193,6 +199,7 @@ class CGFSUi(QWidget):
     def __init__(self) -> None:
         super().__init__()
 
+        self.want_stop = True
         self.setWindowTitle('CodeGra.fs')
         self.__fields = {}  # type: t.Dict[str, ValueObject]
 
@@ -245,6 +252,7 @@ class CGFSUi(QWidget):
         return err
 
     def __start_cgfs(self) -> None:
+        self.want_stop = False
         errs = self.__check_options()
         if errs:
             self.__errs_field.setText(
@@ -263,52 +271,83 @@ class CGFSUi(QWidget):
         self.__log_window.clear()
         self.__log_window.set_logging_level(level)
 
-        def thread():
-            f = self.__fields
-            with open(PREVIOUS_VALUES_PATH, 'w') as file:
-                json.dump(
-                    {k: v.value
-                     for k, v in f.items() if k != 'password'}, file
-                )
-            mountpoint = f['mountpoint'].value
-            if sys.platform.startswith('win32'):
-                mountpoint = os.path.join(mountpoint, 'codegrade')
-            cgfs.create_and_mount_fs(
-                username=f['username'].value,
-                password=f['password'].value,
-                url=f['url'].value,
-                fixed=f['fixed'].value,
-                assigned_only=f['assigned_only'].value,
-                latest_only=not f['all_submissions'].value,
-                mountpoint=mountpoint,
-                rubric_append_only=True,
-            )
+        class RunThread(QThread):
+            def __init__(
+                self, fields: t.Dict[str, ValueObject], outer: 'CGFSUi'
+            ) -> None:
+                super().__init__()
+                self.__fields = fields
+                self.outer = outer
 
-        self.__run_thread = threading.Thread(target=thread)
+            def run(self) -> None:
+                f = self.__fields
+                with open(PREVIOUS_VALUES_PATH, 'w') as file:
+                    json.dump(
+                        {k: v.value
+                         for k, v in f.items() if k != 'password'}, file
+                    )
+                mountpoint = f['mountpoint'].value
+                if sys.platform.startswith('win32'):
+                    mountpoint = os.path.join(mountpoint, 'codegrade')
+                try:
+                    cgfs.create_and_mount_fs(
+                        username=f['username'].value,
+                        password=f['password'].value,
+                        url=f['url'].value,
+                        fixed=f['fixed'].value,
+                        assigned_only=f['assigned_only'].value,
+                        latest_only=not f['all_submissions'].value,
+                        mountpoint=mountpoint,
+                        rubric_append_only=True,
+                    )
+                except:
+                    # The UI actually logs the correct messages to the user.
+                    pass
+
+        self.__run_thread = RunThread(self.__fields, self)
+        self.__run_thread.finished.connect(self.on_cgfs_stopped)
         self.__run_thread.start()
         self.__form_wrapper.setVisible(False)
         self.__run_wrapper.setVisible(True)
 
     def stop_cgfs(self) -> None:
-        if cgfs.fuse_ptr is not None:
-            fuse._libfuse.fuse_exit(cgfs.fuse_ptr)
-            try:
-                # Kick fuse
-                os.listdir(self.__fields['mountpoint'].value)
-            except BaseException:
-                pass
+        self.want_stop = True
+        if self.__run_thread and self.__run_thread.isRunning():
+            self.__log_window.appendPlainText('')
+            self.__log_window.appendPlainText(
+                'Stopping and unmounting FS, this can take some time (especially'
+                ' on MacOS)'
+            )
+            if cgfs.fuse_ptr is not None:
+
+                fuse._libfuse.fuse_exit(cgfs.fuse_ptr)
+                try:
+                    # Kick fuse
+                    os.listdir(self.__fields['mountpoint'].value)
+                except BaseException:
+                    pass
+
+            self.__stop_button.setEnabled(False)
+        else:
+            self.on_cgfs_stopped()
         cgfs.fuse_ptr = None
 
-        if self.__run_thread:
-            self.__run_thread.join()
+    def on_cgfs_stopped(self) -> None:
+        if not self.want_stop:
+            logging.critical('========================')
+            logging.critical('      FS crashed!')
+            logging.critical('========================')
+            return
         self.__run_thread = None
-
+        self.__stop_button.setEnabled(True)
         self.__form_wrapper.setVisible(True)
         self.__run_wrapper.setVisible(False)
+        self.want_stop = False
 
     def __create_run_dialog(self) -> QWidget:
         stop_button = QPushButton('Stop!')
         stop_button.clicked.connect(self.stop_cgfs)
+        self.__stop_button = stop_button
         wrapper = QWidget()
         res = QVBoxLayout(wrapper)
         self.__log_window = CGFSLoggingWindow()
@@ -333,9 +372,8 @@ class CGFSUi(QWidget):
                 StringInput(is_password=True),
             'url':
                 StringInput(
-                    default=os.getenv(
-                        'CGAPI_BASE_URL', prev_values.get('url')
-                    )
+                    default=os.
+                    getenv('CGAPI_BASE_URL', prev_values.get('url'))
                 ),
             'fixed':
                 CheckBoxInput(prev_values.get('fixed')),
