@@ -105,7 +105,7 @@ SectionEnd
 
 Function .onSelChange
 StrCpy $0 1
-SectionGetFlags ${SID_A1} $
+SectionGetFlags ${SID_A1} $1
 IntOp $0 $0 & $1
 SectionGetFlags ${SID_A2} $1
 IntOp $0 $0 & $1
