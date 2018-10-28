@@ -40,7 +40,13 @@ try:
         import cffi
         import winfspy
 except:
-    pass
+
+    class Operations:  # type: ignore
+        pass
+
+    class LoggingMixIn:  # type: ignore
+        pass
+
 
 cgapi = None  # type: t.Optional[CGAPI]
 
@@ -55,7 +61,7 @@ logger = logging.getLogger(__name__)
 try:
     # Python 3.5 doesn't support the syntax below
     if sys.version_info >= (3, 6):
-        from codegra_fs.types import PartialStat, FullStat, APIHandlerResponse
+        from codegra_fs.cgfs_types import PartialStat, FullStat, APIHandlerResponse
 
 except:
     # Make sure mypy isn't needed when running
