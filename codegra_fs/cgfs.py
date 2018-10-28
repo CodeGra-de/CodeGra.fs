@@ -26,7 +26,7 @@ from errno import (  # type: ignore
 )
 from getpass import getpass
 from pathlib import Path
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 import codegra_fs
 import codegra_fs.constants as constants
@@ -2029,7 +2029,11 @@ def main() -> None:
 
     check_version()
 
-    argparser = ArgumentParser(description='CodeGra.de file system')
+    argparser = ArgumentParser(
+        description='CodeGra.fs: The CodeGrade file system',
+        epilog=constants.cgfs_epilog,
+        formatter_class=RawDescriptionHelpFormatter,
+    )
     argparser.add_argument(
         'username',
         metavar='USERNAME',
@@ -2113,7 +2117,7 @@ def main() -> None:
         version=(
             '%(prog)s {}'.format('.'.join(map(str, codegra_fs.__version__)))
         ),
-        help='Display version',
+        help='Display version.',
     )
     args = argparser.parse_args()
 
