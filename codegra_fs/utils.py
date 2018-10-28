@@ -2,6 +2,9 @@
 import sys
 import typing as t
 
+import requests
+import codegra_fs
+
 
 def _get_fuse_version_info() -> t.Tuple[int, int]:
     if not sys.platform.startswith('win32'):
@@ -44,4 +47,14 @@ def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
             'https://github.com/billziss-gh/winfsp/releases'
         )
     else:
-        return ('Unsupported platform, only GNU/Linux, Mac and Windows are supported', None)
+        return (
+            'Unsupported platform, only GNU/Linux, Mac and Windows are supported',
+            None
+        )
+
+
+def newer_version_available() -> bool:
+    req = requests.get('https://codegra.de/.cgfs.version', timeout=2)
+    return req.status_code < 300 and tuple(
+        int(p) for p in req.content.decode('utf8').strip().split('.')
+    ) > codegra_fs.__version__

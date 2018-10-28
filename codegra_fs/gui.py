@@ -404,7 +404,7 @@ class CGFSUi(QWidget):
 
         res = QVBoxLayout(wrapper)
 
-        if cgfs.newer_version_available():
+        if codegra_fs.utils.newer_version_available():
             version_label = QLabel(
                 'A new version of CodeGra.fs is available.\nYou can download'
                 ' it at <a href="https://codegra.de/codegra_fs/latest"'
@@ -414,7 +414,9 @@ class CGFSUi(QWidget):
             version_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
             version_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
             version_label.setOpenExternalLinks(True)
-            version_label.setStyleSheet("border: 1px solid gray; padding: 5px;")
+            version_label.setStyleSheet(
+                "border: 1px solid gray; padding: 5px;"
+            )
             res.addWidget(version_label)
             res.addItem(
                 QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Minimum)

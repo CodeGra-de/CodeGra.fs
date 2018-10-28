@@ -28,7 +28,6 @@ from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser
 
-import requests
 import codegra_fs
 import codegra_fs.constants as constants
 from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
@@ -2001,15 +2000,8 @@ def create_and_mount_fs(
                 os.unlink(sockfile)
 
 
-def newer_version_available() -> bool:
-    req = requests.get('https://codegra.de/.cgfs.version', timeout=2)
-    return req.status_code < 300 and tuple(
-        int(p) for p in req.content.decode('utf8').strip().split('.')
-    ) > codegra_fs.__version__
-
-
 def check_version() -> None:
-    if newer_version_available():
+    if codegra_fs.utils.newer_version_available():
         msg = [
             (
                 'You are running an outdated version of'
