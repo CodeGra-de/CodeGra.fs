@@ -2,7 +2,7 @@
 !define REGUINSTKEY "{58c6e5ab-979c-40b5-b78c-05e20c7e2067}" ; You could use APPNAME here but a GUID is guaranteed to be unique. Use guidgen.com to create your own.
 !define REGUINST 'HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${REGUINSTKEY}"'
 Name "${APPNAME}"
-Outfile "setup.exe"
+Outfile "${APPNAME}-setup.exe"
 RequestExecutionLevel Admin
 Unicode True
 InstallDir "$ProgramFiles32\${APPNAME}"
