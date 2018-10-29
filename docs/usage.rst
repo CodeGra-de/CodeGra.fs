@@ -20,6 +20,19 @@ Editing these files as a student enables automatic synchronisation to CodeGrade 
 
 .. note:: For more information about the Filesystem and different flags, consult the help menu using the ``cgfs --help`` command.
 
+Filesystem GUI
+----------------
+The Filesystem offers a simple graphical user interface in addition to the command line commands for easier usage. The Filesystem GUI is still in
+alpha stage but can be used already. The GUI can be opened using the ``cgfs-qt`` command. Usage is very straightforward: fill in the required
+fields and press ``Mount!``. For more information on specific fields, please consult the general documentation above or press the question mark button
+next to the field.
+
+After confirming the mount, you will see an output field stating
+``Mounting...`` and a bit later ``Mounted...``. You can now use the file system as
+normal. To unmount simply click ``Stop!``.
+
+.. warning:: Shutting down the filesystem using the GUI might take up to a couple of minutes depending on your configuration, this might temporarily freeze the Filesystem GUI. This is normal behaviour.
+
 Special Files
 ----------------
 The filesystem contains a few special files, these are files that are not submitted by students but can be used to control CodeGrade instead.
