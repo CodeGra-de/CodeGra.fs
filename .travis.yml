@@ -17,7 +17,7 @@ cache:
 
 matrix:
   include:
-    - python: "3.6-dev" # 3.6 development branch
+    - python: "3.7-dev" # 3.7 development branch
 
 addons:
   apt:
@@ -33,8 +33,7 @@ before_install:
 
 install:
   - pip install -U wheel
-  - pip install coveralls pytest-cov
-  - pip install codecov
+  - pip install coveralls pytest-cov codecov
   - pip install .
   - which cgfs
   - pip install celery[redis]
@@ -62,6 +61,8 @@ before_script:
 
 script:
   - make test
+  - pip install mypy
+  - mypy codegra_fs
 
 after_script:
   cat server.log
