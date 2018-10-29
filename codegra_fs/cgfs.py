@@ -2017,7 +2017,6 @@ def check_version() -> None:
 
 def main() -> None:
     global cgapi
-    logger.info('Mounting... ')
 
     try:
         cgapi = CGAPI(
