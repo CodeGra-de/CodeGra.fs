@@ -8,13 +8,12 @@ import json
 import time
 import typing as t
 import logging
-import threading
 
 import codegra_fs
 import codegra_fs.cgfs as cgfs
 import codegra_fs.constants as constants
 from appdirs import AppDirs  # type: ignore
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont  # type: ignore
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal  # type: ignore
 from PyQt5.QtWidgets import (  # type: ignore
     QFrame, QLabel, QStyle, QDialog, QWidget, QCheckBox, QGroupBox, QLineEdit,
@@ -232,7 +231,7 @@ class CGFSUi(QWidget):
         left = 40
 
         self.setGeometry(left, top, width, height)
-        self.__run_thread = None  # type: t.Optional[threading.Thread]
+        self.__run_thread = None  # type: t.Optional[QThread]
         self.show()
 
     def __check_options(self) -> t.List[str]:
