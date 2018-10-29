@@ -26,7 +26,7 @@ from errno import (  # type: ignore
 )
 from getpass import getpass
 from pathlib import Path
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 import codegra_fs
 import codegra_fs.constants as constants
@@ -2017,6 +2017,91 @@ def check_version() -> None:
 
 def main() -> None:
     global cgapi
+    logger.info('Mounting... ')
+
+    try:
+        cgapi = CGAPI(
+            username,
+            password,
+            url,
+            fixed=fixed,
+        )
+    except:
+        logger.critical('Logging in failed:')
+        logger.critical(traceback.format_exc())
+        raise
+
+    if not fixed:
+        logger.warning('=====================================================')
+        logger.warning('Mounting in non-fixed mode, all changes will be')
+        logger.warning('visible and additions to students.')
+        logger.warning('Watch out when uploading grading scripts!')
+        logger.warning('=====================================================')
+
+    with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
+        sockfile = tempfile.NamedTemporaryFile().name
+        kwargs = {}  # type: t.Dict[str, str]
+        if sys.platform.startswith('win32'):
+            # Force gid and uid to correct current user values:
+            # https://github.com/billziss-gh/winfsp/issues/79#issuecomment-292806979
+            kwargs = {
+                'uid': '-1',
+                'gid': '-1',
+            }
+        elif sys.platform.startswith('darwin'):
+            # Fix OSX encoding issue as described here:
+            # https://web.archive.org/web/20180920131107/https://github.com/osxfuse/osxfuse/issues/71
+            kwargs = {
+                'from_code': 'UTF-8',
+                'to_code': 'UTF-8-MAC',
+                'modules': 'iconv',
+            }
+
+        fs = None
+        try:
+            fs = CGFS(
+                latest_only=latest_only,
+                socketfile=sockfile,
+                fixed=fixed,
+                mountpoint=mountpoint,
+                tmpdir=tmpdir,
+                rubric_append_only=rubric_append_only,
+                assigned_only=assigned_only,
+            )
+            FUSE(
+                fs,
+                mountpoint,
+                nothreads=True,
+                foreground=True,
+                direct_io=True,
+                **kwargs,
+            )
+        except RuntimeError:  # pragma: no cover
+            logger.critical(traceback.format_exc())
+        finally:
+            if fs is not None and hasattr(fs, 'api_handler'):
+                fs.api_handler.stop = True
+            if os.path.isfile(sockfile):
+                os.unlink(sockfile)
+
+
+def check_version() -> None:
+    if codegra_fs.utils.newer_version_available():
+        msg = [
+            (
+                'You are running an outdated version of'
+                ' CGFS, please consider upgrading.'
+            ),
+            'You can do this at https://codegra.de/codegra_fs/latest/',
+        ]
+        print('-' * (max(len(l) for l in msg) + 4), file=sys.stderr)
+        for line in msg:
+            print('| {} |'.format(line), file=sys.stderr)
+        print('-' * (max(len(l) for l in msg) + 4), file=sys.stderr)
+
+
+def main() -> None:
+    global cgapi
 
     msg = codegra_fs.utils.get_fuse_install_message()
     if msg:
@@ -2044,7 +2129,22 @@ def main() -> None:
                 file=sys.stderr,
             )
 
-    argparser = ArgumentParser(description='CodeGra.de file system')
+    msg = codegra_fs.utils.get_fuse_install_message()
+    if msg:
+        err, url = msg
+        print('ERROR!')
+        print(msg, file=sys.stderr)
+        if url:
+            print('You can download it here: {}'.format(url))
+        sys.exit(2)
+
+    check_version()
+
+    argparser = ArgumentParser(
+        description='CodeGra.fs: The CodeGrade file system',
+        epilog=constants.cgfs_epilog,
+        formatter_class=RawDescriptionHelpFormatter,
+    )
     argparser.add_argument(
         'username',
         metavar='USERNAME',
@@ -2128,19 +2228,25 @@ def main() -> None:
         version=(
             '%(prog)s {}'.format('.'.join(map(str, codegra_fs.__version__)))
         ),
-        help='Display version',
+        help='Display version.',
     )
     args = argparser.parse_args()
 
     mountpoint = os.path.abspath(args.mountpoint)
     username = args.username
 
-    password = args.password or getenv('CGFS_PASSWORD', None)
-    if password is None and sys.stdin.isatty():
-        password = getpass('Password: ')
-    elif password is None:
+    password = args.password
+    if password is None and not sys.stdin.isatty():
         print('Password:', end=' ')
-        password = sys.stdin.readline().rstrip()
+        password = sys.stdin.readline()
+        if len(password) and password[-1] == '\n':
+            password = password[:-1]
+        if not password:
+            password = None
+    if password is None:
+        password = getenv('CGFS_PASSWORD')
+    if password is None:
+        password = getpass('Password: ')
 
     latest_only = args.latest_only
     rubric_append_only = args.rubric_append_only
