@@ -20,11 +20,13 @@
 import os
 import sys
 import subprocess
-import sphinx_fontawesome
 from datetime import date
 
-sys.path.append("../")
+import sphinx_fontawesome
+
 import codegra_fs
+
+sys.path.append("../")
 
 # -- General configuration ------------------------------------------------
 
@@ -44,10 +46,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.doctest',
     'sphinx.ext.githubpages',
-    'sphinxcontrib.httpdomain',
-    'sphinxcontrib.autohttp.flask',
-    'sphinxcontrib.autohttp.flaskqref',
-    'sphinx_autodoc_typehints',
     'sphinx_fontawesome',
 ]
 
