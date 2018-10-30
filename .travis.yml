@@ -63,6 +63,9 @@ script:
   - make test
   - pip install mypy
   - mypy codegra_fs
+  - pip install -r docs_requirements.txt || true
+  - ( cd docs; make html )
+  - travis-sphinx build --source=docs/
 
 after_script:
   cat server.log
@@ -70,3 +73,4 @@ after_script:
 after_success:
   - coveralls
   - codecov
+  - travis-sphinx deploy -c fs-docs.codegra.de

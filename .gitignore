@@ -1,9 +1,12 @@
+.DS_Store
 /env/
 /__pycache__/
+*/__pycache__/
 mount/
 /.dir-locals.el
 /.run_tests.sh
 .cov2emacs.log
 /.coverage
 /dist/
+docs/_build/
 .mypy_cache/

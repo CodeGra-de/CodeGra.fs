@@ -1,0 +1,4 @@
+sphinx-fontawesome==0.0.6
+sphinx-rtd-theme==0.4.2
+Sphinx==1.8.1
+travis-sphinx

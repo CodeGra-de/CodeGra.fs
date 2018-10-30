@@ -1,0 +1,15 @@
+.wy-nav-content {
+    width: 60em; /* Change as you like. */
+    max-width: 100% !important;
+}
+
+
+.wy-table-responsive table td {
+    /* !important prevents the common CSS stylesheets from overriding
+        this as on RTD they are loaded after this stylesheet */
+    white-space: normal !important;
+}
+
+.wy-table-responsive {
+    overflow: visible !important;
+}
