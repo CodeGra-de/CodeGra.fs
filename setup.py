@@ -2,8 +2,9 @@
 
 import sys
 
-import codegra_fs
 from setuptools import setup
+
+import codegra_fs
 
 version = '.'.join(map(str, codegra_fs.__version__))
 
@@ -12,7 +13,7 @@ if sys.version_info < (3, 5):
     sys.exit(1)
 
 requires = [
-    'requests>=2.18.4', 'fusepy>3.0.0,<4.0.0', 'PyQt5>=5.11.3,<6.0.0',
+    'requests>=2.20.0', 'fusepy>3.0.0,<4.0.0', 'PyQt5>=5.11.3,<6.0.0',
     'appdirs>=1.4.3,<2.0.0'
 ]
 if sys.platform.startswith('win32'):

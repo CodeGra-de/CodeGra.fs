@@ -14,8 +14,8 @@
       alt="CodeGra.de">
   </a>
   <a href="https://semver.org">
-    <img src="https://img.shields.io/badge/semVer-v0.4.0--beta-green.svg"
-      alt="Semantic Version v0.4.0-beta">
+    <img src="https://img.shields.io/badge/semVer-v0.4.1--beta-green.svg"
+      alt="Semantic Version v0.4.1-beta">
   </a>
   <a href="https://github.com/CodeGra-de/CodeGra.de/blob/master/LICENSE">
     <img src="https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg"
