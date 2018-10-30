@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import socket
+import typing as t
 
 
 def print_usage() -> None:
@@ -52,11 +53,12 @@ def is_file(s: socket.socket, file: str) -> int:
 def get_comments(s: socket.socket, file: str) -> int:
     s.send(
         bytes(
-            json.
-            dumps({
-                'op': 'get_feedback',
-                'file': os.path.abspath(file),
-            }).encode('utf8')
+            json.dumps(
+                {
+                    'op': 'get_feedback',
+                    'file': os.path.abspath(file),
+                }
+            ).encode('utf8')
         )
     )
     message = recv(s)
@@ -111,18 +113,28 @@ def set_comment(s: socket.socket, file: str, line: int, message: str) -> int:
         return 2
 
 
-def main() -> None:
-    if sys.platform.startswith('win32'):
-        path = ''
-    else:
-        path = '/'
+def split_path(path: str) -> t.List[str]:
+    path = os.path.normpath(os.path.abspath(path))
+    res = []  # type: t.List[str]
+    while path:
+        new_path, part = os.path.split(path)
+        if new_path == path:
+            res.append(new_path)
+            break
+        res.append(part)
+        path = new_path
+    res.reverse()
+    return res
 
+
+def main() -> None:
     if len(sys.argv) < 3:
         print_usage()
         sys.exit(1)
 
-    for p in os.path.abspath(sys.argv[2]).split(os.sep):
-        if path and not p:
+    path = ''
+    for p in split_path(sys.argv[2]):
+        if not p:
             continue
         path = os.path.join(path, p)
         if os.path.isfile(os.path.join(path, '.api.socket')):
