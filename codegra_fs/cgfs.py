@@ -1416,8 +1416,25 @@ class CGFS(LoggingMixIn, Operations):
     def load_courses(self) -> None:
         assert cgapi is not None
 
-        for course in cgapi.get_courses():
+        courses = cgapi.get_courses()
+        for dups in codegra_fs.utils.find_all_dups(
+            courses, lambda x: x['name']
+        ):
+            end = 4
+            if len(dups) != len(set(d['created_at'][:4] for d in dups)):
+                end = None
+
+            for dup in dups:
+                date = dup['created_at'][:end]
+                dup['name'] += ' - ' + date
+
+        for course in courses:
             assignments = course['assignments']
+            for dups in codegra_fs.utils.find_all_dups(
+                assignments, lambda x: x['name']
+            ):
+                for dup in dups:
+                    dup['name'] += ' - ' + dup['created_at']
 
             course_dir = Directory(course, type=DirTypes.COURSE)
             course_dir.getattr()
@@ -1463,9 +1480,12 @@ class CGFS(LoggingMixIn, Operations):
         )
 
         for sub in submissions:
-            if sub['user']['id'] in seen:
+            if self.latest_only and sub['user']['id'] in seen:
                 continue
-            elif user_assigned and my_id not in {
+
+            seen.add(sub['user']['id'])
+
+            if user_assigned and my_id not in {
                 get_assignee_id(sub),
                 sub['user']['id'],
             }:
@@ -1477,9 +1497,6 @@ class CGFS(LoggingMixIn, Operations):
                 type=DirTypes.SUBMISSION,
                 writable=True
             )
-
-            if self.latest_only:
-                seen.add(sub['user']['id'])
 
             sub_dir.getattr()
             sub_dir.insert(RubricSelectFile(cgapi, sub['id'], sub['user']))

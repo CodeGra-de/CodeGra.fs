@@ -1,24 +1,63 @@
 import os
 import stat
+import uuid
 import tarfile
 import subprocess
 import urllib.request
 
 import pytest
+import requests
+
 from helpers import (
     ls, rm, join, chmod, chown, isdir, mkdir, rm_rf, rmdir, isfile, rename,
     symlink
 )
 
 
-@pytest.fixture(autouse=True)
-def username():
-    yield 'thomas'
+@pytest.fixture(autouse=True, params=['thomas'])
+def username(request):
+    yield request.param
 
 
-@pytest.fixture(autouse=True)
-def password():
-    yield 'Thomas Schaper'
+@pytest.fixture(autouse=True, params=['Thomas Schaper'])
+def password(request):
+    yield request.param
+
+
+@pytest.fixture
+def teacher_id():
+    req = requests.post(
+        'http://localhost:5000/api/v1/login',
+        json={
+            'username': 'robin',
+            'password': 'Robin'
+        }
+    )
+    return req.json()['user']['id']
+
+
+@pytest.fixture
+def ta_id(username, password):
+    req = requests.post(
+        'http://localhost:5000/api/v1/login',
+        json={
+            'username': username,
+            'password': password
+        }
+    )
+    return req.json()['user']['id']
+
+
+@pytest.fixture
+def admin_jwt():
+    req = requests.post(
+        'http://localhost:5000/api/v1/login',
+        json={
+            'username': 'admin',
+            'password': 'admin'
+        }
+    )
+    return req.json()['access_token']
 
 
 def test_create_symlink(sub_done):
@@ -40,8 +79,8 @@ def test_create_invalid_file(mount_dir):
     with pytest.raises(PermissionError):
         with open(
             join(
-                mount_dir, [l for l in ls(mount_dir)
-                            if isdir(mount_dir, l)][0], 'file'
+                mount_dir,
+                [l for l in ls(mount_dir) if isdir(mount_dir, l)][0], 'file'
             ), 'w+'
         ) as f:
             f.write('hello\n')
@@ -334,3 +373,130 @@ def test_write_to_directory(sub_done):
         ls(fname)
     with pytest.raises(FileExistsError):
         mkdir(fname)
+
+
+def test_difficult_assigned_to(
+    mount, teacher_jwt, student_jwt, teacher_id, ta_id, assig_open
+):
+    assig_id = open(join(assig_open, '.cg-assignment-id')).read().strip()
+
+    old = requests.post(
+        f'http://localhost:5000/api/v1/assignments/{assig_id}/submission',
+        headers={
+            'Authorization': 'Bearer ' + student_jwt
+        },
+        files=dict(file=open('./test_data/multiple_dir_archive.zip', 'rb'))
+    ).json()
+    new = requests.post(
+        f'http://localhost:5000/api/v1/assignments/{assig_id}/submission',
+        files=dict(file=open('./test_data/multiple_dir_archive.zip', 'rb')),
+        headers={
+            'Authorization': 'Bearer ' + student_jwt
+        },
+    ).json()
+    print(old, new)
+
+    requests.patch(
+        f'http://localhost:5000/api/v1/submissions/{old["id"]}/grader',
+        json={'user_id': ta_id},
+        headers={'Authorization': 'Bearer ' + teacher_jwt},
+    )
+
+    requests.patch(
+        f'http://localhost:5000/api/v1/submissions/{new["id"]}/grader',
+        json={'user_id': teacher_id},
+        headers={'Authorization': 'Bearer ' + teacher_jwt},
+    )
+
+    mount(assigned_to_me=True)
+    assert all([l[0] == '.' for l in ls(assig_open)])
+    mount(assigned_to_me=False)
+    assert ls(assig_open)
+
+    requests.patch(
+        f'http://localhost:5000/api/v1/submissions/{new["id"]}/grader',
+        json={'user_id': ta_id},
+        headers={'Authorization': 'Bearer ' + teacher_jwt},
+    )
+    mount(assigned_to_me=True)
+    assert len([l for l in ls(assig_open) if l[0] != '.']) == 1
+
+
+def test_double_assignment(mount, teacher_jwt, assig_open):
+    n_id = str(uuid.uuid4())
+    assig_name = f'New_Assig-{n_id}'
+    print(n_id)
+    assig_id = open(join(assig_open, '.cg-assignment-id')).read().strip()
+    course_id = requests.get(
+        f'http://localhost:5000/api/v1/assignments/{assig_id}',
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt
+        },
+    ).json()['course']['id']
+
+    assert requests.post(
+        f'http://localhost:5000/api/v1/courses/{course_id}/assignments/',
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt
+        },
+        json={
+            'name': assig_name
+        }
+    ).status_code < 300
+    assert requests.post(
+        f'http://localhost:5000/api/v1/courses/{course_id}/assignments/',
+        headers={
+            'Authorization': 'Bearer ' + teacher_jwt
+        },
+        json={
+            'name': assig_name
+        }
+    ).status_code < 300
+
+    mount()
+
+    assert len([l for l in ls(assig_open, '..')
+                if l.startswith(assig_name)]) == 2
+
+
+@pytest.mark.parametrize(
+    'username,password', [['admin', 'admin']], indirect=True
+)
+def test_double_course(mount, admin_jwt, mount_dir):
+    n_id = str(uuid.uuid4())
+    course_name = f'New_Assig-{n_id}'
+    print(n_id)
+
+    assert requests.patch(
+        f'http://localhost:5000/api/v1/roles/4',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'value': True,
+            'permission': 'can_create_courses'
+        }
+    ).status_code < 300
+
+    assert requests.post(
+        f'http://localhost:5000/api/v1/courses/',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'name': course_name
+        }
+    ).status_code < 300
+    assert requests.post(
+        f'http://localhost:5000/api/v1/courses/',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'name': course_name
+        }
+    ).status_code < 300
+
+    mount()
+
+    assert len([l for l in ls(mount_dir) if l.startswith(course_name)]) == 2

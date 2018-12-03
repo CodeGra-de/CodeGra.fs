@@ -89,9 +89,9 @@ def mount(
             args.append('--assigned-to-me')
 
         proc = subprocess.Popen(args, stdin=stdin, stdout=sys.stdout, stderr=sys.stderr)
-        check_dir = os.path.join(mount_dir, 'Programmeertalen')
+        check_dir = os.path.join(mount_dir, '.cg-mode')
         i = 0.001
-        while not os.path.isdir(check_dir):
+        while not os.path.isfile(check_dir):
             time.sleep(i)
             i *= 2
 
@@ -122,7 +122,7 @@ def assig_done(mount, shell_id, mount_dir):
     return os.path.join(mount_dir, 'Programmeertalen', 'Shell')
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def sub_done2(assig_done):
     print(os.listdir(assig_done))
     for path in reversed(sorted(os.listdir(assig_done))):
@@ -130,7 +130,7 @@ def sub_done2(assig_done):
             return os.path.join(assig_done, path)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def sub_done(assig_done):
     print(os.listdir(assig_done))
     for path in reversed(sorted(os.listdir(assig_done))):
@@ -138,7 +138,7 @@ def sub_done(assig_done):
             return os.path.join(assig_done, path)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def sub_open(assig_open):
     for path in reversed(sorted(os.listdir(assig_open))):
         if 'Student1' in path:
@@ -224,7 +224,7 @@ def sub2_id(student_jwt, shell_id, teacher_jwt):
                 .isoformat()
         }
     )
-    assert r.status_code == 204
+    assert r.status_code == 200
 
     r = requests.post(
         f'http://localhost:5000/api/v1/assignments/{shell_id}/submission',
