@@ -61,7 +61,8 @@ try:
     # Python 3.5 doesn't support the syntax below
     if sys.version_info >= (3, 6):
         from codegra_fs.cgfs_types import PartialStat, FullStat, APIHandlerResponse
-
+    else:
+        raise Exception
 except:
     # Make sure mypy isn't needed when running
     PartialStat = dict  # type: ignore
@@ -71,8 +72,8 @@ except:
 
 @enum.unique
 class FsyncLike(enum.Enum):
-    fsync = enum.auto()
-    flush = enum.auto()
+    fsync = 1
+    flush = 2
 
 
 def remove_permission(
@@ -126,7 +127,7 @@ class DirTypes(IntEnum):
     REGDIR = 4
 
 
-class BaseFile():
+class BaseFile:
     def __init__(
         self, data: t.Dict[str, t.Any], name: t.Optional[str] = None
     ) -> None:
