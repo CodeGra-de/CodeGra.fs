@@ -1431,7 +1431,9 @@ class CGFS(LoggingMixIn, Operations):
                 end = None
 
             for dup in dups:
-                date = dup['created_at'][:end]
+                date = codegra_fs.utils.format_datestring(
+                    dup['created_at'],
+                )[:end]
                 dup['name'] += ' - ' + date
 
         for course in courses:
@@ -1440,7 +1442,9 @@ class CGFS(LoggingMixIn, Operations):
                 assignments, lambda x: x['name']
             ):
                 for dup in dups:
-                    dup['name'] += ' - ' + dup['created_at']
+                    dup['name'] += ' - ' + codegra_fs.utils.format_datestring(
+                        dup['created_at']
+                    )
 
             course_dir = Directory(course, type=DirTypes.COURSE)
             course_dir.getattr()
@@ -1501,7 +1505,7 @@ class CGFS(LoggingMixIn, Operations):
                 sub,
                 name=(
                     codegra_fs.utils.name_of_user(sub['user']) + ' - ' +
-                    sub['created_at'].replace('T', ' ').split('.')[0]
+                    codegra_fs.utils.format_datestring(sub['created_at'])
                 ),
                 type=DirTypes.SUBMISSION,
                 writable=True

@@ -80,3 +80,7 @@ def name_of_user(user: t.Dict[str, t.Any]) -> str:
         return 'Group "{}"'.format(user['group']['name'])
     else:
         return user['name']
+
+
+def format_datestring(datestring: str) -> str:
+    return datestring.replace('T', ' ').split('.')[0]
