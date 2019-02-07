@@ -1,5 +1,6 @@
 language: python
 sudo: required
+dist: xenial
 notifications:
   email: false
 
@@ -20,11 +21,11 @@ cache:
 matrix:
   include:
     - python: "3.7" # 3.7 development branch
-      env: PYENV_VERSION="3.5"
+      env: PYENV_VERSION="3.5.5"
     - python: "3.7" # 3.7 development branch
-      env: PYENV_VERSION="3.6"
+      env: PYENV_VERSION="3.6.3"
     - python: "3.7" # 3.7 development branch
-      env: PYENV_VERSION="3.7"
+      env: PYENV_VERSION="3.7.0"
 
 
 addons:
@@ -34,6 +35,8 @@ addons:
       - flex
 
 before_install:
+  - export PYENV_ROOT="$HOME/.custom_pyenv"
+  - mkdir "$PYENV_ROOT"
   - sudo apt-get install -qq pkg-config fuse
   - sudo modprobe fuse
   - sudo chmod 666 /dev/fuse
