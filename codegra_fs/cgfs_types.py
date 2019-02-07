@@ -1,5 +1,3 @@
-import typing as t
-
 from mypy_extensions import TypedDict
 
 PartialStat = TypedDict(
