@@ -69,7 +69,7 @@ def find_all_dups(
     seq: t.Sequence[T],
     key: t.Callable[[T], Y],
 ) -> t.List[t.Tuple[T, ...]]:
-    dct: t.MutableMapping[Y, t.List[T]] = defaultdict(list)
+    dct = defaultdict(list)  # type: t.MutableMapping[Y, t.List[T]]
     for el in seq:
         dct[key(el)].append(el)
     return [tuple(v) for v in dct.values() if len(v) > 1]
