@@ -381,14 +381,16 @@ def test_difficult_assigned_to(
     assig_id = open(join(assig_open, '.cg-assignment-id')).read().strip()
 
     old = requests.post(
-        f'http://localhost:5000/api/v1/assignments/{assig_id}/submission',
+        'http://localhost:5000/api/v1/assignments/{}/submission'.
+        format(assig_id),
         headers={
             'Authorization': 'Bearer ' + student_jwt
         },
         files=dict(file=open('./test_data/multiple_dir_archive.zip', 'rb'))
     ).json()
     new = requests.post(
-        f'http://localhost:5000/api/v1/assignments/{assig_id}/submission',
+        'http://localhost:5000/api/v1/assignments/{}/submission'.
+        format(assig_id),
         files=dict(file=open('./test_data/multiple_dir_archive.zip', 'rb')),
         headers={
             'Authorization': 'Bearer ' + student_jwt
@@ -397,13 +399,13 @@ def test_difficult_assigned_to(
     print(old, new)
 
     requests.patch(
-        f'http://localhost:5000/api/v1/submissions/{old["id"]}/grader',
+        'http://localhost:5000/api/v1/submissions/{}/grader'.format(old["id"]),
         json={'user_id': ta_id},
         headers={'Authorization': 'Bearer ' + teacher_jwt},
     )
 
     requests.patch(
-        f'http://localhost:5000/api/v1/submissions/{new["id"]}/grader',
+        'http://localhost:5000/api/v1/submissions/{}/grader'.format(new["id"]),
         json={'user_id': teacher_id},
         headers={'Authorization': 'Bearer ' + teacher_jwt},
     )
@@ -414,7 +416,7 @@ def test_difficult_assigned_to(
     assert ls(assig_open)
 
     requests.patch(
-        f'http://localhost:5000/api/v1/submissions/{new["id"]}/grader',
+        'http://localhost:5000/api/v1/submissions/{}/grader'.format(new["id"]),
         json={'user_id': ta_id},
         headers={'Authorization': 'Bearer ' + teacher_jwt},
     )
@@ -424,18 +426,19 @@ def test_difficult_assigned_to(
 
 def test_double_assignment(mount, teacher_jwt, assig_open):
     n_id = str(uuid.uuid4())
-    assig_name = f'New_Assig-{n_id}'
+    assig_name = 'New_Assig-{}'.format(n_id)
     print(n_id)
     assig_id = open(join(assig_open, '.cg-assignment-id')).read().strip()
     course_id = requests.get(
-        f'http://localhost:5000/api/v1/assignments/{assig_id}',
+        'http://localhost:5000/api/v1/assignments/{}'.format(assig_id),
         headers={
             'Authorization': 'Bearer ' + teacher_jwt
         },
     ).json()['course']['id']
 
     assert requests.post(
-        f'http://localhost:5000/api/v1/courses/{course_id}/assignments/',
+        'http://localhost:5000/api/v1/courses/{}/assignments/'.
+        format(course_id),
         headers={
             'Authorization': 'Bearer ' + teacher_jwt
         },
@@ -444,7 +447,8 @@ def test_double_assignment(mount, teacher_jwt, assig_open):
         }
     ).status_code < 300
     assert requests.post(
-        f'http://localhost:5000/api/v1/courses/{course_id}/assignments/',
+        'http://localhost:5000/api/v1/courses/{}/assignments/'.
+        format(course_id),
         headers={
             'Authorization': 'Bearer ' + teacher_jwt
         },
@@ -455,8 +459,9 @@ def test_double_assignment(mount, teacher_jwt, assig_open):
 
     mount()
 
-    assert len([l for l in ls(assig_open, '..')
-                if l.startswith(assig_name)]) == 2
+    assert len(
+        [l for l in ls(assig_open, '..') if l.startswith(assig_name)]
+    ) == 2
 
 
 @pytest.mark.parametrize(
@@ -464,11 +469,11 @@ def test_double_assignment(mount, teacher_jwt, assig_open):
 )
 def test_double_course(mount, admin_jwt, mount_dir):
     n_id = str(uuid.uuid4())
-    course_name = f'New_Assig-{n_id}'
+    course_name = 'New_Assig-{}'.format(n_id)
     print(n_id)
 
     assert requests.patch(
-        f'http://localhost:5000/api/v1/roles/4',
+        'http://localhost:5000/api/v1/roles/4',
         headers={
             'Authorization': 'Bearer ' + admin_jwt
         },
@@ -479,7 +484,7 @@ def test_double_course(mount, admin_jwt, mount_dir):
     ).status_code < 300
 
     assert requests.post(
-        f'http://localhost:5000/api/v1/courses/',
+        'http://localhost:5000/api/v1/courses/',
         headers={
             'Authorization': 'Bearer ' + admin_jwt
         },
@@ -488,7 +493,7 @@ def test_double_course(mount, admin_jwt, mount_dir):
         }
     ).status_code < 300
     assert requests.post(
-        f'http://localhost:5000/api/v1/courses/',
+        'http://localhost:5000/api/v1/courses/',
         headers={
             'Authorization': 'Bearer ' + admin_jwt
         },
