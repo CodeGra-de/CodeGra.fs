@@ -495,6 +495,7 @@ def test_double_course(mount, admin_jwt, mount_dir):
             'name': course_name
         }
     ).status_code < 300
+    time.sleep(1)
     assert requests.post(
         'http://localhost:5000/api/v1/courses/',
         headers={
