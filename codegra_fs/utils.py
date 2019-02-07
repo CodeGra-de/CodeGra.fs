@@ -73,3 +73,10 @@ def find_all_dups(
     for el in seq:
         dct[key(el)].append(el)
     return [tuple(v) for v in dct.values() if len(v) > 1]
+
+
+def name_of_user(user: t.Dict[str, t.Any]) -> str:
+    if 'group' in user:
+        return 'Group "{}"'.format(user['group']['name'])
+    else:
+        return user['name']

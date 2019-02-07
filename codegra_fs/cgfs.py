@@ -1499,7 +1499,7 @@ class CGFS(LoggingMixIn, Operations):
             sub_dir = Directory(
                 sub,
                 name=(
-                    sub['user']['name'] + ' - ' +
+                    codegra_fs.utils.name_of_user(sub['user']) + ' - ' +
                     sub['created_at'].replace('T', ' ').split('.')[0]
                 ),
                 type=DirTypes.SUBMISSION,
