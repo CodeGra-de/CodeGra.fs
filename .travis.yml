@@ -12,10 +12,10 @@ branches:
     - master
 
 cache:
-  pip: true
-  apt: true
+  - pip: true
+  - apt: true
   - directories:
-    - $HOME/.pyenv_cache
+    - "$HOME/.pyenv_cache"
 
 matrix:
   include:
@@ -45,7 +45,6 @@ install:
   - git clone https://github.com/CodeGra-de/CodeGra.de.git backend
   - pip install -r backend/requirements.txt
   - export PYTHON_NEW="$(which python)"
-
   - wget https://github.com/praekeltfoundation/travis-pyenv/releases/download/0.4.0/setup-pyenv.sh
   - source setup-pyenv.sh
   - pip install coveralls pytest-cov codecov
