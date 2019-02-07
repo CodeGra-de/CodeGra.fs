@@ -1,6 +1,6 @@
 export PYTHONPATH=$(CURDIR)
 TEST_FILE?=test/
-TEST_FLAGS?=-s
+TEST_FLAGS?=
 PYTEST?=pytest
 
 .PHONY: install_deps

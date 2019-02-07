@@ -76,7 +76,7 @@ def find_all_dups(
 
 
 def name_of_user(user: t.Dict[str, t.Any]) -> str:
-    if 'group' in user:
+    if user.get('group') is not None:
         return 'Group "{}"'.format(user['group']['name'])
     else:
         return user['name']
