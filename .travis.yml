@@ -69,7 +69,7 @@ before_script:
   - cd backend
   - make db_upgrade
   - make test_data
-  - make start_dev_server > ../server.log 2>&1 &
+  - ( deactivate && source $(dirname $PYTHON_NEW)/activate && make start_dev_server & )
   - cd ..
   - sleep 6
 
