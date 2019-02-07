@@ -76,6 +76,7 @@ before_script:
 script:
   - make test
   - pip install mypy
+  - if [[ $PYENV_VERSION = "3.5.5" ]]; then > codegra_fs/cgfs_types.py; fi
   - mypy codegra_fs
   - pip install -r docs_requirements.txt || true
   - ( cd docs; make html )

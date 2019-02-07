@@ -9,9 +9,9 @@ import typing as t
 
 
 def json_loads(s: t.Union[bytes, str]) -> t.Dict[str, t.Any]:
-    if sys.version_info >= (3, 6) or isinstance(s, str):
+    if sys.version_info >= (3, 6):
         return json.loads(s)
-    return json.loads(s.decode('utf8'))
+    return json.loads(s if isinstance(s, str) else s.decode('utf8'))
 
 def print_usage() -> None:
     print(
