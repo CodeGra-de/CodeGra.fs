@@ -76,7 +76,7 @@ class FsyncLike(enum.Enum):
 
 
 def remove_permission(
-    perm: int, read: bool=False, write: bool=False, execute: bool=False
+    perm: int, read: bool = False, write: bool = False, execute: bool = False
 ) -> int:
     return perm & ~create_permission(read, write, execute)
 
@@ -127,14 +127,15 @@ class DirTypes(IntEnum):
 
 
 class BaseFile():
-    def __init__(self, data: t.Dict[str, t.Any],
-                 name: t.Optional[str]=None) -> None:
+    def __init__(
+        self, data: t.Dict[str, t.Any], name: t.Optional[str] = None
+    ) -> None:
         self.id = data.get('id', None)
         self.name = name if name is not None else data['name']
         self.stat = None  # type: t.Optional[PartialStat]
 
     def getattr(
-        self, submission: t.Optional['Directory']=None, path: str=None
+        self, submission: t.Optional['Directory'] = None, path: str = None
     ) -> PartialStat:
         if self.stat is None:
             self.stat = {
@@ -171,9 +172,9 @@ class Directory(BaseFile):
     def __init__(
         self,
         data: t.Dict[str, t.Any],
-        name: t.Optional[str]=None,
-        type: DirTypes=DirTypes.REGDIR,
-        writable: bool=False
+        name: t.Optional[str] = None,
+        type: DirTypes = DirTypes.REGDIR,
+        writable: bool = False
     ) -> None:
         super(Directory, self).__init__(data, name)
 
@@ -187,8 +188,8 @@ class Directory(BaseFile):
 
     def getattr(
         self,
-        submission: t.Optional['Directory']=None,
-        path: t.Optional[str]=None
+        submission: t.Optional['Directory'] = None,
+        path: t.Optional[str] = None
     ) -> FullStat:
         if self.stat is None:
             self.stat = t.cast(
@@ -248,13 +249,13 @@ class SingleFile(BaseFile):
     stat = None  # type: t.Optional[FullStat]
 
     def base_getattr(
-        self, submission: t.Optional['Directory']=None, path: str=None
+        self, submission: t.Optional['Directory'] = None, path: str = None
     ) -> PartialStat:
         return super().getattr(submission, path)
 
     @abc.abstractclassmethod
     def getattr(
-        self, submission: t.Optional['Directory']=None, path: str=None
+        self, submission: t.Optional['Directory'] = None, path: str = None
     ) -> FullStat:
         raise NotImplementedError
 
@@ -294,7 +295,7 @@ class SingleFile(BaseFile):
 class SpecialFile(SingleFile):
     NAME = 'default special file'
 
-    def __init__(self, name: str, data: bytes=b'') -> None:
+    def __init__(self, name: str, data: bytes = b'') -> None:
         self.mode = create_permission(read=True, write=False, execute=True)
         self.name = name
         self.data = data
@@ -398,8 +399,9 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
         return self.mtime
 
     def get_data(self) -> bytes:
-        if self.has_data and (datetime.datetime.utcnow() -
-                              self.time) < self.DELTA:
+        if self.has_data and (
+            datetime.datetime.utcnow() - self.time
+        ) < self.DELTA:
             return self.data
         elif self.overwrite:
             assert self.has_data
@@ -700,7 +702,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
     NAME = '.cg-edit-rubric.md'
 
     def __init__(
-        self, api: CGAPI, assignment_id: int, append_only: bool=True
+        self, api: CGAPI, assignment_id: int, append_only: bool = True
     ) -> None:
         super(RubricEditorFile, self).__init__(name=self.NAME)
         self.api = api
@@ -773,9 +775,9 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
 
         def parse_description(
             i: int,
-            end: t.Optional[t.List[str]]=None,
-            strip_leading: bool=True,
-            strip_trailing: bool=False,
+            end: t.Optional[t.List[str]] = None,
+            strip_leading: bool = True,
+            strip_trailing: bool = False,
         ) -> t.Tuple[str, int]:
             if end is None:
                 end = ['-']
@@ -1009,13 +1011,14 @@ class TempFile(SingleFile):
 
     def getattr(
         self,
-        submission: t.Optional[Directory]=None,
-        path: t.Optional[str]=None
+        submission: t.Optional[Directory] = None,
+        path: t.Optional[str] = None
     ) -> FullStat:
         return self.stat
 
-    def setattr(self, key: str,
-                value: t.Union[float, str]) -> None:  # pragma: no cover
+    def setattr(
+        self, key: str, value: t.Union[float, str]
+    ) -> None:  # pragma: no cover
         raise ValueError
 
     def utimens(self, atime: float, mtime: float) -> None:
@@ -1066,8 +1069,9 @@ class TempFile(SingleFile):
 
 
 class File(SingleFile):
-    def __init__(self, data: t.Dict[str, t.Any],
-                 name: t.Optional[str]=None) -> None:
+    def __init__(
+        self, data: t.Dict[str, t.Any], name: t.Optional[str] = None
+    ) -> None:
         super(File, self).__init__(data, name)
 
         self._data = None  # type: t.Optional[bytes]
@@ -1092,8 +1096,8 @@ class File(SingleFile):
 
     def getattr(
         self,
-        submission: t.Optional[Directory]=None,
-        path: t.Optional[str]=None
+        submission: t.Optional[Directory] = None,
+        path: t.Optional[str] = None
     ) -> FullStat:
         if self.stat is None:
             self.stat = t.cast(FullStat, self.base_getattr(submission, path))
@@ -1255,8 +1259,9 @@ class APIHandler:
         except:
             return {'ok': False, 'error': 'File ({}) not found'.format(f_name)}
 
-    def delete_feedback(self,
-                        payload: t.Dict[str, t.Any]) -> APIHandlerResponse:
+    def delete_feedback(
+        self, payload: t.Dict[str, t.Any]
+    ) -> APIHandlerResponse:
         f_name = self.cgfs.strippath(payload['file'])
         line = payload['line']
         assert cgapi is not None
@@ -1356,9 +1361,9 @@ class CGFS(LoggingMixIn, Operations):
         socketfile: str,
         mountpoint: str,
         tmpdir: str,
-        fixed: bool=False,
-        rubric_append_only: bool=True,
-        assigned_only: bool=False,
+        fixed: bool = False,
+        rubric_append_only: bool = True,
+        assigned_only: bool = False,
     ) -> None:
         self.latest_only = latest_only
         self.fixed = fixed
@@ -1493,7 +1498,10 @@ class CGFS(LoggingMixIn, Operations):
 
             sub_dir = Directory(
                 sub,
-                name=sub['user']['name'] + ' - ' + sub['created_at'],
+                name=(
+                    sub['user']['name'] + ' - ' +
+                    sub['created_at'].replace('T', ' ').split('.')[0]
+                ),
                 type=DirTypes.SUBMISSION,
                 writable=True
             )
@@ -1553,8 +1561,8 @@ class CGFS(LoggingMixIn, Operations):
     def get_file(
         self,
         path: t.Union[str, t.List[str]],
-        start: t.Optional[Directory]=None,
-        expect_type: t.Type[T]=None
+        start: t.Optional[Directory] = None,
+        expect_type: t.Type[T] = None
     ) -> T:
         file = start if start is not None else self.files
         parts = self.split_path(path) if isinstance(path, str) else path
@@ -1590,7 +1598,7 @@ class CGFS(LoggingMixIn, Operations):
     def get_dir(
         self,
         path: t.Union[str, t.List[str]],
-        start: t.Optional[Directory]=None
+        start: t.Optional[Directory] = None
     ) -> Directory:
         return self.get_file(path, start=start, expect_type=Directory)
 
@@ -1664,7 +1672,7 @@ class CGFS(LoggingMixIn, Operations):
             if res is not None:
                 file.id = res['id']
 
-    def getattr(self, path: str, fh: OptFileHandle=None) -> FullStat:
+    def getattr(self, path: str, fh: OptFileHandle = None) -> FullStat:
         with self._lock:
             return self._getattr(path, fh)
 
@@ -1702,7 +1710,7 @@ class CGFS(LoggingMixIn, Operations):
         return attrs
 
     # TODO?: Add xattr support
-    def getxattr(self, path: str, name: str, position: int=0) -> None:
+    def getxattr(self, path: str, name: str, position: int = 0) -> None:
         raise FuseOSError(ENOTSUP)
 
     # TODO?: Add xattr support
@@ -1865,7 +1873,7 @@ class CGFS(LoggingMixIn, Operations):
         name: str,
         value: object,
         options: object,
-        position: int=0
+        position: int = 0
     ) -> None:  # pragma: no cover
         raise FuseOSError(ENOTSUP)
 
@@ -1879,7 +1887,9 @@ class CGFS(LoggingMixIn, Operations):
     def symlink(self, target: str, source: str) -> None:
         raise FuseOSError(EPERM)
 
-    def truncate(self, path: str, length: int, fh: OptFileHandle=None) -> None:
+    def truncate(
+        self, path: str, length: int, fh: OptFileHandle = None
+    ) -> None:
         with self._lock:
             if length < 0:  # pragma: no cover
                 raise FuseOSError(EINVAL)
@@ -1915,7 +1925,7 @@ class CGFS(LoggingMixIn, Operations):
 
             parent.pop(fname)
 
-    def utimens(self, path: str, times: t.Tuple[float, float]=None) -> None:
+    def utimens(self, path: str, times: t.Tuple[float, float] = None) -> None:
         with self._lock:
             file = self.get_file(path, expect_type=SingleFile)
             assert file is not None

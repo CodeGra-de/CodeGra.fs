@@ -14,10 +14,18 @@ branches:
 cache:
   pip: true
   apt: true
+  - directories:
+    - $HOME/.pyenv_cache
 
 matrix:
   include:
-    - python: "3.7-dev" # 3.7 development branch
+    - python: "3.7" # 3.7 development branch
+      env: PYENV_VERSION="3.5"
+    - python: "3.7" # 3.7 development branch
+      env: PYENV_VERSION="3.6"
+    - python: "3.7" # 3.7 development branch
+      env: PYENV_VERSION="3.7"
+
 
 addons:
   apt:
@@ -33,12 +41,16 @@ before_install:
 
 install:
   - pip install -U wheel
-  - pip install coveralls pytest-cov codecov
-  - pip install .
-  - which cgfs
   - pip install celery[redis]
   - git clone https://github.com/CodeGra-de/CodeGra.de.git backend
   - pip install -r backend/requirements.txt
+  - export PYTHON_NEW="$(which python)"
+
+  - wget https://github.com/praekeltfoundation/travis-pyenv/releases/download/0.4.0/setup-pyenv.sh
+  - source setup-pyenv.sh
+  - pip install coveralls pytest-cov codecov
+  - pip install .
+  - which cgfs
 
 before_script:
   - pwd
@@ -47,11 +59,11 @@ before_script:
   - echo -e '\n[Celery]\nbroker_url = redis://localhost:6379/0\n' >> backend/config.ini
   - mkdir -p backend/uploads
   - mkdir -p backend/mirror_uploads
-  - python --version
+  - $PYTHON_NEW --version
   - export PYTHONPATH="$PYTHONPATH:$(pwd)"
   - export DEBUG=true
   - psql -c 'create database travis_ci_test;' -U postgres
-  - export PYTHON=python
+  - export PYTHON=$PYTHON_NEW
   - cd backend
   - make db_upgrade
   - make test_data
