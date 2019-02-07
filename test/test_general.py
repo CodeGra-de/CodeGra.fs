@@ -1,5 +1,6 @@
 import os
 import stat
+import time
 import uuid
 import tarfile
 import subprocess
@@ -446,6 +447,8 @@ def test_double_assignment(mount, teacher_jwt, assig_open):
             'name': assig_name
         }
     ).status_code < 300
+    # Make sure we have some time between the assignments
+    time.sleep(1)
     assert requests.post(
         'http://localhost:5000/api/v1/courses/{}/assignments/'.
         format(course_id),
