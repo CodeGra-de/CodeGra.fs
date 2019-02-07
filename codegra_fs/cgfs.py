@@ -114,8 +114,8 @@ def handle_cgapi_exception(ex) -> t.NoReturn:
 
 
 class ParseException(ValueError):
-    def __init__(self, message: str, *args: object, **kwargs: object) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
         self.message = message
 
 
@@ -1426,7 +1426,7 @@ class CGFS(LoggingMixIn, Operations):
         for dups in codegra_fs.utils.find_all_dups(
             courses, lambda x: x['name']
         ):
-            end = 4
+            end = 4  # type: t.Optional[int]
             if len(dups) != len(set(d['created_at'][:4] for d in dups)):
                 end = None
 
