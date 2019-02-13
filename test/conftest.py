@@ -13,6 +13,7 @@ import requests
 
 password_pass = 0
 
+
 @pytest.fixture(autouse=True)
 def setup():
     pass
@@ -88,10 +89,12 @@ def mount(
         if assigned_to_me:
             args.append('--assigned-to-me')
 
-        proc = subprocess.Popen(args, stdin=stdin, stdout=sys.stdout, stderr=sys.stderr)
-        check_dir = os.path.join(mount_dir, 'Programmeertalen')
+        proc = subprocess.Popen(
+            args, stdin=stdin, stdout=sys.stdout, stderr=sys.stderr
+        )
+        check_dir = os.path.join(mount_dir, '.cg-mode')
         i = 0.001
-        while not os.path.isdir(check_dir):
+        while not os.path.isfile(check_dir):
             time.sleep(i)
             i *= 2
 
@@ -122,7 +125,7 @@ def assig_done(mount, shell_id, mount_dir):
     return os.path.join(mount_dir, 'Programmeertalen', 'Shell')
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def sub_done2(assig_done):
     print(os.listdir(assig_done))
     for path in reversed(sorted(os.listdir(assig_done))):
@@ -130,7 +133,7 @@ def sub_done2(assig_done):
             return os.path.join(assig_done, path)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def sub_done(assig_done):
     print(os.listdir(assig_done))
     for path in reversed(sorted(os.listdir(assig_done))):
@@ -138,7 +141,7 @@ def sub_done(assig_done):
             return os.path.join(assig_done, path)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def sub_open(assig_open):
     for path in reversed(sorted(os.listdir(assig_open))):
         if 'Student1' in path:
@@ -149,8 +152,10 @@ def sub_open(assig_open):
 def teacher_jwt():
     req = requests.post(
         'http://localhost:5000/api/v1/login',
-        json={'username': 'robin',
-              'password': 'Robin'}
+        json={
+            'username': 'robin',
+            'password': 'Robin'
+        }
     )
     return req.json()['access_token']
 
@@ -159,8 +164,10 @@ def teacher_jwt():
 def student_jwt():
     req = requests.post(
         'http://localhost:5000/api/v1/login',
-        json={'username': 'student1',
-              'password': 'Student1'}
+        json={
+            'username': 'student1',
+            'password': 'Student1'
+        }
     )
     return req.json()['access_token']
 
@@ -190,7 +197,8 @@ def python_id(student_jwt):
 @pytest.fixture(autouse=True)
 def sub1_id(student_jwt, python_id, teacher_jwt):
     r = requests.post(
-        f'http://localhost:5000/api/v1/assignments/{python_id}/submission',
+        'http://localhost:5000/api/v1/assignments/{}/submission'.
+        format(python_id),
         headers={
             'Authorization': 'Bearer ' + student_jwt,
         },
@@ -202,7 +210,7 @@ def sub1_id(student_jwt, python_id, teacher_jwt):
     yield sub_id
 
     requests.delete(
-        f'http://localhost:5000/api/v1/submissions/{sub_id}',
+        'http://localhost:5000/api/v1/submissions/{}'.format(sub_id),
         headers={
             'Authorization': 'Bearer ' + teacher_jwt,
         }
@@ -212,7 +220,7 @@ def sub1_id(student_jwt, python_id, teacher_jwt):
 @pytest.fixture(autouse=True)
 def sub2_id(student_jwt, shell_id, teacher_jwt):
     r = requests.patch(
-        f'http://localhost:5000/api/v1/assignments/{shell_id}',
+        'http://localhost:5000/api/v1/assignments/{}'.format(shell_id),
         headers={
             'Authorization': 'Bearer ' + teacher_jwt,
         },
@@ -220,14 +228,15 @@ def sub2_id(student_jwt, shell_id, teacher_jwt):
             'state':
                 'open',
             'deadline':
-                (datetime.datetime.utcnow() + datetime.timedelta(days=365))
-                .isoformat()
+                (datetime.datetime.utcnow() + datetime.timedelta(days=365
+                                                                 )).isoformat()
         }
     )
-    assert r.status_code == 204
+    assert r.status_code == 200
 
     r = requests.post(
-        f'http://localhost:5000/api/v1/assignments/{shell_id}/submission',
+        'http://localhost:5000/api/v1/assignments/{}/submission'.
+        format(shell_id),
         headers={
             'Authorization': 'Bearer ' + student_jwt,
         },
@@ -238,7 +247,7 @@ def sub2_id(student_jwt, shell_id, teacher_jwt):
     sub_id = r.json()['id']
 
     requests.patch(
-        f'http://localhost:5000/api/v1/assignments/{shell_id}',
+        'http://localhost:5000/api/v1/assignments/{}'.format(shell_id),
         headers={
             'Authorization': 'Bearer ' + teacher_jwt,
         },
@@ -251,7 +260,7 @@ def sub2_id(student_jwt, shell_id, teacher_jwt):
     yield sub_id
 
     requests.delete(
-        f'http://localhost:5000/api/v1/submissions/{sub_id}',
+        'http://localhost:5000/api/v1/submissions/{}'.format(sub_id),
         headers={
             'Authorization': 'Bearer ' + teacher_jwt,
         }

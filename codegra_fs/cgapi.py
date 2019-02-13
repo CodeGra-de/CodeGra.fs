@@ -4,14 +4,35 @@
 import typing as t
 import logging
 from enum import IntEnum
-from functools import partial
 from urllib.parse import quote
 
 import requests
 
 DEFAULT_CGAPI_BASE_URL = 'https://codegra.de/api/v1'
 
+T_CALL = t.TypeVar('T_CALL', bound=t.Callable)
+
 logger = logging.getLogger(__name__)
+
+
+def make_request_method(fun: T_CALL) -> T_CALL:
+    def meth(*args, **kwargs):
+        try:
+            return fun(*args, **kwargs, timeout=3)
+        except requests.exceptions.ConnectionError:
+            try:
+                sleep(1)
+                return fun(*args, **kwargs, timeout=3)
+            except requests.exceptions.ConnectionError as e:
+                raise CGAPIException(
+                    {
+                        'message': str(e),
+                        'description': str(e),
+                        'code': 500,
+                    }
+                )
+
+    return t.cast(T_CALL, meth)
 
 
 class APIRoutes():
@@ -156,8 +177,8 @@ class CGAPI():
         self,
         username: str,
         password: str,
-        base: t.Optional[str]=None,
-        fixed: bool=False
+        base: t.Optional[str] = None,
+        fixed: bool = False
     ) -> None:
         owner = 'student' if fixed else 'auto'
         self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL, owner)
@@ -187,11 +208,11 @@ class CGAPI():
         self.s.headers = {
             'Authorization': 'Bearer ' + self.access_token,
         }
-        self.s.get = partial(self.s.get, timeout=3)  # type: ignore
-        self.s.patch = partial(self.s.patch, timeout=3)  # type: ignore
-        self.s.post = partial(self.s.post, timeout=3)  # type: ignore
-        self.s.delete = partial(self.s.delete, timeout=3)  # type: ignore
-        self.s.put = partial(self.s.put, timeout=3)  # type: ignore
+        self.s.get = make_request_method(self.s.get)  # type: ignore
+        self.s.patch = make_request_method(self.s.patch)  # type: ignore
+        self.s.post = make_request_method(self.s.post)  # type: ignore
+        self.s.delete = make_request_method(self.s.delete)  # type: ignore
+        self.s.put = make_request_method(self.s.put)  # type: ignore
 
     def _handle_response_error(self, request):
         if request.status_code >= 400:
@@ -350,8 +371,8 @@ class CGAPI():
     def set_submission(
         self,
         submission_id: int,
-        grade: t.Union[None, float, str]=None,
-        feedback: t.Optional[bytes]=None
+        grade: t.Union[None, float, str] = None,
+        feedback: t.Optional[bytes] = None
     ):
         url = self.routes.set_submission(submission_id)
         d = {}  # type: t.Dict[str, t.Union[bytes, float, None]]

@@ -8,6 +8,11 @@ import socket
 import typing as t
 
 
+def json_loads(s: t.Union[bytes, str]) -> t.Dict[str, t.Any]:
+    if sys.version_info >= (3, 6):
+        return json.loads(s)
+    return json.loads(s if isinstance(s, str) else s.decode('utf8'))
+
 def print_usage() -> None:
     print(
         (
@@ -44,7 +49,7 @@ def is_file(s: socket.socket, file: str) -> int:
             }).encode('utf8')
         )
     )
-    if json.loads(recv(s))['ok']:
+    if json_loads(recv(s))['ok']:
         return 0
     else:
         return 2
@@ -63,7 +68,7 @@ def get_comments(s: socket.socket, file: str) -> int:
     )
     message = recv(s)
 
-    out = json.loads(message)
+    out = json_loads(message)
     if out['ok']:
         res = []
         for key, val in out['data'].items():
@@ -88,7 +93,7 @@ def delete_comment(s: socket.socket, file: str, line: int) -> int:
             ).encode('utf8')
         )
     )
-    if json.loads(recv(s))['ok']:
+    if json_loads(recv(s))['ok']:
         return 0
     else:
         return 2
@@ -107,7 +112,7 @@ def set_comment(s: socket.socket, file: str, line: int, message: str) -> int:
             ).encode('utf8')
         )
     )
-    if json.loads(recv(s))['ok']:
+    if json_loads(recv(s))['ok']:
         return 0
     else:
         return 2

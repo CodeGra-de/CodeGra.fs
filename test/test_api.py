@@ -6,9 +6,9 @@ import tarfile
 import subprocess
 import urllib.request
 
+import pytest
 import requests
 
-import pytest
 from helpers import (
     ls, rm, join, chmod, chown, isdir, mkdir, rm_rf, rmdir, isfile, rename,
     symlink
@@ -410,7 +410,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 
     res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
-    assert json.loads(res) == [
+    assert json.loads(res.decode('utf8')) == [
         {
             'line': 5,
             'col': 0,
@@ -423,7 +423,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ) == b''
     res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
-    assert json.loads(res) == [
+    assert json.loads(res.decode('utf8')) == [
         {
             'line': 1,
             'col': 0,
@@ -440,7 +440,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ) == b''
     res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
-    assert json.loads(res) == [
+    assert json.loads(res.decode('utf8')) == [
         {
             'line': 1,
             'col': 0,
@@ -460,7 +460,10 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]).returncode == 2
 
     # Don't change after a wrong delete
-    assert res == subprocess.check_output(['cgapi-consumer', 'get-comment', f])
+    assert json.loads(res.decode('utf8')) == json.loads(
+        subprocess.check_output(['cgapi-consumer', 'get-comment',
+                                 f]).decode('utf8')
+    )
 
     assert subprocess.check_output(
         [
@@ -473,7 +476,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 
     res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
-    assert json.loads(res) == [
+    assert json.loads(res.decode('utf8')) == [
         {
             'line': 1,
             'col': 0,

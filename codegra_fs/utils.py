@@ -1,9 +1,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 import sys
 import typing as t
+from collections import defaultdict
 
 import requests
+
 import codegra_fs
+
+T = t.TypeVar('T')
+Y = t.TypeVar('Y')
 
 
 def _get_fuse_version_info() -> t.Tuple[int, int]:
@@ -58,3 +63,24 @@ def newer_version_available() -> bool:
     return req.status_code < 300 and tuple(
         int(p) for p in req.content.decode('utf8').strip().split('.')
     ) > codegra_fs.__version__
+
+
+def find_all_dups(
+    seq: t.Sequence[T],
+    key: t.Callable[[T], Y],
+) -> t.List[t.Tuple[T, ...]]:
+    dct = defaultdict(list)  # type: t.MutableMapping[Y, t.List[T]]
+    for el in seq:
+        dct[key(el)].append(el)
+    return [tuple(v) for v in dct.values() if len(v) > 1]
+
+
+def name_of_user(user: t.Dict[str, t.Any]) -> str:
+    if user.get('group') is not None:
+        return 'Group "{}"'.format(user['group']['name'])
+    else:
+        return user['name']
+
+
+def format_datestring(datestring: str) -> str:
+    return datestring.replace('T', ' ').split('.')[0]
