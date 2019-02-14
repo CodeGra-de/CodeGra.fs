@@ -445,7 +445,7 @@ class CGFSUi(QWidget):
             version_label = QLabel(
                 'A new version of CodeGra.fs is available.\nYou can download'
                 ' it at <a href="https://codegra.de/codegra_fs/latest"'
-                ' >https://codegra.de/codegra_fs/latest/</a>'
+                ' >https://codegra.de/codegra_fs/latest</a>'
             )
             version_label.setTextFormat(Qt.RichText)
             version_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
