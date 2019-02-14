@@ -23,4 +23,5 @@ The code of the CodeGrade filesystem is open-source and can be found on
     install
     usage
     plugins
+    changelog
     Back to CodeGrade Documentation <https://docs.codegra.de>
