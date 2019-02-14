@@ -1515,6 +1515,17 @@ class CGFS(LoggingMixIn, Operations):
             sub_dir.insert(RubricSelectFile(cgapi, sub['id'], sub['user']))
             sub_dir.insert(GradeFile(cgapi, sub['id']))
             sub_dir.insert(FeedbackFile(cgapi, sub['id']))
+
+            if sub['user'].get('group') is not None:
+                members = [
+                    codegra_fs.utils.name_of_user(m).encode('utf-8')
+                    for m in sub['user']['group']['members']
+                ]
+                sub_dir.insert(SpecialFile(
+                    '.cg-group-members',
+                    b'\n'.join(members) + b'\n',
+                ))
+
             assignment.insert(sub_dir)
 
         assignment.children_loaded = True
