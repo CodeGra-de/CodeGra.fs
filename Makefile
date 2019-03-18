@@ -21,3 +21,7 @@ test:
 .PHONY: test_quick
 test_quick: TEST_FLAGS += -x
 test_quick: test
+
+.PHONY: gui
+gui:
+	cd gui; npm run dev
