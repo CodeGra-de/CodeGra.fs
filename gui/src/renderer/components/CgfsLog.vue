@@ -138,6 +138,7 @@ export default {
     max-width: 1024px;
     display: flex;
     flex-direction: column;
+    margin: 0 auto;
 }
 
 .output {
@@ -149,6 +150,7 @@ export default {
 
 .output .alert {
     margin-right: 15px;
+    word-wrap: break-word;
 }
 
 .control {
