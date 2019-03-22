@@ -2,16 +2,14 @@
 <div class="cgfs-log">
     <div ref="output" class="output">
         <b-alert v-for="event in events"
-                 :variant="eventVariant(event)"
-                 show>
-            {{ event.line }}
-        </b-alert>
+                 :variant="event.variant"
+                 show>{{ event.event }}</b-alert>
     </div>
 
     <div class="control">
         <b-button variant="primary"
                 class="stop-button"
-                @click="stop">
+                @click="stop(true)">
             <span v-if="proc">Stop</span>
             <span v-else>Back</span>
         </b-button>
@@ -87,43 +85,56 @@ export default {
             proc.stderr.setEncoding('utf-8');
 
             proc.on('close', () => {
+                this.addEvents('The process has been killed.');
                 this.proc = null;
             });
 
-            proc.stdout.on('data', data => {
-                this.addEvent(data, 'stdout');
-            });
-
-            proc.stderr.on('data', data => {
-                this.addEvent(data, 'stderr');
-            });
+            proc.stdout.on('data', this.addEvents);
+            proc.stderr.on('data', this.addEvents);
 
             this.proc = proc;
         },
 
-        stop() {
+        stop(goBack) {
             if (this.proc != null) {
                 this.proc.kill();
-            } else {
+            }
+
+            if (goBack) {
                 this.$emit('stop');
             }
         },
 
-        addEvent(data, src) {
+        addEvents(data) {
             const events = data.split('\n')
-                .map(line => ({ line: line.trim(), src }))
-                .filter(event => event.line);
+                .map(event => event)
+                .filter(event => event.trim());
 
-            this.events.push(...events);
+            for (const event of events) {
+                if (event.match(/error/i)) {
+                    this.events.push({
+                        event,
+                        variant: 'danger',
+                    });
+                } else if (event.slice(0, 4) === 'INFO') {
+                    this.events.push({
+                        event,
+                        variant: 'success',
+                    });
+                } else if (event.slice(0, 5) === 'DEBUG') {
+                    this.events.push({
+                        event,
+                        variant: 'info',
+                    });
+                } else {
+                    this.events[this.events.length - 1].event += `\n${event}`;
+                }
+            }
 
             this.$nextTick(() => {
                 const out = this.$refs.output;
                 out.scrollTop = out.scrollHeight;
             });
-        },
-
-        eventVariant(event) {
-            return event.src === 'stdout' ? 'info' : 'danger';
         },
     },
 
@@ -155,6 +166,7 @@ export default {
 
 .output .alert {
     margin-right: 15px;
+    white-space: pre-wrap;
     word-wrap: break-word;
 }
 

@@ -174,7 +174,7 @@ export default {
     flex: 0 0 auto;
     width: 100%;
     max-width: 512px;
-    margin: 0 auto 1.5rem;
+    margin: 0 auto 1rem;
     font-weight: 300;
 }
 
