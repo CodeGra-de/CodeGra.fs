@@ -1,16 +1,17 @@
 <template>
 <div class="cgfs-options">
-    <cgfs-option v-for="option in optionData"
+    <cgfs-option v-if="config != null"
+                 v-for="option in options"
+                 :key="option.label"
                  v-model="config[option.label]"
                  :option="option"
-                 :key="option.label"
-                 @keydown.ctrl.enter="mount"/>
+                 @keydown.ctrl.enter="start"/>
 
     <p class="clearfix text-muted font-italic">
         <b-button variant="primary"
-                  class="mount-button"
-                  @click="mount">
-            Mount
+                  class="start-button"
+                  @click="start">
+            Start
         </b-button>
 
         * indicates a required field
@@ -29,131 +30,82 @@
 </template>
 
 <script>
-import { readConfig, writeConfig } from '@/utils/config';
+import {
+    ensureDirectory,
+    readConfig,
+    writeConfig,
+} from '@/utils/config';
+
 import CgfsOption from '@/components/CgfsOption';
 
 export default {
     name: 'cgfs-options',
 
+    props: {
+        options: {
+            type: Array,
+            required: true,
+        },
+    },
+
     data() {
-        const optionData = [
-            {
-                label: 'Institution',
-                required: true,
-                type: 'select',
-                options: [
-                    {
-                        text: 'Amsterdam UMC (amc.codegra.de)',
-                        value: 'https://amc.codegra.de/api/v1',
-                    },
-                    {
-                        text: 'Erasmus Universiteit Rotterdam (eur.codegra.de)',
-                        value: 'https://eur.codegra.de/api/v1',
-                    },
-                    {
-                        text: 'Universiteit Twente (ut.codegra.de)',
-                        value: 'https://ut.codegra.de/api/v1',
-                    },
-                    {
-                        text: 'Universiteit van Amsterdam (uva.codegra.de)',
-                        value: 'https://uva.codegra.de/api/v1',
-                    },
-                ],
-                help: 'Choose your institution from the list below.',
-            },
-            {
-                label: 'Username',
-                required: true,
-                type: 'text',
-                help: 'Your CodeGrade username.',
-            },
-            {
-                label: 'Password',
-                required: true,
-                type: 'password',
-                help: 'Your CodeGrade password.',
-            },
-            {
-                label: 'Mount point',
-                required: true,
-                type: 'directory',
-                help: 'Mountpoint for the file system. This should be an existing empty directory.',
-            },
-            {
-                label: 'Options',
-                required: false,
-                type: 'checkbox',
-                options: [
-                    {
-                        label: 'Revision',
-                        default: false,
-                        // TODO: Fix help
-                        help: 'Mount the original files as read only. It is still possible to create new files, but it is not possible to alter or delete existing files. The files shown are always the student revision files. The created new files are only visible during a single session, they are **NOT** uploaded to the server.',
-                    },
-                    {
-                        label: 'Assigned',
-                        default: true,
-                        help: 'Only show submissions that are assigned to you. This only has effect if submissions are assigned and you are one of the assignees.',
-                    },
-                    {
-                        label: 'Latest',
-                        default: true,
-                        // TODO: Fix help
-                        help: 'See all submissions not just the latest submissions of students.',
-                    },
-                ],
-            },
-            {
-                label: 'Verbosity',
-                required: false,
-                type: 'radio',
-                options: [
-                    {
-                        label: 'Quiet',
-                        value: 'quiet',
-                    },
-                    {
-                        label: 'Normal',
-                        value: 'normal',
-                    },
-                    {
-                        label: 'Verbose',
-                        value: 'verbose',
-                    },
-                ],
-                default: 'quiet',
-            },
-        ];
-
-        const config = readConfig();
-        for (const option of optionData) {
-            if (config[option.label] == null) {
-                config[option.label] = option.default || '';
-            }
-        }
-
         return {
-            config,
-            optionData,
+            config: null,
             errors: [],
         };
     },
 
-    methods: {
-        mount() {
-            const config = this.config;
-            this.errors = [];
+    mounted() {
+        readConfig().then(this.setConfig);
+    },
 
-            for (const option of this.optionData) {
-                if (option.required && !config[option.label]) {
-                    this.errors.push(`Option "${option.label}" is required.`);
+    methods: {
+        setConfig(config) {
+            // eslint-disable-next-line
+            for (const option of this.options) {
+                if (config[option.label] == null) {
+                    config[option.label] = option.default || '';
                 }
             }
 
-            if (this.errors.length === 0) {
-                writeConfig(this.config);
-                this.$emit('mount', this.config);
+            if (process.env.NODE_ENV === 'development') {
+                // Always use the localhost:8080 route.
+                config[this.options[0].label] = this.options[0].options[0].value;
             }
+
+            this.config = config;
+        },
+
+        ensureOptionValid(option) {
+            if (option.required && !this.config[option.label]) {
+                return new Error(`"${option.label}" is required.`);
+            }
+
+            return null;
+        },
+
+        ensureConfigValid() {
+            const errors = this.options
+                .map(this.ensureOptionValid)
+                .filter(err => err);
+
+            if (errors.length) {
+                return Promise.reject(errors);
+            } else {
+                return ensureDirectory(this.config['Mount point'], true);
+            }
+        },
+
+        start() {
+            this.ensureConfigValid().then(
+                () => writeConfig(this.config),
+            ).then(
+                () => this.$emit('start', this.config),
+            ).catch(
+                err => {
+                    this.errors = err instanceof Array ? err : [err];
+                },
+            );
         },
     },
 
@@ -164,6 +116,12 @@ export default {
 </script>
 
 <style lang="css" scoped>
+.cgfs-options {
+    width: 100%;
+    max-width: 512px;
+    margin: 0 auto;
+}
+
 .clearfix::after {
     content: '';
     display: block;
@@ -176,7 +134,7 @@ export default {
     padding-left: 1rem;
 }
 
-.mount-button {
+.start-button {
     float: right;
 }
 </style>

@@ -1,66 +1,82 @@
-import fs from 'fs';
 import path from 'path';
 
+import fs from 'then-fs';
 import xdg from 'xdg-basedir';
 
-function ensureDirectory(dir) {
-    try {
-        fs.accessSync(dir);
-    } catch (e) {
-        try {
-            fs.mkdirSync(dir);
-        } catch (e) {
-            return null;
-        }
+function checkDirectory(stat, dir) {
+    if (!stat.isDirectory()) {
+        throw new Error(`"${dir}" exists but is not a directory.`);
     }
-
-    return dir;
 }
 
-function getConfigPath() {
-    if (xdg.data == null) {
-        return null;
-    }
+function confirmMkdir(dir) {
+    const msg = `
+The directory "${dir}" does not exist.
+Would you like to create it now?
+    `;
 
-    const configDir = path.join(xdg.data, 'codegrade-fs');
+    return new Promise((resolve, reject) => {
+        if (window.confirm(msg)) {
+            resolve(dir);
+        } else {
+            reject();
+        }
+    });
+}
 
-    if (!ensureDirectory(configDir)) {
-        return null;
-    }
+function mkdir(dir) {
+    return fs.stat(dir).then(
+        stat => checkDirectory(stat, dir),
+        () => mkdir(path.dirname(dir))
+            .then(() => fs.mkdir(dir)),
+    );
+}
 
-    return path.join(configDir, 'config.json');
+export function ensureDirectory(dir, prompt = false) {
+    return fs.stat(dir).then(
+        stat => checkDirectory(stat, dir),
+        () => {
+            let p;
+
+            if (prompt) {
+                p = confirmMkdir(dir);
+            } else {
+                p = Promise.resolve(dir);
+            }
+
+            return p.then(mkdir);
+        },
+    ).then(() => dir);
+}
+
+export function getConfigDir() {
+    return new Promise((resolve, reject) => {
+        if (xdg.data == null) {
+            reject(new Error('No data home detected.'));
+        } else {
+            resolve(path.join(xdg.data, 'codegrade-fs'));
+        }
+    });
+}
+
+export function getConfigPath() {
+    return getConfigDir()
+        .then(ensureDirectory)
+        .then(dir => path.join(dir, 'config.json'));
 }
 
 export function readConfig() {
-    const configPath = getConfigPath();
-
-    if (configPath == null) {
-        return {};
-    }
-
-    try {
-        const data = fs.readFileSync(configPath);
-        return JSON.parse(data);
-    } catch (e) {
-        return {};
-    }
+    return getConfigPath()
+        .then(fs.readFile)
+        .then(JSON.parse);
 }
 
 export function writeConfig(config) {
-    const configPath = getConfigPath();
+    return getConfigPath().then(configPath => {
+        const copy = Object.assign({}, config);
+        delete copy.Password;
 
-    if (configPath == null) {
-        console.warn('Could not write configuration');
-        return;
-    }
-
-    config = Object.assign({}, config);
-    delete config.Password;
-
-    try {
-        const data = JSON.stringify(config);
-        fs.writeFileSync(configPath, data);
-    } catch (e) {
-        // Do nothing
-    }
+        const data = JSON.stringify(copy);
+        return fs.writeFile(configPath, data);
+    });
 }

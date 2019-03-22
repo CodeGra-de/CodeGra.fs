@@ -5,8 +5,8 @@
     <b-popover triggers="click"
                placement="left"
                :target="compId">
-        <div class="description-popover-content">
-            {{ help }}
+        <div class="help-popover-content">
+            <slot>{{ help }}</slot>
         </div>
     </b-popover>
 
@@ -34,7 +34,7 @@ export default {
 
     data() {
         return {
-            compId: `description-popover-${uniq()}`,
+            compId: `help-popover-${uniq()}`,
         };
     },
 
@@ -48,10 +48,9 @@ export default {
 .help-popover {
     cursor: help;
     margin-top: -.125rem;
-    margin-right: .25rem;
 }
 
-.description-popover-content {
+.help-popover-content {
     text-align: justify;
     hyphens: auto;
 }

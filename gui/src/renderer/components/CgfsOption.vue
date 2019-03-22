@@ -23,6 +23,7 @@
 
     <b-form-file v-else-if="option.type === 'directory'"
                  v-model="internal"
+                 :placeholder="internal"
                  directory/>
 
     <b-input-group v-else-if="option.type === 'checkbox'">
@@ -91,10 +92,6 @@ export default {
                     internal[option.label] = option.default;
                 }
             }
-        } else if (this.option.type === 'directory') {
-            internal = {
-                path: internal,
-            };
         }
 
         return { internal };
