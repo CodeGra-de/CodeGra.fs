@@ -1,6 +1,6 @@
 <template>
 <div class="cgfs-log">
-    <div class="output">
+    <div ref="output" class="output">
         <b-alert v-for="event in events"
                  :variant="eventVariant(event)"
                  show>
@@ -115,6 +115,11 @@ export default {
                 .filter(event => event.line);
 
             this.events.push(...events);
+
+            this.$nextTick(() => {
+                const out = this.$refs.output;
+                out.scrollTop = out.scrollHeight;
+            });
         },
 
         eventVariant(event) {
