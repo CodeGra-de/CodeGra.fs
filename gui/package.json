@@ -23,8 +23,8 @@
     "unit": "karma start test/unit/karma.conf.js"
   },
   "build": {
-    "productName": "codegrade-fs",
-    "appId": "codegrade-fs",
+    "productName": "CodeGrade Filesystem",
+    "appId": "CodeGrade Filesystem",
     "directories": {
       "output": "build"
     },
