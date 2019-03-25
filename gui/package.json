@@ -7,6 +7,8 @@
   "main": "./dist/electron/main.js",
   "scripts": {
     "build": "node .electron-vue/build.js && electron-builder",
+    "build:mac": "node .electron-vue/build.js && electron-builder --mac",
+    "build:win": "node .electron-vue/build.js && electron-builder --win",
     "build:dir": "node .electron-vue/build.js && electron-builder --dir",
     "build:clean": "cross-env BUILD_TARGET=clean node .electron-vue/build.js",
     "build:web": "cross-env BUILD_TARGET=web node .electron-vue/build.js",
@@ -18,8 +20,7 @@
     "pack:main": "cross-env NODE_ENV=production webpack --progress --colors --config .electron-vue/webpack.main.config.js",
     "pack:renderer": "cross-env NODE_ENV=production webpack --progress --colors --config .electron-vue/webpack.renderer.config.js",
     "test": "npm run unit && npm run e2e",
-    "unit": "karma start test/unit/karma.conf.js",
-    "postinstall": "npm run lint:fix"
+    "unit": "karma start test/unit/karma.conf.js"
   },
   "build": {
     "productName": "codegrade-fs",
@@ -59,14 +60,13 @@
     "axios": "^0.18.0",
     "bootstrap": "^4.3.1",
     "bootstrap-vue": "^2.0.0-rc.15",
+    "jquery": "^3.3.1",
     "then-fs": "^2.0.0",
     "vue": "^2.5.16",
     "vue-awesome": "^3.4.0",
     "vue-electron": "^1.0.6",
-    "vue-router": "^3.0.1",
     "vuex": "^3.0.1",
-    "vuex-electron": "^1.0.0",
-    "xdg-basedir": "^3.0.0"
+    "vuex-electron": "^1.0.0"
   },
   "devDependencies": {
     "ajv": "^6.5.0",

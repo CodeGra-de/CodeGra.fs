@@ -1,7 +1,8 @@
 <template>
 <div class="cgfs-log">
     <div ref="output" class="output">
-        <b-alert v-for="event in events"
+        <b-alert v-for="event, i in events"
+                 :key="i"
                  :variant="event.variant"
                  show>{{ event.event }}</b-alert>
     </div>
@@ -24,8 +25,8 @@ export default {
     name: 'cgfs-log',
 
     props: {
-        config: {
-            type: Object,
+        args: {
+            type: Array,
             required: true,
         },
     },
@@ -37,60 +38,20 @@ export default {
         };
     },
 
-    computed: {
-        cgfsArgs() {
-            const conf = this.config;
-            const args = [
-                '--url', conf.Institution,
-                '--password', conf.Password,
-            ];
-
-            switch (conf.Verbosity) {
-                case 'verbose':
-                    args.push('--verbose');
-                    break;
-                case 'quiet':
-                    args.push('--quiet');
-                    break;
-                default:
-            }
-
-            if (conf.Options.Assigned) {
-                args.push('--assigned-to-me');
-            }
-
-            if (!conf.Options.Latest) {
-                args.push('--all-submissions');
-            }
-
-            if (!conf.Options.Revision) {
-                args.push('--fixed');
-            }
-
-            args.push(conf.Username);
-            args.push(conf['Mount point']);
-
-            return args;
-        },
-    },
-
     methods: {
         start() {
-            const proc = childProcess.spawn(
-                'cgfs',
-                this.cgfsArgs,
-            );
+            const proc = childProcess.spawn('cgfs', this.args);
 
             proc.stdout.setEncoding('utf-8');
             proc.stderr.setEncoding('utf-8');
+
+            proc.stdout.on('data', this.addEvents);
+            proc.stderr.on('data', this.addEvents);
 
             proc.on('close', () => {
                 this.addEvents('The process has been killed.');
                 this.proc = null;
             });
-
-            proc.stdout.on('data', this.addEvents);
-            proc.stderr.on('data', this.addEvents);
 
             this.proc = proc;
         },
@@ -111,29 +72,32 @@ export default {
                 .filter(event => event.trim());
 
             for (const event of events) {
-                if (event.match(/error/i)) {
-                    this.events.push({
-                        event,
-                        variant: 'danger',
-                    });
-                } else if (event.slice(0, 4) === 'INFO') {
-                    this.events.push({
-                        event,
-                        variant: 'success',
-                    });
-                } else if (event.slice(0, 5) === 'DEBUG') {
+                if (event.slice(0, 4) === 'INFO') {
                     this.events.push({
                         event,
                         variant: 'info',
                     });
-                } else {
+                } else if (event.slice(0, 5) === 'DEBUG') {
+                    const variant = event.match(/error/i) ? 'danger' : 'secondary';
+                    this.events.push({
+                        event,
+                        variant,
+                    });
+                } else if (this.events.length) {
                     this.events[this.events.length - 1].event += `\n${event}`;
+                } else {
+                    this.events.push({
+                        event,
+                        variant: 'primary',
+                    });
                 }
             }
 
             this.$nextTick(() => {
                 const out = this.$refs.output;
-                out.scrollTop = out.scrollHeight;
+                if (out) {
+                    out.scrollTop = out.scrollHeight;
+                }
             });
         },
     },

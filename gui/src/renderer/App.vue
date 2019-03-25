@@ -4,11 +4,11 @@
          src="~@/assets/codegrade-fs.png"
          alt="CodeGrade Filesystem"/>
 
-    <cgfs-options v-if="config == null"
+    <cgfs-options v-if="args == null"
                   :options="options"
                   @start="start"/>
     <cgfs-log v-else
-              :config="config"
+              :args="args"
               @stop="stop"/>
 </div>
 </template>
@@ -26,6 +26,7 @@ export default {
     data() {
         const options = [
             {
+                key: 'institution',
                 label: 'Institution',
                 required: true,
                 type: 'select',
@@ -50,18 +51,21 @@ export default {
                 help: 'Choose your institution.',
             },
             {
+                key: 'username',
                 label: 'Username',
                 required: true,
                 type: 'text',
                 help: 'Your CodeGrade username.',
             },
             {
+                key: 'password',
                 label: 'Password',
                 required: true,
                 type: 'password',
                 help: 'Your CodeGrade password.',
             },
             {
+                key: 'mountpoint',
                 label: 'Mount point',
                 required: true,
                 type: 'directory',
@@ -69,30 +73,36 @@ export default {
                 help: 'Mountpoint for the file system. This should be an existing empty directory.',
             },
             {
+                key: 'options',
                 label: 'Options',
                 required: false,
                 type: 'checkbox',
                 options: [
                     {
+                        key: 'revision',
                         label: 'Revision',
                         default: false,
                         // TODO: Fix help
                         help: 'Mount the original files as read only. It is still possible to create new files, but it is not possible to alter or delete existing files. The files shown are always the student revision files. The created new files are only visible during a single session, they are **NOT** uploaded to the server.',
                     },
                     {
+                        key: 'assigned',
                         label: 'Assigned',
                         default: true,
                         help: 'Only show submissions that are assigned to you. This only has effect if submissions are assigned and you are one of the assignees.',
                     },
                     {
+                        key: 'latest',
                         label: 'Latest',
                         default: true,
                         // TODO: Fix help
                         help: 'See all submissions not just the latest submissions of students.',
                     },
                 ],
+                default: {},
             },
             {
+                key: 'verbosity',
                 label: 'Verbosity',
                 required: false,
                 type: 'radio',
@@ -123,7 +133,7 @@ export default {
 
         return {
             options,
-            config: null,
+            args: null,
         };
     },
 
@@ -146,12 +156,12 @@ export default {
     },
 
     methods: {
-        start(config) {
-            this.config = config;
+        start(args) {
+            this.args = args;
         },
 
         stop() {
-            this.config = null;
+            this.args = null;
         },
     },
 

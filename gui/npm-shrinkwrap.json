@@ -9538,6 +9538,11 @@
         "semver": "^5.3.0"
       }
     },
+    "jquery": {
+      "version": "3.3.1",
+      "resolved": "https://registry.npmjs.org/jquery/-/jquery-3.3.1.tgz",
+      "integrity": "sha512-Ubldcmxp5np52/ENotGxlLe6aGMvmF4R8S6tZjsP6Knsaxd/xp3Zrh50cG93lR6nPXyUFwzN3ZSOQI0wRJNdGg=="
+    },
     "js-base64": {
       "version": "2.5.1",
       "resolved": "https://registry.npmjs.org/js-base64/-/js-base64-2.5.1.tgz",
@@ -16873,11 +16878,6 @@
         "vue-style-loader": "^4.1.0"
       }
     },
-    "vue-router": {
-      "version": "3.0.2",
-      "resolved": "https://registry.npmjs.org/vue-router/-/vue-router-3.0.2.tgz",
-      "integrity": "sha512-opKtsxjp9eOcFWdp6xLQPLmRGgfM932Tl56U9chYTnoWqKxQ8M20N7AkdEbM5beUh6wICoFGYugAX9vQjyJLFg=="
-    },
     "vue-style-loader": {
       "version": "4.1.2",
       "resolved": "https://registry.npmjs.org/vue-style-loader/-/vue-style-loader-4.1.2.tgz",
@@ -18029,7 +18029,8 @@
     "xdg-basedir": {
       "version": "3.0.0",
       "resolved": "https://registry.npmjs.org/xdg-basedir/-/xdg-basedir-3.0.0.tgz",
-      "integrity": "sha1-SWsswQnsqNus/i3HK2A8F8WHCtQ="
+      "integrity": "sha1-SWsswQnsqNus/i3HK2A8F8WHCtQ=",
+      "dev": true
     },
     "xml-char-classes": {
       "version": "1.0.0",

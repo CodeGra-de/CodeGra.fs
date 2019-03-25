@@ -28,7 +28,8 @@
 
     <b-input-group v-else-if="option.type === 'checkbox'">
         <b-form-checkbox v-for="suboption in option.options"
-                         v-model="internal[suboption.label]"
+                         :key="suboption.key"
+                         v-model="internal[suboption.key]"
                          class="form-control">
             {{ suboption.label }}
 
@@ -39,6 +40,7 @@
 
     <b-input-group v-else-if="option.type === 'radio'">
         <b-form-radio v-for="suboption in option.options"
+                      :key="suboption.value"
                       v-model="internal"
                       :value="suboption.value"
                       class="form-control">
@@ -88,8 +90,8 @@ export default {
             }
 
             for (const option of this.option.options) {
-                if (internal[option.label] == null) {
-                    internal[option.label] = option.default;
+                if (internal[option.key] == null) {
+                    internal[option.key] = option.default;
                 }
             }
         }

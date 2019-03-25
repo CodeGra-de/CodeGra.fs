@@ -1,9 +1,9 @@
 <template>
 <div class="cgfs-options">
-    <cgfs-option v-if="config != null"
+    <cgfs-option v-if="internalConfig != null"
                  v-for="option in options"
-                 :key="option.label"
-                 v-model="config[option.label]"
+                 :key="option.key"
+                 v-model="internalConfig[option.key]"
                  :option="option"
                  @keydown.ctrl.enter="start"/>
 
@@ -21,7 +21,7 @@
              variant="danger"
              show>
         <ul class="errors">
-            <li v-for="error in errors">
+            <li v-for="error, i in errors" :key="i">
                 {{ error }}
             </li>
         </ul>
@@ -30,11 +30,7 @@
 </template>
 
 <script>
-import {
-    ensureDirectory,
-    readConfig,
-    writeConfig,
-} from '@/utils/config';
+import { mapActions, mapGetters } from 'vuex';
 
 import CgfsOption from '@/components/CgfsOption';
 
@@ -50,58 +46,71 @@ export default {
 
     data() {
         return {
-            config: null,
+            internalConfig: null,
             errors: [],
         };
     },
 
+    computed: {
+        ...mapGetters('Config', ['config']),
+
+        cgfsArgs() {
+            const conf = this.internalConfig;
+            const args = [
+                '--url', conf.institution,
+                '--password', conf.password,
+            ];
+
+            switch (conf.verbosity) {
+                case 'verbose':
+                    args.push('--verbose');
+                    break;
+                case 'quiet':
+                    args.push('--quiet');
+                    break;
+                default:
+                    break;
+            }
+
+            if (conf.options.assigned) {
+                args.push('--assigned-to-me');
+            }
+
+            if (!conf.options.latest) {
+                args.push('--all-submissions');
+            }
+
+            if (!conf.options.revision) {
+                args.push('--fixed');
+            }
+
+            args.push(conf.username);
+            args.push(conf.mountpoint);
+
+            return args;
+        },
+    },
+
+    watch: {
+        config() {
+            const password = this.internalConfig ? this.internalConfig.pasword : '';
+            this.internalConfig = Object.assign({}, this.config, { password });
+        },
+    },
+
     mounted() {
-        readConfig().then(this.setConfig);
+        this.initConfig(this.options);
     },
 
     methods: {
-        setConfig(config) {
-            // eslint-disable-next-line
-            for (const option of this.options) {
-                if (config[option.label] == null) {
-                    config[option.label] = option.default || '';
-                }
-            }
-
-            if (process.env.NODE_ENV === 'development') {
-                // Always use the localhost:8080 route.
-                config[this.options[0].label] = this.options[0].options[0].value;
-            }
-
-            this.config = config;
-        },
-
-        ensureOptionValid(option) {
-            if (option.required && !this.config[option.label]) {
-                return new Error(`"${option.label}" is required.`);
-            }
-
-            return null;
-        },
-
-        ensureConfigValid() {
-            const errors = this.options
-                .map(this.ensureOptionValid)
-                .filter(err => err);
-
-            if (errors.length) {
-                return Promise.reject(errors);
-            } else {
-                return ensureDirectory(this.config['Mount point'], true);
-            }
-        },
+        ...mapActions('Config', ['initConfig', 'writeConfig']),
 
         start() {
-            this.ensureConfigValid().then(
-                () => writeConfig(this.config),
-            ).then(
-                () => this.$emit('start', this.config),
-            ).catch(
+            this.writeConfig({
+                config: this.internalConfig,
+                options: this.options,
+            }).then(
+                () => this.$emit('start', this.cgfsArgs),
                 err => {
                     this.errors = err instanceof Array ? err : [err];
                 },
