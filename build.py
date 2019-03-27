@@ -9,11 +9,10 @@ if sys.platform.startswith('win32'):
     subprocess.check_call(
         [
             'pyinstaller',
-            os.path.join('codegra_fs', 'gui.py'),
+            os.path.join('codegra_fs', 'cgfs.py'),
             '--onefile',
             '--icon',
-            os.path.join('static', 'ms-icon.ico'),
-            '--noconsole',
+            os.path.join('static', 'icons', 'ms-icon.ico'),
         ]
     )
     subprocess.check_call(
@@ -25,17 +24,11 @@ if sys.platform.startswith('win32'):
             'cgapi-consumer',
         ]
     )
-    subprocess.check_call(
-        [
-            os.path.join(
-                'C:\\',
-                'Program Files (x86)',
-                'NSIS',
-                'makensis.exe',
-            ),
-            'installer.nsi',
-        ]
-    )
+    # subprocess.check_call(
+    #     [
+    #         'npm', 'run', 'build:win',
+    #     ]
+    # )
 elif sys.platform.startswith('linux'):
     subprocess.check_call(['python3', 'sdist', 'bdist_wheel'])
     print("""You can now upload this dist to pypi using:

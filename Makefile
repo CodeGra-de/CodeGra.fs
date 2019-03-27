@@ -24,4 +24,4 @@ test_quick: test
 
 .PHONY: gui
 gui:
-	cd gui; npm run dev
+	npm run dev

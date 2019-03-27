@@ -8,10 +8,11 @@
   "scripts": {
     "build": "node .electron-vue/build.js && electron-builder",
     "build:mac": "node .electron-vue/build.js && electron-builder --mac",
-    "build:win": "node .electron-vue/build.js && electron-builder --win",
+    "build:win": "node .electron-vue/build.js && electron-builder --win --x64 --ia32",
     "build:dir": "node .electron-vue/build.js && electron-builder --dir",
     "build:clean": "cross-env BUILD_TARGET=clean node .electron-vue/build.js",
     "build:web": "cross-env BUILD_TARGET=web node .electron-vue/build.js",
+    "build:only": "electron-builder",
     "dev": "node .electron-vue/dev-runner.js",
     "e2e": "npm run pack && mocha test/e2e",
     "lint": "eslint --ext .js,.vue -f ./node_modules/eslint-friendly-formatter src test",
@@ -24,10 +25,7 @@
   },
   "build": {
     "productName": "CodeGrade Filesystem",
-    "appId": "CodeGrade Filesystem",
-    "directories": {
-      "output": "build"
-    },
+    "appId": "com.codegrade.codegrade-fs",
     "files": [
       "dist/electron/**/*"
     ],
@@ -47,13 +45,35 @@
       ]
     },
     "mac": {
-      "icon": "build/icons/icon.icns"
+      "icon": "static/icons/icon.icns"
     },
     "win": {
-      "icon": "build/icons/icon.ico"
+      "icon": "static/icons/ms-icon.ico",
+      "extraFiles": [
+        {
+          "from": "dist/cgfs.exe",
+          "to": "cgfs.exe"
+        },
+        {
+          "from": "dist/cgapi-consumer",
+          "to": "cgapi-consumer"
+        }
+      ],
+      "asarUnpack": [
+        "cgfs.exe",
+        "cgapi-consumer"
+      ]
+    },
+    "nsis": {
+      "include": "build/installer.nsh",
+      "license": "LICENSE",
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "warningsAsErrors": false
     },
     "linux": {
-      "icon": "build/icons"
+      "icon": "static/icons"
     }
   },
   "dependencies": {

@@ -10,3 +10,13 @@ mount/
 /dist/
 docs/_build/
 .mypy_cache/
+*~
+*.swp
+/build/*
+!/build/*.nsh
+coverage
+node_modules/
+npm-debug.log
+npm-debug.log.*
+thumbs.db
+!.gitkeep
