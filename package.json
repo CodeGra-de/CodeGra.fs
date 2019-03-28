@@ -57,11 +57,11 @@
         {
           "from": "dist/cgapi-consumer",
           "to": "cgapi-consumer"
+        },
+        {
+          "from": "dist/winfsp.msi",
+          "to": "winfsp.msi"
         }
-      ],
-      "asarUnpack": [
-        "cgfs.exe",
-        "cgapi-consumer"
       ]
     },
     "nsis": {
