@@ -8,29 +8,31 @@ import requests
 
 if sys.platform.startswith('win32'):
     os.chdir(os.path.dirname(__file__))
-    # subprocess.check_call(
-    #     [
-    #         'pyinstaller',
-    #         os.path.join('codegra_fs', 'cgfs.py'),
-    #         '--onefile',
-    #         '--icon',
-    #         os.path.join('static', 'icons', 'ms-icon.ico'),
-    #     ]
-    # )
-    # subprocess.check_call(
-    #     [
-    #         'pyinstaller',
-    #         os.path.join('codegra_fs', 'api_consumer.py'),
-    #         '--onedir',
-    #         '--name',
-    #         'cgapi-consumer',
-    #     ]
-    # )
+    subprocess.check_call(
+        [
+            'pyinstaller',
+            os.path.join('codegra_fs', 'cgfs.py'),
+            '--onedir',
+	    '--name',
+	    'cgfs',
+            '--icon',
+            os.path.join('static', 'icons', 'ms-icon.ico'),
+        ]
+    )
+    subprocess.check_call(
+        [
+            'pyinstaller',
+            os.path.join('codegra_fs', 'api_consumer.py'),
+            '--onedir',
+            '--name',
+            'cgapi-consumer',
+        ]
+    )
 
-    # url = 'https://github.com/billziss-gh/winfsp/releases/download/v1.4/winfsp-1.4.19016.msi'
-    # print('Downloading winfsp installer from', url)
-    # r = requests.get(url, allow_redirects=True)
-    # open('dist/winfsp.msi', 'wb').write(r.content)
+    url = 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
+    r = requests.get(url, allow_redirects=True)
+    r.raise_for_status()
+    open('dist/winfsp.msi', 'wb').write(r.content)
 
     subprocess.check_call(
         [
@@ -41,7 +43,7 @@ if sys.platform.startswith('win32'):
                 'npm',
             ),
             'run', 
-            'build:only',
+            'build:win',
         ],
         shell=True,
     )

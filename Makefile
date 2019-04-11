@@ -22,6 +22,10 @@ test:
 test_quick: TEST_FLAGS += -x
 test_quick: test
 
+.PHONY: build
+build:
+	python ./build.py
+
 .PHONY: gui
 gui:
 	npm run dev

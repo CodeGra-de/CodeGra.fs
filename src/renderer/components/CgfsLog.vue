@@ -10,7 +10,7 @@
     <div class="control">
         <b-button variant="primary"
                 class="stop-button"
-                @click="stop(true)">
+                @click="stop(!proc)">
             <span v-if="proc">Stop</span>
             <span v-else>Back</span>
         </b-button>
@@ -49,7 +49,7 @@ export default {
             proc.stderr.on('data', this.addEvents);
 
             proc.on('close', () => {
-                this.addEvents('The process has been killed.');
+                this.addEvents('INFO: The process has been killed.');
                 this.proc = null;
             });
 
@@ -59,6 +59,7 @@ export default {
         stop(goBack) {
             if (this.proc != null) {
                 this.proc.kill();
+                this.proc = null;
             }
 
             if (goBack) {
@@ -85,6 +86,7 @@ export default {
                     });
                 } else if (this.events.length) {
                     this.events[this.events.length - 1].event += `\n${event}`;
+                    this.events = this.events;
                 } else {
                     this.events.push({
                         event,

@@ -106,11 +106,12 @@ export default {
         ...mapActions('Config', ['initConfig', 'writeConfig']),
 
         start() {
+            const args = this.cgfsArgs;
             this.writeConfig({
                 config: this.internalConfig,
                 options: this.options,
             }).then(
-                () => this.$emit('start', this.cgfsArgs),
+                () => this.$emit('start', args),
                 err => {
                     this.errors = err instanceof Array ? err : [err];
                 },

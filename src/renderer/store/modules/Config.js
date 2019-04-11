@@ -30,11 +30,24 @@ function mkdir(dir) {
     );
 }
 
-function ensureDirectory(dir) {
-    return fs.stat(dir).then(
+function ensureParentDirectory(dir) {
+    const parent = path.dirname(dir);
+    return fs.stat(parent).then(
         stat => checkDirectory(stat, dir),
-        () => confirmMkdir(dir).then(mkdir),
-    ).then(() => dir);
+        () => confirmMkdir(parent).then(mkdir),
+    );
+}
+
+function ensureDirectoryAvailable(dir) {
+    // Check that parent exists, but not dir itself, as we will create it.
+    return ensureParentDirectory(dir).then(() =>
+        fs.stat(dir).then(
+            () => {
+                throw new Error(`"${dir}" exists while it should not.`);
+            },
+            () => dir,
+        ),
+    );
 }
 
 function ensureOptionValid(config, option) {
@@ -53,7 +66,7 @@ function ensureConfigValid(config, options) {
     if (errors.length) {
         return Promise.reject(errors);
     } else {
-        return ensureDirectory(config.mountpoint);
+        return ensureDirectoryAvailable(config.mountpoint);
     }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "codegrade-fs",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "author": "CodeGrade",
   "description": "The CodeGrade filesystem",
   "license": null,
@@ -48,11 +48,12 @@
       "icon": "static/icons/icon.icns"
     },
     "win": {
+      "forceCodeSigning": true,
       "icon": "static/icons/ms-icon.ico",
       "extraFiles": [
         {
-          "from": "dist/cgfs.exe",
-          "to": "cgfs.exe"
+          "from": "dist/cgfs",
+          "to": "cgfs"
         },
         {
           "from": "dist/cgapi-consumer",
