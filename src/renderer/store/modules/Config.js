@@ -31,10 +31,7 @@ function mkdir(dir) {
 function ensureDirectory(dir) {
     return fs
         .stat(dir)
-        .then(
-            stat => checkDirectory(stat, dir),
-            () => confirmMkdir(dir).then(mkdir),
-        );
+        .then(stat => checkDirectory(stat, dir), () => confirmMkdir(dir).then(mkdir));
 }
 
 function ensureValidMountpoint(dir) {

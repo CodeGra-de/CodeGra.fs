@@ -1,5 +1,5 @@
 <template>
-    <b-form class="cgfs-options">
+    <b-form class="cgfs-options" @keyup.ctrl.enter="start">
         <cgfs-option
             v-model="internalConfig.institution"
             :option="options.institution"
@@ -41,7 +41,7 @@
             <cgfs-option v-model="internalConfig.verbosity" :option="options.verbosity" />
         </advanced-collapse>
 
-        <b-button variant="primary" class="start-button" @click="start">
+        <b-button class="start-button" variant="primary" @click="start">
             Start
         </b-button>
     </b-form>
