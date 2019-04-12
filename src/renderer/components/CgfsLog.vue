@@ -2,7 +2,7 @@
     <div class="cgfs-log">
         <div ref="output" class="output">
             <b-alert v-for="(event, i) in events" :key="i" :variant="event.variant" show>{{
-                event.event
+                event.message
             }}</b-alert>
         </div>
 
@@ -17,6 +17,8 @@
 
 <script>
 import childProcess from 'child_process';
+
+const MAX_EVENTS = 1000;
 
 export default {
     name: 'cgfs-log',
@@ -46,7 +48,10 @@ export default {
             proc.stderr.on('data', this.addEvents);
 
             proc.on('close', () => {
-                this.addEvents('INFO: The process has been killed.');
+                this.addEvent(
+                    'The CodeGrade Filesystem has shut down.',
+                    'info',
+                );
                 this.proc = null;
             });
 
@@ -65,38 +70,22 @@ export default {
         },
 
         addEvents(data) {
-            const events = data
-                .split('\n')
-                .map(event => event)
-                .filter(event => event.trim());
+            const events = data.split('\n');
 
-            for (const event of events) {
-                if (event.slice(0, 4) === 'INFO') {
-                    this.events.push({
-                        event,
-                        variant: 'info',
-                    });
-                } else if (event.slice(0, 7) === 'WARNING') {
-                    this.events.push({
-                        event,
-                        variant: 'warning',
-                    });
-                } else if (event.slice(0, 5) === 'DEBUG') {
-                    const variant = event.match(/error/i) ? 'danger' : 'secondary';
-                    this.events.push({
-                        event,
-                        variant,
-                    });
-                } else if (this.events.length) {
-                    this.events[this.events.length - 1].event += `\n${event}`;
-                    this.events = this.events;
-                } else {
-                    this.events.push({
-                        event,
-                        variant: 'primary',
-                    });
+            for (let event of events) {
+                try {
+                    event = JSON.parse(event);
+                } catch (e) {
+                    break;
                 }
+
+                this.addEvent(event.msg, this.getVariant(event.levelname));
             }
+        },
+
+        addEvent(message, variant = 'info') {
+            this.events.push({ message, variant });
+            this.events = this.events.slice(-MAX_EVENTS);
 
             this.$nextTick(() => {
                 const out = this.$refs.output;
@@ -104,6 +93,16 @@ export default {
                     out.scrollTop = out.scrollHeight;
                 }
             });
+        },
+
+        getVariant(logLevel) {
+            return {
+                DEBUG: 'secondary',
+                INFO: 'info',
+                WARNING: 'warning',
+                ERROR: 'danger',
+                CRITICAL: 'danger',
+            }[logLevel] || 'info';
         },
     },
 

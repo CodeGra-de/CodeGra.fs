@@ -17,6 +17,7 @@ import datetime
 import tempfile
 import threading
 import traceback
+import logging.config
 from os import O_EXCL, O_CREAT, O_TRUNC, path, getenv
 from enum import IntEnum
 from stat import S_IFDIR, S_IFREG
@@ -27,6 +28,62 @@ from errno import (  # type: ignore
 from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+
+
+cgapi = None  # type: t.Optional[CGAPI]
+
+fuse_ptr = None
+
+CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
+
+T = t.TypeVar('T')
+
+
+class JsonFormatter(logging.Formatter):
+    ATTR_TO_JSON = set([
+        'created',
+        'filename',
+        'funcName',
+        'levelname',
+        'lineno',
+        'module',
+        'msecs',
+        'msg',
+        'name',
+        'pathname',
+        'process',
+        'processName',
+        'relativeCreated',
+        'thread',
+        'threadName',
+    ])
+
+    def format(self, record):
+        obj = {
+            attr: getattr(record, attr)
+            for attr in self.ATTR_TO_JSON
+        }
+        obj['msg'] = obj['msg'] % record.args
+        return json.dumps(obj, separators=(',', ':'))
+
+logging.config.dictConfig({
+    'version': 1,
+    'formatters': {
+        'json': {
+            '()': JsonFormatter,
+        },
+    },
+    'handlers': {
+        'json': {
+            '()': logging.StreamHandler,
+            'formatter': 'json',
+        },
+    },
+    'root': {
+        'handlers': ['json'],
+    },
+})
+logger = logging.getLogger(__name__)
 
 import codegra_fs
 import codegra_fs.constants as constants
@@ -39,23 +96,11 @@ try:
         import cffi
         import winfspy
 except:
-
     class Operations:  # type: ignore
         pass
 
     class LoggingMixIn:  # type: ignore
         pass
-
-
-cgapi = None  # type: t.Optional[CGAPI]
-
-fuse_ptr = None
-
-CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
-
-T = t.TypeVar('T')
-
-logger = logging.getLogger(__name__)
 
 try:
     # Python 3.5 doesn't support the syntax below
@@ -2002,11 +2047,11 @@ def create_and_mount_fs(
         raise
 
     if not fixed:
-        logger.warning('=====================================================')
-        logger.warning('Mounting in non-fixed mode, all changes will be')
-        logger.warning('visible and additions to students.')
-        logger.warning('Watch out when uploading grading scripts!')
-        logger.warning('=====================================================')
+        logger.warning('''=====================================================
+Mounting in non-fixed mode, all changes will be
+visible and additions to students.
+Watch out when uploading grading scripts!
+=====================================================''')
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
@@ -2053,7 +2098,7 @@ def create_and_mount_fs(
                 fs.api_handler.stop = True
             if os.path.isfile(sockfile):
                 os.unlink(sockfile)
-            if os.path.exists(mountpoint):
+            if sys.platform != 'win32' and os.path.exists(mountpoint):
                 os.rmdir(mountpoint)
 
 
@@ -2200,11 +2245,16 @@ def main() -> None:
     assigned_only = args.assigned_only
 
     if args.quiet:
-        logging.basicConfig(level=logging.WARNING)
+        log_level = logging.WARNING
     elif args.debug:
-        logging.basicConfig(level=logging.DEBUG)
+        log_level = logging.DEBUG
     else:
-        logging.basicConfig(level=logging.INFO)
+        log_level = logging.INFO
+    logging.config.dictConfig({
+        'version': 1,
+        'incremental': True,
+        'root': { 'level': log_level },
+    })
 
     create_and_mount_fs(
         username=username,
