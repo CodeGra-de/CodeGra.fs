@@ -174,6 +174,7 @@ export default {
 
 .start-button {
     float: right;
+    margin-bottom: 1rem;
 }
 </style>
 
