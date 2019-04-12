@@ -21,7 +21,9 @@
     "pack:main": "cross-env NODE_ENV=production webpack --progress --colors --config .electron-vue/webpack.main.config.js",
     "pack:renderer": "cross-env NODE_ENV=production webpack --progress --colors --config .electron-vue/webpack.renderer.config.js",
     "test": "npm run unit && npm run e2e",
-    "unit": "karma start test/unit/karma.conf.js"
+    "unit": "karma start test/unit/karma.conf.js",
+    "format": "prettier-eslint --use-tabs false --tab-width 4 --trailing-comma all --single-quote true --write src/\\*\\*/\\*.{vue,js,less}",
+    "check-format": "prettier-eslint --use-tabs false --tab-width 4 --trailing-comma all --single-quote true --list-different src/\\*\\*/\\*.{vue,js,less}"
   },
   "build": {
     "productName": "CodeGrade Filesystem",

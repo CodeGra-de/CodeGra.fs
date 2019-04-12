@@ -23,50 +23,50 @@ function checkDirectory(stat, dir) {
 }
 
 function mkdir(dir) {
-    return fs.stat(dir).then(
-        stat => checkDirectory(stat, dir),
-        () => mkdir(path.dirname(dir))
-            .then(() => fs.mkdir(dir)),
-    );
+    return fs.mkdir(dir, {
+        recursive: true,
+    });
 }
 
-function ensureParentDirectory(dir) {
-    const parent = path.dirname(dir);
-    return fs.stat(parent).then(
-        stat => checkDirectory(stat, dir),
-        () => confirmMkdir(parent).then(mkdir),
-    );
+function ensureDirectory(dir) {
+    return fs
+        .stat(dir)
+        .then(
+            stat => checkDirectory(stat, dir),
+            () => confirmMkdir(dir).then(mkdir),
+        );
 }
 
-function ensureDirectoryAvailable(dir) {
-    // Check that parent exists, but not dir itself, as we will create it.
-    return ensureParentDirectory(dir).then(() =>
-        fs.stat(dir).then(
+function ensureValidMountpoint(dir) {
+    // Check that argument is a directory that:
+    // 1. (on Windows) has no child named "CodeGrade".
+    // 2. (on other systems) has no child named "CodeGrade" or has
+    //    a child named "CodeGrade" that is an empty directory.
+    const mountPoint = path.join(dir, 'CodeGrade');
+    return ensureDirectory(dir).then(() =>
+        fs.stat(mountPoint).then(
             () => {
-                throw new Error(`"${dir}" exists while it should not.`);
+                throw new Error(`"${mountPoint}" already exists!`);
             },
-            () => dir,
+            () => mountPoint,
         ),
     );
 }
 
-function ensureOptionValid(config, option) {
-    if (option.required && !config[option.key]) {
-        return new Error(`"${option.label}" is required.`);
-    }
+function validateConfig(config, options) {
+    const errors = Object.entries(options).reduce((res, [key, spec]) => {
+        if (spec.required && !config[key]) {
+            res[key] = new Error(`"${spec.label}" is required.`);
+        }
+        return res;
+    }, {});
 
-    return null;
-}
-
-function ensureConfigValid(config, options) {
-    const errors = options
-        .map(option => ensureOptionValid(config, option))
-        .filter(err => err);
-
-    if (errors.length) {
+    if (Object.keys(errors).length) {
         return Promise.reject(errors);
     } else {
-        return ensureDirectoryAvailable(config.mountpoint);
+        return ensureValidMountpoint(config.mountpoint).catch(err =>
+            Promise.reject({ mountpoint: err }),
+        );
     }
 }
 
@@ -88,24 +88,17 @@ const actions = {
     initConfig({ commit, state }, options) {
         const config = Object.assign({}, state.config);
 
-        for (const option of options) {
-            if (config[option.key] == null) {
-                config[option.key] = option.default || '';
+        for (const key in options) {
+            if (config[key] == null) {
+                config[key] = options[key].default || '';
             }
-        }
-
-        if (process.env.NODE_ENV === 'development') {
-            // Default to localhost:8080 route.
-            config[options[0].key] = options[0].options[0].value;
         }
 
         return commit('SET_CONFIG', config);
     },
 
     writeConfig({ commit }, { config, options }) {
-        return ensureConfigValid(config, options).then(
-            () => commit('SET_CONFIG', config),
-        );
+        return validateConfig(config, options).then(() => commit('SET_CONFIG', config));
     },
 };
 

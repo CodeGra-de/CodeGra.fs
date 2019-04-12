@@ -10,6 +10,7 @@ install_deps:
 .PHONY: format
 format:
 	yapf -rip *.py
+	npm run format
 
 .PHONY: test
 test:

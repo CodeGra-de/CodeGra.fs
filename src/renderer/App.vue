@@ -1,16 +1,10 @@
 <template>
-<div id="app" class="container-fluid">
-    <img class="logo"
-         src="~@/assets/codegrade-fs.png"
-         alt="CodeGrade Filesystem"/>
+    <div id="app" class="container-fluid">
+        <img class="logo" src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
 
-    <cgfs-options v-if="args == null"
-                  :options="options"
-                  @start="start"/>
-    <cgfs-log v-else
-              :args="args"
-              @stop="stop"/>
-</div>
+        <cgfs-options v-if="args == null" :options="options" @start="start" />
+        <cgfs-log v-else :args="args" @stop="stop" />
+    </div>
 </template>
 
 <script>
@@ -24,9 +18,8 @@ export default {
     name: 'codegrade-fs',
 
     data() {
-        const options = [
-            {
-                key: 'institution',
+        const options = {
+            institution: {
                 label: 'Institution',
                 required: true,
                 type: 'select',
@@ -47,33 +40,41 @@ export default {
                         text: 'Universiteit van Amsterdam (uva.codegra.de)',
                         value: 'https://uva.codegra.de/api/v1/',
                     },
+                    {
+                        text: 'Custom',
+                        value: 'custom',
+                    },
                 ],
                 help: 'Choose your institution.',
             },
-            {
-                key: 'username',
+            customInstitution: {
+                label: 'Custom CodeGrade URL',
+                required: false,
+                type: 'text',
+                help:
+                    'URL to the CodeGrade API. Should start with "https://" and end in "/api/v1/"',
+            },
+            username: {
                 label: 'Username',
                 required: true,
                 type: 'text',
                 help: 'Your CodeGrade username.',
             },
-            {
-                key: 'password',
+            password: {
                 label: 'Password',
                 required: true,
                 type: 'password',
                 help: 'Your CodeGrade password.',
             },
-            {
-                key: 'mountpoint',
-                label: 'Mount point',
+            mountpoint: {
+                label: 'Location',
                 required: true,
                 type: 'directory',
-                default: path.join(os.homedir(), 'Desktop', 'CodeGrade'),
-                help: 'Mountpoint for the file system. This should be an existing empty directory.',
+                default: path.join(os.homedir(), 'Desktop'),
+                help:
+                    'Location of the CodeGrade Filesystem folder. This should be a directory that has no children called "CodeGrade".',
             },
-            {
-                key: 'options',
+            options: {
                 label: 'Options',
                 required: false,
                 type: 'checkbox',
@@ -83,13 +84,15 @@ export default {
                         label: 'Revision',
                         default: false,
                         // TODO: Fix help
-                        help: 'Mount the original files as read only. It is still possible to create new files, but it is not possible to alter or delete existing files. The files shown are always the student revision files. The created new files are only visible during a single session, they are **NOT** uploaded to the server.',
+                        help:
+                            'Mount the original files as read only. It is still possible to create new files, but it is not possible to alter or delete existing files. The files shown are always the student revision files. The created new files are only visible during a single session, they are **NOT** uploaded to the server.',
                     },
                     {
                         key: 'assigned',
                         label: 'Assigned',
                         default: true,
-                        help: 'Only show submissions that are assigned to you. This only has effect if submissions are assigned and you are one of the assignees.',
+                        help:
+                            'Only show submissions that are assigned to you. This only has effect if submissions are assigned and you are one of the assignees.',
                     },
                     {
                         key: 'latest',
@@ -101,8 +104,7 @@ export default {
                 ],
                 default: {},
             },
-            {
-                key: 'verbosity',
+            verbosity: {
                 label: 'Verbosity',
                 required: false,
                 type: 'radio',
@@ -122,10 +124,10 @@ export default {
                 ],
                 default: 'quiet',
             },
-        ];
+        };
 
         if (process.env.NODE_ENV === 'development') {
-            options[0].options.unshift({
+            options.institution.options.unshift({
                 text: 'Development (localhost:8080)',
                 value: 'http://localhost:8080/api/v1/',
             });
@@ -148,11 +150,15 @@ export default {
             popoverVisible = false;
         });
 
-        document.addEventListener('click', event => {
-            if (!event.target.closest('.popover-body') && popoverVisible) {
-                this.$root.$emit('bv::hide::popover');
-            }
-        }, true);
+        document.addEventListener(
+            'click',
+            event => {
+                if (!event.target.closest('.popover-body') && popoverVisible) {
+                    this.$root.$emit('bv::hide::popover');
+                }
+            },
+            true,
+        );
     },
 
     methods: {

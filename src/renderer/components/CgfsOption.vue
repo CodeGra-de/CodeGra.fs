@@ -1,56 +1,66 @@
 <template>
-<b-form-group class="cgfs-option"
-              @keydown.native="$emit('keydown', $event)">
-    <template slot="label">
-        {{ option.label }}
+    <b-form-group
+        class="cgfs-option"
+        :state="!error"
+        :invalid-feedback="error && error.message"
+        @keydown.native="$emit('keydown', $event)"
+    >
+        <template slot="label">
+            {{ option.label }}
 
-        <span v-if="option.required"
-              class="text-muted">
-            *
-        </span>
+            <span v-if="option.required" class="text-muted">
+                *
+            </span>
 
-        <help-popover v-if="option.help"
-                      :help="option.help"/>
-    </template>
+            <help-popover v-if="option.help" :help="option.help" />
+        </template>
 
-    <b-form-input v-if="option.type in { text: 0, password: 0 }"
-                  v-model="internal"
-                  :type="option.type"/>
+        <b-form-input
+            v-if="option.type in { text: 0, password: 0 }"
+            v-model="internal"
+            :type="option.type"
+        />
 
-    <b-form-select v-else-if="option.type === 'select'"
-                   v-model="internal"
-                   :options="option.options"/>
+        <b-form-select
+            v-else-if="option.type === 'select'"
+            v-model="internal"
+            :options="option.options"
+        />
 
-    <b-form-file v-else-if="option.type === 'directory'"
-                 v-model="internal"
-                 :placeholder="internal"
-                 directory/>
+        <b-form-file
+            v-else-if="option.type === 'directory'"
+            v-model="internal"
+            :placeholder="internal"
+            directory
+        />
 
-    <b-input-group v-else-if="option.type === 'checkbox'">
-        <b-form-checkbox v-for="suboption in option.options"
-                         :key="suboption.key"
-                         v-model="internal[suboption.key]"
-                         class="form-control">
-            {{ suboption.label }}
+        <b-input-group v-else-if="option.type === 'checkbox'">
+            <b-form-checkbox
+                v-for="suboption in option.options"
+                :key="suboption.key"
+                v-model="internal[suboption.key]"
+                class="form-control"
+            >
+                {{ suboption.label }}
 
-            <help-popover v-if="suboption.help"
-                          :help="suboption.help"/>
-        </b-form-checkbox>
-    </b-input-group>
+                <help-popover v-if="suboption.help" :help="suboption.help" />
+            </b-form-checkbox>
+        </b-input-group>
 
-    <b-input-group v-else-if="option.type === 'radio'">
-        <b-form-radio v-for="suboption in option.options"
-                      :key="suboption.value"
-                      v-model="internal"
-                      :value="suboption.value"
-                      class="form-control">
-            {{ suboption.label }}
+        <b-input-group v-else-if="option.type === 'radio'">
+            <b-form-radio
+                v-for="suboption in option.options"
+                :key="suboption.value"
+                v-model="internal"
+                :value="suboption.value"
+                class="form-control"
+            >
+                {{ suboption.label }}
 
-            <help-popover v-if="suboption.help"
-                          :help="suboption.help"/>
-        </b-form-radio>
-    </b-input-group>
-</b-form-group>
+                <help-popover v-if="suboption.help" :help="suboption.help" />
+            </b-form-radio>
+        </b-input-group>
+    </b-form-group>
 </template>
 
 <script>
@@ -68,6 +78,11 @@ export default {
         option: {
             type: Object,
             required: true,
+        },
+
+        error: {
+            type: Error,
+            default: null,
         },
     },
 

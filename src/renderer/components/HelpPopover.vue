@@ -1,19 +1,15 @@
 <template>
-<span :id="compId"
-      class="help-popover text-muted"
-      @click.prevent.stop>
-    <b-popover triggers="click"
-               placement="left"
-               :target="compId">
-        <div class="help-popover-content">
-            <slot>{{ help }}</slot>
-        </div>
-    </b-popover>
+    <span :id="compId" class="help-popover text-muted" @click.prevent.stop>
+        <b-popover triggers="click" placement="left" :target="compId">
+            <div class="help-popover-content">
+                <slot>{{ help }}</slot>
+            </div>
+        </b-popover>
 
-    <span title="Click to show help">
-        <icon name="info-circle" scale="0.875"/>
+        <span title="Click to show help">
+            <icon name="info-circle" scale="0.875" />
+        </span>
     </span>
-</span>
 </template>
 
 <script>

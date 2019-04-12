@@ -35,5 +35,6 @@ module.exports = {
         'import/prefer-default-export': 'off',
         'no-restricted-syntax': 0,
         'no-alert': 0,
+        'prefer-promise-reject-errors': 'off',
     },
 };

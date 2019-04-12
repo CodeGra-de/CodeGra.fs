@@ -13,7 +13,8 @@ if sys.version_info < (3, 5):
     sys.exit(1)
 
 requires = [
-    'requests>=2.20.0', 'fusepy>3.0.0,<4.0.0',
+    'requests>=2.20.0',
+    'fusepy>3.0.0,<4.0.0',
 ]
 if sys.platform.startswith('win32'):
     requires += [

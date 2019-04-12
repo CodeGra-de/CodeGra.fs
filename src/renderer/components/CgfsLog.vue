@@ -1,21 +1,18 @@
 <template>
-<div class="cgfs-log">
-    <div ref="output" class="output">
-        <b-alert v-for="event, i in events"
-                 :key="i"
-                 :variant="event.variant"
-                 show>{{ event.event }}</b-alert>
-    </div>
+    <div class="cgfs-log">
+        <div ref="output" class="output">
+            <b-alert v-for="(event, i) in events" :key="i" :variant="event.variant" show>{{
+                event.event
+            }}</b-alert>
+        </div>
 
-    <div class="control">
-        <b-button variant="primary"
-                class="stop-button"
-                @click="stop(!proc)">
-            <span v-if="proc">Stop</span>
-            <span v-else>Back</span>
-        </b-button>
+        <div class="control">
+            <b-button variant="primary" class="stop-button" @click="stop(!proc)">
+                <span v-if="proc">Stop</span>
+                <span v-else>Back</span>
+            </b-button>
+        </div>
     </div>
-</div>
 </template>
 
 <script>
@@ -68,7 +65,8 @@ export default {
         },
 
         addEvents(data) {
-            const events = data.split('\n')
+            const events = data
+                .split('\n')
                 .map(event => event)
                 .filter(event => event.trim());
 
@@ -77,6 +75,11 @@ export default {
                     this.events.push({
                         event,
                         variant: 'info',
+                    });
+                } else if (event.slice(0, 7) === 'WARNING') {
+                    this.events.push({
+                        event,
+                        variant: 'warning',
                     });
                 } else if (event.slice(0, 5) === 'DEBUG') {
                     const variant = event.match(/error/i) ? 'danger' : 'secondary';

@@ -1975,6 +1975,18 @@ def create_and_mount_fs(
     rubric_append_only: bool,
 ) -> None:
     global cgapi
+
+    if sys.platform != 'win32':
+        if os.path.exists(mountpoint):
+            logger.critical('Mountpoint already exists!')
+            return
+
+        try:
+            os.mkdir(mountpoint)
+        except:
+            logger.critical('Could not create mountpoint')
+            return
+
     logger.info('Mounting... ')
 
     try:
@@ -2041,6 +2053,8 @@ def create_and_mount_fs(
                 fs.api_handler.stop = True
             if os.path.isfile(sockfile):
                 os.unlink(sockfile)
+            if os.path.exists(mountpoint):
+                os.rmdir(mountpoint)
 
 
 def check_version() -> None:

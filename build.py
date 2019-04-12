@@ -13,8 +13,8 @@ if sys.platform.startswith('win32'):
             'pyinstaller',
             os.path.join('codegra_fs', 'cgfs.py'),
             '--onedir',
-	    '--name',
-	    'cgfs',
+            '--name',
+            'cgfs',
             '--icon',
             os.path.join('static', 'icons', 'ms-icon.ico'),
         ]
@@ -42,16 +42,18 @@ if sys.platform.startswith('win32'):
                 'nodejs',
                 'npm',
             ),
-            'run', 
+            'run',
             'build:win',
         ],
         shell=True,
     )
 elif sys.platform.startswith('linux'):
     subprocess.check_call(['python3', 'sdist', 'bdist_wheel'])
-    print("""You can now upload this dist to pypi using:
+    print(
+        """You can now upload this dist to pypi using:
 
     `twine upload dist/*`
-    """)
+    """
+    )
 else:
     print('Your platform cannot build cgfs yet')
