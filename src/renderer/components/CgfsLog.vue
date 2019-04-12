@@ -108,10 +108,14 @@ export default {
 
     mounted() {
         this.start();
+
+        window.addEventListener('beforeunload', this.stop);
     },
 
     destroyed() {
         this.stop();
+
+        window.removeEventListener('beforeunload', this.stop);
     },
 };
 </script>

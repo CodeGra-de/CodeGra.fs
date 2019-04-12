@@ -163,7 +163,7 @@ export default {
 <style lang="css" scoped>
 .cgfs-options {
     width: 100%;
-    max-width: 512px;
+    max-width: 550px;
     margin: 0 auto;
 }
 

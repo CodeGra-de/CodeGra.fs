@@ -52,19 +52,19 @@ export default {
                 required: false,
                 type: 'text',
                 help:
-                    'URL to the CodeGrade API. Should start with "https://" and end in "/api/v1/"',
+                    'URL to the CodeGrade API. Should start with "https://" and end in "/api/v1/".',
             },
             username: {
                 label: 'Username',
                 required: true,
                 type: 'text',
-                help: 'Your CodeGrade username.',
+                help: 'Your CodeGrade username. If you don\'t know your username, you can find it on the profile page.',
             },
             password: {
                 label: 'Password',
                 required: true,
                 type: 'password',
-                help: 'Your CodeGrade password.',
+                help: 'Your CodeGrade password. If you don\'t have a password, you can set one on the profile page.',
             },
             mountpoint: {
                 label: 'Location',
@@ -84,22 +84,20 @@ export default {
                         label: 'Revision',
                         default: false,
                         // TODO: Fix help
-                        help:
-                            'Mount the original files as read only. It is still possible to create new files, but it is not possible to alter or delete existing files. The files shown are always the student revision files. The created new files are only visible during a single session, they are **NOT** uploaded to the server.',
+                        help: 'Enter "revision" mode, in which the teacher can add/edit/delete student files. The student will be able to see the edits made by the teacher. When this option is turned off, files cannot be changed or deleted. New files can still be added, however they will **NOT** be synced with the CodeGrade server.',
                     },
                     {
                         key: 'assigned',
-                        label: 'Assigned',
+                        label: 'Assigned to me',
                         default: true,
                         help:
                             'Only show submissions that are assigned to you. This only has effect if submissions are assigned and you are one of the assignees.',
                     },
                     {
                         key: 'latest',
-                        label: 'Latest',
+                        label: 'Latest only',
                         default: true,
-                        // TODO: Fix help
-                        help: 'See all submissions not just the latest submissions of students.',
+                        help: 'Show only the most recent submissions of each student, rather than all submissions.',
                     },
                 ],
                 default: {},
@@ -189,7 +187,7 @@ export default {
 .logo {
     flex: 0 0 auto;
     width: 100%;
-    max-width: 512px;
+    max-width: 550px;
     margin: 0 auto 1rem;
     font-weight: 300;
 }
