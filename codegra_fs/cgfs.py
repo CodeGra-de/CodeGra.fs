@@ -2021,17 +2021,6 @@ def create_and_mount_fs(
 ) -> None:
     global cgapi
 
-    if sys.platform != 'win32':
-        if os.path.exists(mountpoint):
-            logger.critical('Mountpoint already exists!')
-            return
-
-        try:
-            os.mkdir(mountpoint)
-        except:
-            logger.critical('Could not create mountpoint')
-            return
-
     logger.info('Mounting... ')
 
     try:
@@ -2098,8 +2087,6 @@ Watch out when uploading grading scripts!
                 fs.api_handler.stop = True
             if os.path.isfile(sockfile):
                 os.unlink(sockfile)
-            if sys.platform != 'win32' and os.path.exists(mountpoint):
-                os.rmdir(mountpoint)
 
 
 def check_version() -> None:
@@ -2256,17 +2243,38 @@ def main() -> None:
         'root': { 'level': log_level },
     })
 
-    create_and_mount_fs(
-        username=username,
-        password=password,
-        url=args.url or getenv('CGAPI_BASE_URL', None),
-        fixed=fixed,
-        assigned_only=assigned_only,
-        latest_only=latest_only,
-        mountpoint=mountpoint,
-        rubric_append_only=rubric_append_only,
-    )
+    if sys.platform != 'win32':
+        if os.path.exists(mountpoint):
+            logger.critical('Mountpoint already exists!')
+            return
 
+        try:
+            os.mkdir(mountpoint)
+        except:
+            logger.critical('Could not create mountpoint')
+            return
+
+    try:
+        create_and_mount_fs(
+            username=username,
+            password=password,
+            url=args.url or getenv('CGAPI_BASE_URL', None),
+            fixed=fixed,
+            assigned_only=assigned_only,
+            latest_only=latest_only,
+            mountpoint=mountpoint,
+            rubric_append_only=rubric_append_only,
+        )
+    finally:
+        if sys.platform != 'win32':
+            try:
+                os.rmdir(mountpoint)
+            except FileNotFoundError:
+                pass
+            except Exception:
+                logger.warning(
+                    f'Could not delete mountpoint "${mountpoint}". Please delete it manually before starting the CodeGrade Filesystem the next time.',
+                )
 
 if __name__ == '__main__':
     main()
