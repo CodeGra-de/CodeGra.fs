@@ -58,7 +58,8 @@ export default {
             proc.stderr.on('data', this.addEvents);
 
             proc.on('close', () => {
-                this.addEvent('The CodeGrade Filesystem has shut down.', 'info');
+                this.addEvent('The CodeGrade Filesystem has shut down.');
+                this.scrollToLastEvent(true);
                 this.proc = null;
             });
 
@@ -83,44 +84,50 @@ export default {
 
             const events = data.split('\n');
 
-            for (let event of events) {
+            events.forEach((event, i) => {
                 try {
                     event = JSON.parse(event);
                 } catch (e) {
-                    if (event === events[events.length - 1]) {
+                    if (i === events.length - 1) {
                         this.incompleteEvent = event;
                     } else {
-                        this.addEvent( `Could not parse event: ${event}`, 'warning');
+                        this.addEvent(`Could not parse event: ${event}`, 'warning');
                     }
-                    break;
+                    return;
                 }
 
-                this.addEvent(event.msg, this.getVariant(event.levelname));
-            }
-        },
-
-        addEvent(message, variant = 'info') {
-            this.events.push({ message, variant });
-            this.events = this.events.slice(-MAX_EVENTS);
-
-            this.$nextTick(() => {
-                const out = this.$refs.output;
-                if (out) {
-                    out.scrollTop = out.scrollHeight;
-                }
-            });
-        },
-
-        getVariant(logLevel) {
-            return (
-                {
+                const variant = {
                     DEBUG: 'secondary',
                     INFO: 'info',
                     WARNING: 'warning',
                     ERROR: 'danger',
                     CRITICAL: 'danger',
-                }[logLevel] || 'info'
-            );
+                }[event.levelname];
+
+                const message = event.msg;
+
+                this.addEvent(message, variant);
+            });
+
+            this.scrollToLastEvent();
+        },
+
+        addEvent(message, variant = 'info') {
+            this.events.push({ message, variant });
+            this.events = this.events.slice(-MAX_EVENTS);
+        },
+
+        scrollToLastEvent(force = false) {
+            const out = this.$refs.output;
+
+            // Only scroll when at the bottom.
+            if (!out || (!force && out.scrollTop + out.clientHeight < out.scrollHeight)) {
+                return;
+            }
+
+            this.$nextTick(() => {
+                out.scrollTop = out.scrollHeight;
+            });
         },
     },
 
