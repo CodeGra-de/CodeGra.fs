@@ -39,6 +39,7 @@ export default {
         return {
             proc: null,
             events: [],
+            incompleteEvent: '',
         };
     },
 
@@ -76,12 +77,21 @@ export default {
         },
 
         addEvents(data) {
+            if (this.incompleteEvent) {
+                data = this.incompleteEvent + data;
+            }
+
             const events = data.split('\n');
 
             for (let event of events) {
                 try {
                     event = JSON.parse(event);
                 } catch (e) {
+                    if (event === events[events.length - 1]) {
+                        this.incompleteEvent = event;
+                    } else {
+                        this.addEvent( `Could not parse event: ${event}`, 'warning');
+                    }
                     break;
                 }
 
