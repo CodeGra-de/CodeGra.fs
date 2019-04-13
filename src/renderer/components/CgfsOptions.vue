@@ -1,5 +1,5 @@
 <template>
-    <b-form class="cgfs-options" @keyup.ctrl.enter="start">
+    <b-form v-if="internalConfig" class="cgfs-options" @keyup.ctrl.enter="start">
         <cgfs-option
             v-model="internalConfig.institution"
             :option="options.institution"
@@ -78,7 +78,7 @@ export default {
 
         cgfsArgs() {
             const conf = this.internalConfig;
-            const args = ['--password', conf.password];
+            const args = [];
 
             if (conf.institution === 'custom') {
                 args.push('--url', conf.customInstitution);
@@ -143,7 +143,10 @@ export default {
             }).then(
                 () => {
                     this.errors = {};
-                    this.$emit('start', args);
+                    this.$emit('start', {
+                        args,
+                        password: this.internalConfig.password,
+                    });
                 },
                 err => {
                     this.errors = err;

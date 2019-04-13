@@ -28,6 +28,11 @@ export default {
             type: Array,
             required: true,
         },
+
+        password: {
+            type: String,
+            required: true,
+        },
     },
 
     data() {
@@ -40,6 +45,10 @@ export default {
     methods: {
         start() {
             const proc = childProcess.spawn('cgfs', this.args);
+
+            proc.stdin.write(`${this.password}`);
+            proc.stdin.end();
+            this.$emit('clear-password');
 
             proc.stdout.setEncoding('utf-8');
             proc.stderr.setEncoding('utf-8');

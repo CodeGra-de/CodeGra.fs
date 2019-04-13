@@ -3,7 +3,7 @@
         <img class="logo" src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
 
         <cgfs-options v-if="args == null" :options="options" @start="start" />
-        <cgfs-log v-else :args="args" @stop="stop" />
+        <cgfs-log v-else :args="args" :password="password" @clear-password="password = ''" @stop="stop" />
     </div>
 </template>
 
@@ -134,6 +134,7 @@ export default {
         return {
             options,
             args: null,
+            password: '',
         };
     },
 
@@ -160,12 +161,14 @@ export default {
     },
 
     methods: {
-        start(args) {
+        start({ args, password }) {
             this.args = args;
+            this.password = password;
         },
 
         stop() {
             this.args = null;
+            this.password = '';
         },
     },
 
