@@ -3,7 +3,13 @@
         <img class="logo" src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
 
         <cgfs-options v-if="args == null" :options="options" @start="start" />
-        <cgfs-log v-else :args="args" :password="password" @clear-password="password = ''" @stop="stop" />
+        <cgfs-log
+            v-else
+            :args="args"
+            :password="password"
+            @clear-password="password = ''"
+            @stop="stop"
+        />
     </div>
 </template>
 
@@ -58,13 +64,15 @@ export default {
                 label: 'Username',
                 required: true,
                 type: 'text',
-                help: 'Your CodeGrade username. If you don\'t know your username, you can find it on the profile page.',
+                help:
+                    "Your CodeGrade username. If you don't know your username, you can find it on the profile page.",
             },
             password: {
                 label: 'Password',
                 required: true,
                 type: 'password',
-                help: 'Your CodeGrade password. If you don\'t have a password, you can set one on the profile page.',
+                help:
+                    "Your CodeGrade password. If you don't have a password, you can set one on the profile page.",
             },
             mountpoint: {
                 label: 'Location',
@@ -84,7 +92,8 @@ export default {
                         label: 'Revision',
                         default: false,
                         // TODO: Fix help
-                        help: 'Enter "revision" mode, in which the teacher can add/edit/delete student files. The student will be able to see the edits made by the teacher. When this option is turned off, files cannot be changed or deleted. New files can still be added, however they will **NOT** be synced with the CodeGrade server.',
+                        help:
+                            'Enter "revision" mode, in which the teacher can add/edit/delete student files. The student will be able to see the edits made by the teacher. When this option is turned off, files cannot be changed or deleted. New files can still be added, however they will **NOT** be synced with the CodeGrade server.',
                     },
                     {
                         key: 'assigned',
@@ -97,7 +106,8 @@ export default {
                         key: 'latest',
                         label: 'Latest only',
                         default: true,
-                        help: 'Show only the most recent submissions of each student, rather than all submissions.',
+                        help:
+                            'Show only the most recent submissions of each student, rather than all submissions.',
                     },
                 ],
                 default: {},

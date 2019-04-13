@@ -57,10 +57,7 @@ export default {
             proc.stderr.on('data', this.addEvents);
 
             proc.on('close', () => {
-                this.addEvent(
-                    'The CodeGrade Filesystem has shut down.',
-                    'info',
-                );
+                this.addEvent('The CodeGrade Filesystem has shut down.', 'info');
                 this.proc = null;
             });
 
@@ -105,13 +102,15 @@ export default {
         },
 
         getVariant(logLevel) {
-            return {
-                DEBUG: 'secondary',
-                INFO: 'info',
-                WARNING: 'warning',
-                ERROR: 'danger',
-                CRITICAL: 'danger',
-            }[logLevel] || 'info';
+            return (
+                {
+                    DEBUG: 'secondary',
+                    INFO: 'info',
+                    WARNING: 'warning',
+                    ERROR: 'danger',
+                    CRITICAL: 'danger',
+                }[logLevel] || 'info'
+            );
         },
     },
 

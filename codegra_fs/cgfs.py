@@ -2273,7 +2273,9 @@ def main() -> None:
                 pass
             except Exception:
                 logger.warning(
-                    f'Could not delete mountpoint "${mountpoint}". Please delete it manually before starting the CodeGrade Filesystem the next time.',
+                    f'Could not delete mountpoint "${mountpoint}". Please'
+                    'delete it manually before starting the CodeGrade '
+                    'Filesystem the next time.',
                 )
 
 if __name__ == '__main__':
