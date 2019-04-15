@@ -1,24 +1,67 @@
 <template>
     <div class="cgfs-log">
-        <div ref="output" class="output">
-            <b-alert v-for="(event, i) in events" :key="i" :variant="event.variant" show>{{
-                event.message
-            }}</b-alert>
+        <div ref="output" class="output" @scroll="onScroll">
+            <div v-for="i in Math.min(this.eventSize, MAX_VISIBLE)"
+                 :key="events.get(curStart + i - 1).id"
+                 class="alert"
+                 :class="`alert-${events.get(curStart + i - 1).variant}`">
+                {{ events.get(curStart + i - 1).message }}
+            </div>
         </div>
 
         <div class="control">
-            <b-button variant="primary" class="stop-button" @click="stop(!proc)">
-                <span v-if="proc">Stop</span>
-                <span v-else>Back</span>
-            </b-button>
+            <div class="btn-container">
+                <b-button :variant="following ? 'success' : 'primary'"
+                          @click="toggleFollowing">
+                    {{ following ? 'Following' : 'Follow' }} log
+                </b-button>
+            </div>
+
+            <div class="btn-container">
+                <b-button variant="secondary"
+                          @click="exportLog">
+                    Export log
+                </b-button>
+            </div>
+
+            <div class="btn-container">
+                <b-button variant="primary" @click="stop(!proc)">
+                    <template v-if="proc">Stop</template>
+                    <template v-else>Back</template>
+                </b-button>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
 import childProcess from 'child_process';
+import readline from 'readline';
 
-const MAX_EVENTS = 1000;
+import { downloadFile, mod, uniq } from '@/utils';
+
+const MAX_EVENTS = 2 ** 15;
+const MAX_VISIBLE = 2 ** 10;
+
+// Circular buffer. We define this outside of the component because if it were
+// reactive, performance would drop by insane amounts because Vue makes the
+// entire thing reactive recursively.
+const events = {
+    list: Array(MAX_EVENTS),
+    index: 0,
+    size: 0,
+
+    get(i) {
+        const index = mod(this.index - this.size + i, MAX_EVENTS);
+        return this.list[index];
+    },
+
+    add(event) {
+        this.list[this.index] = event;
+        this.index = (this.index + 1) % MAX_EVENTS;
+        this.size = Math.min(MAX_EVENTS, this.size + 1);
+    },
+};
 
 export default {
     name: 'cgfs-log',
@@ -38,28 +81,42 @@ export default {
     data() {
         return {
             proc: null,
-            events: [],
-            incompleteEvent: '',
+            eventSize: 0,
+            following: true,
+            previousY: 0,
+            MAX_VISIBLE,
         };
+    },
+
+    computed: {
+        events() {
+            return events;
+        },
+
+        curStart() {
+            return Math.max(0, this.eventSize - MAX_VISIBLE);
+        },
     },
 
     methods: {
         start() {
+            this.addEvent('Starting...', 'info');
+
             const proc = childProcess.spawn('cgfs', this.args);
 
             proc.stdin.write(`${this.password}`);
             proc.stdin.end();
             this.$emit('clear-password');
 
-            proc.stdout.setEncoding('utf-8');
             proc.stderr.setEncoding('utf-8');
-
-            proc.stdout.on('data', this.addEvents);
-            proc.stderr.on('data', this.addEvents);
+            const rl = readline.createInterface({
+                input: proc.stderr,
+            });
+            rl.on('line', this.addFSEvent);
 
             proc.on('close', () => {
-                this.addEvent('The CodeGrade Filesystem has shut down.');
-                this.scrollToLastEvent(true);
+                rl.close();
+                this.addEvent('The CodeGrade Filesystem has shut down.', 'info');
                 this.proc = null;
             });
 
@@ -77,61 +134,83 @@ export default {
             }
         },
 
-        addEvents(data) {
-            if (this.incompleteEvent) {
-                data = this.incompleteEvent + data;
-            }
-
-            const events = data.split('\n');
-
-            events.forEach((event, i) => {
-                try {
-                    event = JSON.parse(event);
-                } catch (e) {
-                    if (i === events.length - 1) {
-                        this.incompleteEvent = event;
-                    } else {
-                        this.addEvent(`Could not parse event: ${event}`, 'warning');
-                    }
-                    return;
-                }
-
-                const variant = {
-                    DEBUG: 'secondary',
-                    INFO: 'info',
-                    WARNING: 'warning',
-                    ERROR: 'danger',
-                    CRITICAL: 'danger',
-                }[event.levelname];
-
-                const message = event.msg;
-
-                this.addEvent(message, variant);
-            });
-
-            this.scrollToLastEvent();
-        },
-
-        addEvent(message, variant = 'info') {
-            this.events.push({ message, variant });
-            this.events = this.events.slice(-MAX_EVENTS);
-        },
-
-        scrollToLastEvent(force = false) {
-            const out = this.$refs.output;
-
-            // Only scroll when at the bottom.
-            if (!out || (!force && out.scrollTop + out.clientHeight < out.scrollHeight)) {
+        addFSEvent(event) {
+            try {
+                event = JSON.parse(event);
+            } catch (e) {
+                this.addEvent(`Could not parse event: ${event}`, 'warning');
                 return;
             }
 
-            this.$nextTick(() => {
+            const variant = {
+                DEBUG: 'secondary',
+                INFO: 'info',
+                WARNING: 'warning',
+                ERROR: 'danger',
+                CRITICAL: 'danger',
+            }[event.levelname];
+
+            this.addEvent(event.msg, variant, event);
+        },
+
+        addEvent(message, variant, original) {
+            events.add({
+                message,
+                variant,
+                original,
+                id: uniq(),
+            });
+            // Reset to 0 first to force Vue update.
+            this.eventSize = 0;
+            this.eventSize = events.size;
+            this.scrollToLastEvent();
+        },
+
+        scrollToLastEvent() {
+            const out = this.$refs.output;
+
+            // Only scroll when at the bottom.
+            if (!out || !this.following) {
+                return;
+            }
+
+            this.$nextTick(async () => {
                 out.scrollTop = out.scrollHeight;
             });
+        },
+
+        toggleFollowing() {
+            this.following = !this.following;
+
+            if (this.following) {
+                this.scrollToLastEvent();
+            }
+        },
+
+        onScroll(event) {
+            const { scrollTop, scrollHeight, clientHeight } = event.target;
+
+            if (scrollTop >= scrollHeight - clientHeight) {
+                this.following = true;
+            } else if (scrollTop < this.previousY) {
+                this.following = false;
+            }
+
+            this.previousY = scrollTop;
+        },
+
+        exportLog() {
+            const log = [];
+            for (let i = 0; i < events.size; i++) {
+                log.push(events.get(i));
+            }
+            downloadFile(JSON.stringify(log), 'cgfs-log.json', 'application/json');
         },
     },
 
     mounted() {
+        events.index = 0;
+        events.size = 0;
         this.start();
 
         window.addEventListener('beforeunload', this.stop);
@@ -152,6 +231,7 @@ export default {
     display: flex;
     flex-direction: column;
     margin: 0 auto;
+    position: relative;
 }
 
 .output {
@@ -163,15 +243,25 @@ export default {
 
 .output .alert {
     margin-right: 15px;
-    white-space: pre-wrap;
     word-wrap: break-word;
 }
 
 .control {
+    display: flex;
     flex: 0 0 auto;
+    flex-direction: row;
+    padding-right: 15px;
 }
 
-.stop-button {
-    float: right;
+.control .btn-container {
+    flex: 1 1 33.333%;
+}
+
+.btn-container:nth-child(2) {
+    text-align: center;
+}
+
+.btn-container:last-child {
+    text-align: right;
 }
 </style>

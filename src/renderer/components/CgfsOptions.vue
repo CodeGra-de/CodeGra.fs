@@ -78,7 +78,7 @@ export default {
 
         cgfsArgs() {
             const conf = this.internalConfig;
-            const args = [];
+            const args = ['--gui'];
 
             if (conf.institution === 'custom') {
                 args.push('--url', conf.customInstitution);
@@ -89,9 +89,6 @@ export default {
             switch (conf.verbosity) {
                 case 'verbose':
                     args.push('--verbose');
-                    break;
-                case 'quiet':
-                    args.push('--quiet');
                     break;
                 default:
                     break;

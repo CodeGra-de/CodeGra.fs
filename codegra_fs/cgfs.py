@@ -32,7 +32,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 cgapi = None  # type: t.Optional[CGAPI]
 
-fuse_ptr = None
+gui_mode = False
 
 CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
 
@@ -64,7 +64,11 @@ class JsonFormatter(logging.Formatter):
             for attr in self.ATTR_TO_JSON
         }
         obj['msg'] = obj['msg'] % record.args
-        return json.dumps(obj, separators=(',', ':'))
+
+        if gui_mode or True:
+            return json.dumps(obj, separators=(',', ':'))
+        else:
+            return logging.BASIC_FORMAT % obj
 
 logging.config.dictConfig({
     'version': 1,
@@ -1395,12 +1399,6 @@ OptFileHandle = t.Optional[FileHandle]
 class CGFS(LoggingMixIn, Operations):
     API_FD = 0
 
-    def init(self, path: str) -> None:
-        global fuse_ptr
-        fuse_ptr = ctypes.c_void_p(
-            fuse._libfuse.fuse_get_context().contents.fuse
-        )
-
     def __init__(
         self,
         latest_only: bool,
@@ -2200,6 +2198,13 @@ def main() -> None:
         help=constants.assigned_only_help,
     )
     argparser.add_argument(
+        '--gui',
+        dest='gui_mode',
+        default=False,
+        action='store_true',
+        help='Run in GUI mode: output log messagess in JSON.',
+    )
+    argparser.add_argument(
         '--version',
         dest='version',
         action='version',
@@ -2215,7 +2220,6 @@ def main() -> None:
 
     password = args.password
     if password is None and not sys.stdin.isatty():
-        print('Password:', end=' ')
         password = sys.stdin.readline()
         if len(password) and password[-1] == '\n':
             password = password[:-1]

@@ -120,14 +120,17 @@ export default {
                     {
                         label: 'Quiet',
                         value: 'quiet',
+                        help: 'Do not show notifications. Errors and warnings will still be logged.',
                     },
                     {
                         label: 'Normal',
                         value: 'normal',
+                        help: 'Show notifications for errors and warnings.',
                     },
                     {
                         label: 'Verbose',
                         value: 'verbose',
+                        help: 'Show notifications for errors and warnings, and log all messages.',
                     },
                 ],
                 default: 'quiet',
