@@ -75,9 +75,7 @@ const getters = {
 
 const mutations = {
     SET_CONFIG(state, config) {
-        state.config = Object.assign({}, config, {
-            password: '',
-        });
+        state.config = Object.assign({}, config);
     },
 };
 
@@ -96,6 +94,14 @@ const actions = {
 
     writeConfig({ commit }, { config, options }) {
         return validateConfig(config, options).then(() => commit('SET_CONFIG', config));
+    },
+
+    clearPassword({ commit, state }) {
+        const config = Object.assign({}, state.config, {
+            password: '',
+        });
+
+        return commit('SET_CONFIG', config);
     },
 };
 

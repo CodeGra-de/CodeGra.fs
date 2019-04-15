@@ -37,6 +37,9 @@
 <script>
 import childProcess from 'child_process';
 import readline from 'readline';
+import path from 'path';
+
+import { mapActions, mapGetters } from 'vuex';
 
 import { downloadFile, mod, uniq } from '@/utils';
 
@@ -66,18 +69,6 @@ const events = {
 export default {
     name: 'cgfs-log',
 
-    props: {
-        args: {
-            type: Array,
-            required: true,
-        },
-
-        password: {
-            type: String,
-            required: true,
-        },
-    },
-
     data() {
         return {
             proc: null,
@@ -89,6 +80,8 @@ export default {
     },
 
     computed: {
+        ...mapGetters('Config', ['config']),
+
         events() {
             return events;
         },
@@ -99,14 +92,16 @@ export default {
     },
 
     methods: {
+        ...mapActions('Config', ['clearPassword']),
+
         start() {
             this.addEvent('Starting...', 'info');
 
-            const proc = childProcess.spawn('cgfs', this.args);
+            const proc = childProcess.spawn('cgfs', this.getArgs());
 
-            proc.stdin.write(`${this.password}`);
+            proc.stdin.write(`${this.config.password}`);
+            this.clearPassword();
             proc.stdin.end();
-            this.$emit('clear-password');
 
             proc.stderr.setEncoding('utf-8');
             const rl = readline.createInterface({
@@ -116,15 +111,52 @@ export default {
 
             proc.on('close', () => {
                 rl.close();
-                this.addEvent('The CodeGrade Filesystem has shut down.', 'info');
+                this.addEvent('Stopped.', 'info');
                 this.proc = null;
             });
 
             this.proc = proc;
         },
 
+        getArgs() {
+            const conf = this.config;
+            const args = ['--gui'];
+
+            if (conf.institution === 'custom') {
+                args.push('--url', conf.customInstitution);
+            } else {
+                args.push('--url', conf.institution);
+            }
+
+            switch (conf.verbosity) {
+                case 'verbose':
+                    args.push('--verbose');
+                    break;
+                default:
+                    break;
+            }
+
+            if (conf.options.assigned) {
+                args.push('--assigned-to-me');
+            }
+
+            if (!conf.options.latest) {
+                args.push('--all-submissions');
+            }
+
+            if (!conf.options.revision) {
+                args.push('--fixed');
+            }
+
+            args.push(conf.username);
+            args.push(path.join(conf.mountpoint, 'CodeGrade'));
+
+            return args;
+        },
+
         stop(goBack) {
             if (this.proc != null) {
+                this.addEvent('Stopping...', 'info');
                 this.proc.kill();
                 this.proc = null;
             }
