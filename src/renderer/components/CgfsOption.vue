@@ -97,17 +97,11 @@ export default {
     },
 
     data() {
-        let internal = this.value || this.option.default || '';
+        let internal = this.value || '';
 
         if (this.option.type === 'checkbox') {
             if (!internal) {
                 internal = {};
-            }
-
-            for (const option of this.option.options) {
-                if (internal[option.key] == null) {
-                    internal[option.key] = option.default;
-                }
             }
         }
 
