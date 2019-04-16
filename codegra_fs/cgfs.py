@@ -17,7 +17,6 @@ import datetime
 import tempfile
 import threading
 import traceback
-import logging.config
 from os import O_EXCL, O_CREAT, O_TRUNC, path, getenv
 from enum import IntEnum
 from stat import S_IFDIR, S_IFREG
@@ -29,66 +28,9 @@ from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-
-cgapi = None  # type: t.Optional[CGAPI]
-
-gui_mode = False
-
-CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
-
-T = t.TypeVar('T')
-
-
-class JsonFormatter(logging.Formatter):
-    ATTR_TO_JSON = set([
-        'created',
-        'filename',
-        'funcName',
-        'levelname',
-        'lineno',
-        'module',
-        'msecs',
-        'msg',
-        'name',
-        'pathname',
-        'process',
-        'processName',
-        'relativeCreated',
-        'thread',
-        'threadName',
-    ])
-
-    def format(self, record):
-        obj = {
-            attr: getattr(record, attr)
-            for attr in self.ATTR_TO_JSON
-        }
-        obj['msg'] = obj['msg'] % record.args
-
-        if gui_mode or True:
-            return json.dumps(obj, separators=(',', ':'))
-        else:
-            return logging.BASIC_FORMAT % obj
-
-logging.config.dictConfig({
-    'version': 1,
-    'formatters': {
-        'json': {
-            '()': JsonFormatter,
-        },
-    },
-    'handlers': {
-        'json': {
-            '()': logging.StreamHandler,
-            'formatter': 'json',
-        },
-    },
-    'root': {
-        'handlers': ['json'],
-    },
-})
-logger = logging.getLogger(__name__)
-
+# codegra_fs.log must be the first one to load, so that other modules
+# will use our custom logging configuration.
+from codegra_fs import log
 import codegra_fs
 import codegra_fs.constants as constants
 from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
@@ -117,6 +59,17 @@ except:
     PartialStat = dict  # type: ignore
     FullStat = dict  # type: ignore
     APIHandlerResponse = dict  # type: ignore
+
+
+cgapi = None  # type: t.Optional[CGAPI]
+
+gui_mode = False
+
+logger = logging.getLogger(__name__)
+
+CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
+
+T = t.TypeVar('T')
 
 
 @enum.unique
@@ -2188,6 +2141,7 @@ def check_version() -> None:
 
 def main() -> None:
     global cgapi
+    global gui_mode
 
     msg = codegra_fs.utils.get_fuse_install_message()
     if msg:
@@ -2318,6 +2272,9 @@ def main() -> None:
     rubric_append_only = args.rubric_append_only
     fixed = args.fixed
     assigned_only = args.assigned_only
+    gui_mode = args.gui_mode
+
+    codegra_fs.log.output_json = args.gui_mode
 
     if args.quiet:
         log_level = logging.WARNING
