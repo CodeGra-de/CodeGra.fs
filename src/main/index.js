@@ -1,3 +1,4 @@
+import path from 'path';
 import { app, BrowserWindow } from 'electron'; // eslint-disable-line
 
 /**
@@ -26,6 +27,7 @@ function createWindow() {
         height: 768,
         useContentSize: true,
         width: 550,
+        icon: path.join(__static, 'icons', 'icon-blue.png'),
     });
 
     mainWindow.setMenu(null);

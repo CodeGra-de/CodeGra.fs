@@ -29,7 +29,8 @@
     "productName": "CodeGrade Filesystem",
     "appId": "com.codegrade.codegrade-fs",
     "files": [
-      "dist/electron/**/*"
+      "dist/electron/**/*",
+      "static/icons/icon-blue.png"
     ],
     "dmg": {
       "contents": [
