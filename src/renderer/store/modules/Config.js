@@ -99,9 +99,7 @@ const mutations = {
 
 const actions = {
     writeConfig({ commit }, config) {
-        return validateConfig(config, OPTIONS).then(
-            () => commit('SET_CONFIG', config),
-        );
+        return validateConfig(config, OPTIONS).then(() => commit('SET_CONFIG', config));
     },
 
     clearPassword({ commit, state }) {

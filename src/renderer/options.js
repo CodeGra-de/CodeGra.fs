@@ -36,8 +36,7 @@ const OPTIONS = {
         required: false,
         type: 'text',
         default: '',
-        help:
-            'URL to the CodeGrade API. Should start with "https://" and end in "/api/v1/".',
+        help: 'URL to the CodeGrade API. Should start with "https://" and end in "/api/v1/".',
     },
     username: {
         label: 'Username',

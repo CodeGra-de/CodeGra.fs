@@ -1,32 +1,38 @@
 <template>
     <div class="cgfs-log">
         <div ref="output" class="output" @scroll="onScroll">
-            <div v-for="i in Math.min(this.eventSize, MAX_VISIBLE)"
-                 :key="events.get(curStart + i - 1).id"
-                 :class="`alert alert-${events.get(curStart + i - 1).variant}`">{{
-                 events.get(curStart + i - 1).message
-            }}</div>
+            <div
+                v-for="i in Math.min(this.eventSize, MAX_VISIBLE)"
+                :key="events.get(curStart + i - 1).id"
+                :class="`alert alert-${events.get(curStart + i - 1).variant}`"
+            >
+                <!--
+            -->{{ events.get(curStart + i - 1).message
+                }}<!--
+            --></div>
         </div>
 
         <div class="control">
             <div class="btn-container">
-                <b-button :variant="following ? 'success' : 'primary'"
-                          @click="toggleFollowing">
+                <b-button :variant="following ? 'success' : 'primary'" @click="toggleFollowing">
                     {{ following ? 'Following' : 'Follow' }} log
                 </b-button>
             </div>
 
             <div class="btn-container">
-                <b-button variant="secondary"
-                          @click="exportLog">
+                <b-button variant="secondary" @click="exportLog">
                     Export log
                 </b-button>
             </div>
 
             <div class="btn-container">
                 <b-button variant="primary" @click="stop(!proc)">
-                    <template v-if="proc">Stop</template>
-                    <template v-else>Back</template>
+                    <template v-if="proc"
+                        >Stop</template
+                    >
+                    <template v-else
+                        >Back</template
+                    >
                 </b-button>
             </div>
         </div>
