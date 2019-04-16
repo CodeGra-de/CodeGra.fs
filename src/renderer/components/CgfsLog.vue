@@ -195,6 +195,16 @@ export default {
             this.eventSize = 0;
             this.eventSize = events.size;
             this.scrollToLastEvent();
+
+            if (
+                this.config.verbosity !== 'quiet' &&
+                (variant === 'warning' || variant === 'danger')
+            ) {
+                // eslint-disable-next-line
+                new Notification('CodeGrade Filesystem', {
+                    body: message,
+                });
+            }
         },
 
         scrollToLastEvent() {
