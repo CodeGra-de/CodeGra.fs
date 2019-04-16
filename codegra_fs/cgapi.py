@@ -195,10 +195,7 @@ class CGAPI():
         try:
             json = r.json()
         except:
-            raise Exception(
-                'Could not get json from server, maybe wrong url? Url should'
-                ' end with "/api/v1/" and start with "https://"'
-            )
+            raise CGAPIException(r)
 
         self.user = json['user']
         self.access_token = json['access_token']

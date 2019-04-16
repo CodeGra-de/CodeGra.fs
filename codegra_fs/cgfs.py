@@ -154,12 +154,13 @@ def getegid() -> int:
 
 
 def handle_cgapi_exception(ex) -> t.NoReturn:
+    logger.error(ex.description)
     if ex.code == APICodes.OBJECT_ID_NOT_FOUND.name:
         raise FuseOSError(ENOENT)
     elif ex.code == APICodes.INCORRECT_PERMISSION.name:
         raise FuseOSError(EPERM)
     else:
-        raise ex
+        raise FuseOSError(EINVAL)
 
 
 class ParseException(ValueError):
@@ -269,6 +270,7 @@ class Directory(BaseFile):
         try:
             file = self.children.pop(filename)
         except KeyError:
+            logger.error(f'File not found: "{filename}"')
             raise FuseOSError(ENOENT)
         self.stat['st_nlink'] -= 1
 
@@ -384,15 +386,18 @@ class SpecialFile(SingleFile):
         return
 
     def truncate(self, length: int) -> None:
+        logger.error(f'You do not have permission to truncate file "{self.name}"')
         raise FuseOSError(EPERM)
 
     def unlink(self) -> None:
+        logger.error(f'You do not have permission to delete file "{self.name}"')
         raise FuseOSError(EPERM)
 
     def utimens(self, atime: float, mtime: float) -> None:
         return
 
     def write(self, data: bytes, offset: int) -> int:
+        logger.error(f'You do not have permission to write to file "{self.name}"')
         raise FuseOSError(EPERM)
 
     def flush(self) -> None:
@@ -516,19 +521,18 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
 
         try:
             parsed = self.parse(self.data)
-        except ValueError:
+        except ParseException as e:
+            logger.error(f'Could not parse file "{self.name}": {e.args[0]}')
             raise FuseOSError(EPERM)
 
         try:
             self.send_back(parsed)
         except CGAPIException as e:
-            logger.error(
-                'error from server: {} ({})'.format(e.message, e.description)
-            )
             handle_cgapi_exception(e)
-        except:
+        except Exception as e:
             if self.show_exception:
-                logger.critical(traceback.format_exc())
+                logger.error(str(e))
+                logger.debug(traceback.format_exc())
             self.show_exception = True
             raise
 
@@ -599,18 +603,29 @@ class GradeFile(CachedSpecialFile[t.Union[str, float]]):
         data_list = [d for d in data_str.split('\n') if d]
 
         if len(data_list) != 1:
-            raise ValueError
+            raise ParseException(
+                'The grade file may not contain more than 1 line.',
+            )
 
-        return float(data_list[0])
+        try:
+            grade = float(data_list[0])
+        except ValueError:
+            raise ParseException(
+                f'Could not parse "{data_list[0]}" as a float.',
+            )
+
+        if grade < 0 or grade > 10:
+            raise ParseException(
+                'Grade must be between 0 and 10.',
+            )
+
+        return grade
 
     def send_back(self, grade: t.Union[str, float]) -> None:
         if grade != 'delete':
             assert not isinstance(grade, str)
             if round(grade, 2) == self.grade:
                 return
-
-            if grade < 0 or grade > 10:
-                raise FuseOSError(EPERM)
 
         self.api.set_submission(self.submission_id, grade=grade)
 
@@ -680,10 +695,7 @@ class RubricSelectFile(CachedSpecialFile[t.List[str]]):
                 try:
                     sel.append(self.lookup[i])
                 except KeyError:
-                    logger.warning(
-                        'Item on line {} ({}) not found!'.format(i, line)
-                    )
-                    raise FuseOSError(EPERM)
+                    raise ParseException('Item on line {} ({}) not found!'.format(i, line))
 
         return sel
 
@@ -946,6 +958,9 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                     del new_lookup[h]
                 return res
             except KeyError:
+                logger.error(
+                    f'Could not find rubric item: {h}',
+                )
                 raise FuseOSError(EPERM)
 
         for header, row_id, desc, items in parsed:
@@ -1019,11 +1034,16 @@ class AssignmentSettingsFile(CachedSpecialFile[t.Dict[str, str]]):
 
             key, val = [v.decode('utf8').strip() for v in line.split(b'=', 1)]
             if key not in self.TO_USE:
-                raise ValueError
+                raise ParseException(
+                    f'Invalid assignment setting: {key}.',
+                )
             res[key] = val
 
         if len(self.TO_USE) != len(res):
-            raise ValueError
+            not_supplied = ', '.join(self.TO_USE - set(res))
+            raise ParseException(
+                f'Some assignment settings are missing: {not_supplied}'
+            )
 
         return res
 
@@ -1456,7 +1476,7 @@ class CGFS(LoggingMixIn, Operations):
                 )
             )
             self.load_courses()
-        logger.info('Mounted')
+        logger.info('Mounted.')
 
     def strippath(self, path: str) -> str:
         path = os.path.abspath(path)
@@ -1641,15 +1661,21 @@ class CGFS(LoggingMixIn, Operations):
                         self.load_submission_files(file)
             except AttributeError:  # pragma: no cover
                 if not isinstance(file, Directory):
+                    logger.error(f'File is not a directory: {path}')
                     raise FuseOSError(ENOTDIR)
+                logger.error('An unexpected error occurred.')
                 raise
 
             if part not in file.children or file.children[part] is None:
+                logger.error(f'File does not exist: {os.sep.join(path)}')
                 raise FuseOSError(ENOENT)
             file = file.children[part]  # type: ignore
 
         if expect_type is not None:
             if not isinstance(file, expect_type):
+                logger.error(
+                    f'File is not of expected type {expect_type.__name__}: {path}',
+                )
                 raise FuseOSError(EISDIR)
 
         return t.cast(T, file)
@@ -1662,9 +1688,16 @@ class CGFS(LoggingMixIn, Operations):
         return self.get_file(path, start=start, expect_type=Directory)
 
     def chmod(self, path: str, mode: int) -> None:
+        logger.error(
+            'The CodeGrade Filesystem does not support changing file permissions.',
+        )
         raise FuseOSError(EPERM)
 
     def chown(self, path: str, uid: int, gid: int) -> None:
+        logger.error('You can not change file owner.')
+        logger.error(
+            'The CodeGrade Filesystem does not support changing the file owner',
+        )
         raise FuseOSError(EPERM)
 
     def create(self, path: str, mode: int) -> FileHandle:
@@ -1674,6 +1707,9 @@ class CGFS(LoggingMixIn, Operations):
     def _create(self, path: str, mode: int) -> FileHandle:
         parts = self.split_path(path)
         if len(parts) <= 3:
+            logger.error(
+                'You can only create files within submissions.',
+            )
             raise FuseOSError(EPERM)
 
         parent = self.get_dir(parts[:-1])
@@ -1787,6 +1823,7 @@ class CGFS(LoggingMixIn, Operations):
 
         # Fuse should handle this but better safe than sorry
         if dname in parent.children:  # pragma: no cover
+            logger.error(f'File already exists: {path}')
             raise FuseOSError(EEXIST)
 
         if self.fixed:
@@ -1843,6 +1880,7 @@ class CGFS(LoggingMixIn, Operations):
             return dir.read()
 
     def readlink(self, path: str) -> None:
+        logger.error('The CodeGrade Filesystem does not support links.')
         raise FuseOSError(EINVAL)
 
     def release(self, path: str, fh: FileHandle) -> None:
@@ -1865,19 +1903,39 @@ class CGFS(LoggingMixIn, Operations):
         file = self.get_file(old_parts[-1], start=old_parent)  # type: BaseFile
 
         if isinstance(file, SpecialFile):
+            logger.error(
+                f'You can not rename special file: {old}',
+            )
             raise FuseOSError(EPERM)
 
         new_parts = self.split_path(new)
         new_parent = self.get_dir(new_parts[:-1])
 
         if new_parts[-1] in new_parent.children:
+            logger.error(
+                f'File already exists: {new}',
+            )
             raise FuseOSError(EEXIST)
 
+        if len(old_parts) < 4:
+            logger.error(
+                'File is not part of a submission, but you can only rename'
+                f' files within submissions: {old}'
+            )
+            raise FuseOSError(EPERM)
+
         if len(new_parts) < 4 or len(old_parts) < 4:
+            logger.error(
+                'File is not part of a submission, but you can only rename'
+                f' files within submissions: {old}'
+            )
             raise FuseOSError(EPERM)
 
         submission = self.get_submission(old)
         if submission.id != self.get_submission(new).id:
+            logger.error(
+                f'Files cannot be moved between submissions: {old}'
+            )
             raise FuseOSError(EPERM)
 
         assert isinstance(submission.tld, str)
@@ -1885,6 +1943,9 @@ class CGFS(LoggingMixIn, Operations):
 
         if not isinstance(file, (TempDirectory, TempFile)):
             if self.fixed:
+                logger.error(
+                    f'Files can only be renamed in revision mode: {file}'
+                )
                 raise FuseOSError(EPERM)
 
             assert cgapi is not None
@@ -1909,12 +1970,21 @@ class CGFS(LoggingMixIn, Operations):
         dir = self.get_file(parts[-1], start=parent, expect_type=Directory)
 
         if dir.type != DirTypes.REGDIR:
+            logger.error(
+                f'Only directories within submissions can be removed: {path}',
+            )
             raise FuseOSError(EPERM)
         if dir.children:
+            logger.error(
+                f'Directory is not empty and thus cannot be removed: {path}',
+            )
             raise FuseOSError(ENOTEMPTY)
 
         if not isinstance(dir, TempDirectory):
             if self.fixed:
+                logger.error(
+                    f'Directories can only be removed in revision mode.',
+                )
                 raise FuseOSError(EPERM)
 
             assert cgapi is not None
@@ -1944,6 +2014,7 @@ class CGFS(LoggingMixIn, Operations):
         }
 
     def symlink(self, target: str, source: str) -> None:
+        logger.error('The CodeGrade Filesystem does not support links.')
         raise FuseOSError(EPERM)
 
     def truncate(
@@ -1956,6 +2027,9 @@ class CGFS(LoggingMixIn, Operations):
             file = self.get_file_with_fh(path, fh)
 
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
+                logger.error(
+                    'Files can only be edited in revision mode: {path}',
+                )
                 raise FuseOSError(EPERM)
 
             file.truncate(length)
@@ -1974,6 +2048,9 @@ class CGFS(LoggingMixIn, Operations):
                     return
             else:
                 if self.fixed:
+                    logger.error(
+                        'Files can only be deleted in revision mode: {path}',
+                    )
                     raise FuseOSError(EPERM)
 
                 assert cgapi is not None
@@ -1991,6 +2068,9 @@ class CGFS(LoggingMixIn, Operations):
             atime, mtime = times or (time(), time())
 
             if isinstance(file, File) and self.fixed:
+                logger.error(
+                    'Files can only be edited in revision mode: {path}',
+                )
                 raise FuseOSError(EPERM)
 
             file.utimens(atime, mtime)
@@ -2002,6 +2082,9 @@ class CGFS(LoggingMixIn, Operations):
             file = self._open_files[fh]
 
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
+                logger.error(
+                    'Files can only be edited in revision mode: {path}',
+                )
                 raise FuseOSError(EPERM)
 
             return file.write(data, offset)
@@ -2028,10 +2111,11 @@ def create_and_mount_fs(
             url,
             fixed=fixed,
         )
-    except:
-        logger.critical('Logging in failed:')
-        logger.critical(traceback.format_exc())
-        raise
+    except CGAPIException as e:
+        logger.critical(
+            f'Logging in failed: {str(e.description)}',
+        )
+        return
 
     if not fixed:
         logger.warning('''=====================================================
