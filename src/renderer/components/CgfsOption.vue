@@ -107,7 +107,6 @@ export default {
     },
 
     mounted() {
-        console.log(this.internal);
         this.$emit('input', this.internal);
     },
 
