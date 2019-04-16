@@ -3,10 +3,9 @@
         <div ref="output" class="output" @scroll="onScroll">
             <div v-for="i in Math.min(this.eventSize, MAX_VISIBLE)"
                  :key="events.get(curStart + i - 1).id"
-                 class="alert"
-                 :class="`alert-${events.get(curStart + i - 1).variant}`">
-                {{ events.get(curStart + i - 1).message }}
-            </div>
+                 :class="`alert alert-${events.get(curStart + i - 1).variant}`">{{
+                 events.get(curStart + i - 1).message
+            }}</div>
         </div>
 
         <div class="control">
@@ -271,6 +270,7 @@ export default {
     overflow-y: auto;
     margin-right: -15px;
     margin-bottom: 1rem;
+    white-space: pre-wrap;
 }
 
 .output .alert {
