@@ -1,33 +1,33 @@
 <template>
-    <b-form v-if="internalConfig" class="cgfs-options" @keyup.ctrl.enter="start">
+    <b-form v-if="internalConfig" class="cgfs-options" @keyup.enter="start">
         <cgfs-option
             v-model="internalConfig.institution"
-            :option="options.institution"
+            :option="OPTIONS.institution"
             :error="errors.institution"
         />
 
         <cgfs-option
             v-if="internalConfig.institution === 'custom'"
             v-model="internalConfig.customInstitution"
-            :option="options.customInstitution"
+            :option="OPTIONS.customInstitution"
             :error="errors.customInstitution"
         />
 
         <cgfs-option
             v-model="internalConfig.username"
-            :option="options.username"
+            :option="OPTIONS.username"
             :error="errors.username"
         />
 
         <cgfs-option
             v-model="internalConfig.password"
-            :option="options.password"
+            :option="OPTIONS.password"
             :error="errors.password"
         />
 
         <cgfs-option
             v-model="internalConfig.mountpoint"
-            :option="options.mountpoint"
+            :option="OPTIONS.mountpoint"
             :error="errors.mountpoint"
         />
 
@@ -36,9 +36,9 @@
         </div>
 
         <advanced-collapse>
-            <cgfs-option v-model="internalConfig.options" :option="options.options" />
+            <cgfs-option v-model="internalConfig.options" :option="OPTIONS.options" />
 
-            <cgfs-option v-model="internalConfig.verbosity" :option="options.verbosity" />
+            <cgfs-option v-model="internalConfig.verbosity" :option="OPTIONS.verbosity" />
         </advanced-collapse>
 
         <b-button class="start-button" variant="primary" @click="start">
@@ -50,6 +50,8 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 
+import OPTIONS from '@/options';
+
 import CgfsOption from '@/components/CgfsOption';
 import HelpPopover from '@/components/HelpPopover';
 import AdvancedCollapse from '@/components/AdvancedCollapse';
@@ -59,19 +61,21 @@ export default {
 
     data() {
         return {
+            OPTIONS,
             internalConfig: null,
             errors: {},
         };
     },
 
     computed: {
-        ...mapGetters('Config', ['options', 'config']),
+        ...mapGetters('Config', ['config']),
     },
 
     watch: {
         config: {
             handler() {
                 this.internalConfig = Object.assign({}, this.config);
+                this.internalConfig.options = Object.assign({}, this.config.options);
             },
             immediate: true,
         },
@@ -81,9 +85,7 @@ export default {
         ...mapActions('Config', ['writeConfig']),
 
         start() {
-            this.writeConfig({
-                config: this.internalConfig,
-            }).then(
+            this.writeConfig(this.internalConfig).then(
                 () => {
                     this.errors = {};
                     this.$emit('start');

@@ -99,16 +99,15 @@ export default {
     data() {
         let internal = this.value || '';
 
-        if (this.option.type === 'checkbox') {
-            if (!internal) {
-                internal = {};
-            }
+        if (!internal && this.option.type === 'checkbox') {
+            internal = {};
         }
 
         return { internal };
     },
 
     mounted() {
+        console.log(this.internal);
         this.$emit('input', this.internal);
     },
 
