@@ -16,6 +16,8 @@ const winURL =
         ? 'http://localhost:9080'
         : `file://${__dirname}/index.html`;
 
+app.setAppUserModelId('com.codegrade.codegrade-fs');
+
 function createWindow() {
     /**
      * Initial window options
@@ -23,7 +25,7 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         height: 768,
         useContentSize: true,
-        width: 512,
+        width: 550,
     });
 
     mainWindow.setMenu(null);

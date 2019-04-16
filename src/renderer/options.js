@@ -25,7 +25,7 @@ const OPTIONS = {
                 value: 'https://uva.codegra.de/api/v1/',
             },
             {
-                text: 'Custom',
+                text: 'Other',
                 value: 'custom',
             },
         ],
