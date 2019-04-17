@@ -28,7 +28,10 @@ class JsonFormatter(logging.Formatter):
             attr: getattr(record, attr)
             for attr in self.ATTR_TO_JSON
         }
-        obj['msg'] = obj['msg'] % record.args
+        obj.update({
+            'msg': record.msg % record.args,
+            'notify': getattr(record, 'notify', False),
+        })
 
         if json_output or True:
             return json.dumps(obj, separators=(',', ':'))

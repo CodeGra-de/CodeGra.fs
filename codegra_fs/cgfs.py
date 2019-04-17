@@ -63,8 +63,6 @@ except:
 
 cgapi = None  # type: t.Optional[CGAPI]
 
-gui_mode = False
-
 logger = logging.getLogger(__name__)
 
 CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
@@ -107,7 +105,7 @@ def getegid() -> int:
 
 
 def handle_cgapi_exception(ex) -> t.NoReturn:
-    logger.error(ex.description)
+    logger.error(ex.description, extra={ 'notify': True })
     if ex.code == APICodes.OBJECT_ID_NOT_FOUND.name:
         raise FuseOSError(ENOENT)
     elif ex.code == APICodes.INCORRECT_PERMISSION.name:
@@ -339,18 +337,18 @@ class SpecialFile(SingleFile):
         return
 
     def truncate(self, length: int) -> None:
-        logger.error(f'You do not have permission to truncate file "{self.name}"')
+        logger.error(f'Special file cannot be truncated: {self.name}')
         raise FuseOSError(EPERM)
 
     def unlink(self) -> None:
-        logger.error(f'You do not have permission to delete file "{self.name}"')
+        logger.error(f'Special file cannot be deleted: {self.name}')
         raise FuseOSError(EPERM)
 
     def utimens(self, atime: float, mtime: float) -> None:
         return
 
     def write(self, data: bytes, offset: int) -> int:
-        logger.error(f'You do not have permission to write to file "{self.name}"')
+        logger.error(f'Special file cannot be changed: {self.name}')
         raise FuseOSError(EPERM)
 
     def flush(self) -> None:
@@ -475,7 +473,11 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
         try:
             parsed = self.parse(self.data)
         except ParseException as e:
-            logger.error(f'Could not parse file "{self.name}": {e.args[0]}')
+            logger.error(
+                f'Error in file: {self.name}: {e.message}',
+                extra={ 'notify': True },
+            )
+            logger.debug(traceback.format_exc())
             raise FuseOSError(EPERM)
 
         try:
@@ -564,7 +566,7 @@ class GradeFile(CachedSpecialFile[t.Union[str, float]]):
             grade = float(data_list[0])
         except ValueError:
             raise ParseException(
-                f'Could not parse "{data_list[0]}" as a float.',
+                f'Could not parse as a float: {data_list[0]}',
             )
 
         if grade < 0 or grade > 10:
@@ -892,13 +894,8 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                 items.append(item)
             return items
 
-        except (IndexError, KeyError, AssertionError, ParseException) as e:
-            logger.debug(traceback.format_exc())
-            if isinstance(e, ParseException):
-                logger.warning(e.message)
-            else:
-                logger.warning('The rubric could not parsed!')
-            raise FuseOSError(EPERM)
+        except (IndexError, KeyError, AssertionError) as e:
+            raise ParseException('The rubric could not parsed!')
 
     def send_back(self, parsed: t.List[RubricRow]) -> None:
         res = []
@@ -911,9 +908,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                     del new_lookup[h]
                 return res
             except KeyError:
-                logger.error(
-                    f'Could not find rubric item: {h}',
-                )
+                logger.error(f'Could not find rubric item: {h}')
                 raise FuseOSError(EPERM)
 
         for header, row_id, desc, items in parsed:
@@ -1617,6 +1612,7 @@ class CGFS(LoggingMixIn, Operations):
                     logger.error(f'File is not a directory: {path}')
                     raise FuseOSError(ENOTDIR)
                 logger.error('An unexpected error occurred.')
+                logger.debug(traceback.format_exc())
                 raise
 
             if part not in file.children or file.children[part] is None:
@@ -1641,16 +1637,11 @@ class CGFS(LoggingMixIn, Operations):
         return self.get_file(path, start=start, expect_type=Directory)
 
     def chmod(self, path: str, mode: int) -> None:
-        logger.error(
-            'The CodeGrade Filesystem does not support changing file permissions.',
-        )
+        logger.error('Changing file permissions is not supported.')
         raise FuseOSError(EPERM)
 
     def chown(self, path: str, uid: int, gid: int) -> None:
-        logger.error('You can not change file owner.')
-        logger.error(
-            'The CodeGrade Filesystem does not support changing the file owner',
-        )
+        logger.error('Changing file owner is not supported.')
         raise FuseOSError(EPERM)
 
     def create(self, path: str, mode: int) -> FileHandle:
@@ -1661,7 +1652,7 @@ class CGFS(LoggingMixIn, Operations):
         parts = self.split_path(path)
         if len(parts) <= 3:
             logger.error(
-                'You can only create files within submissions.',
+                'Creating files outside submissions is not supported.',
             )
             raise FuseOSError(EPERM)
 
@@ -1833,8 +1824,8 @@ class CGFS(LoggingMixIn, Operations):
             return dir.read()
 
     def readlink(self, path: str) -> None:
-        logger.error('The CodeGrade Filesystem does not support links.')
-        raise FuseOSError(EINVAL)
+        logger.error('Links are not supported.')
+        raise FuseOSError(ENOTSUP)
 
     def release(self, path: str, fh: FileHandle) -> None:
         with self._lock:
@@ -1856,18 +1847,14 @@ class CGFS(LoggingMixIn, Operations):
         file = self.get_file(old_parts[-1], start=old_parent)  # type: BaseFile
 
         if isinstance(file, SpecialFile):
-            logger.error(
-                f'You can not rename special file: {old}',
-            )
+            logger.error(f'You can not rename special file: {old}')
             raise FuseOSError(EPERM)
 
         new_parts = self.split_path(new)
         new_parent = self.get_dir(new_parts[:-1])
 
         if new_parts[-1] in new_parent.children:
-            logger.error(
-                f'File already exists: {new}',
-            )
+            logger.error(f'File already exists: {new}')
             raise FuseOSError(EEXIST)
 
         if len(old_parts) < 4:
@@ -1929,7 +1916,7 @@ class CGFS(LoggingMixIn, Operations):
             raise FuseOSError(EPERM)
         if dir.children:
             logger.error(
-                f'Directory is not empty and thus cannot be removed: {path}',
+                f'Directory is not empty and cannot be removed: {path}',
             )
             raise FuseOSError(ENOTEMPTY)
 
@@ -1967,8 +1954,8 @@ class CGFS(LoggingMixIn, Operations):
         }
 
     def symlink(self, target: str, source: str) -> None:
-        logger.error('The CodeGrade Filesystem does not support links.')
-        raise FuseOSError(EPERM)
+        logger.error('Links are not supported.')
+        raise FuseOSError(ENOTSUP)
 
     def truncate(
         self, path: str, length: int, fh: OptFileHandle = None
@@ -2066,7 +2053,7 @@ def create_and_mount_fs(
         )
     except CGAPIException as e:
         logger.critical(
-            f'Logging in failed: {str(e.description)}',
+            f'Logging in failed: {e.description}',
         )
         return
 
@@ -2141,7 +2128,6 @@ def check_version() -> None:
 
 def main() -> None:
     global cgapi
-    global gui_mode
 
     msg = codegra_fs.utils.get_fuse_install_message()
     if msg:
@@ -2272,7 +2258,6 @@ def main() -> None:
     rubric_append_only = args.rubric_append_only
     fixed = args.fixed
     assigned_only = args.assigned_only
-    gui_mode = args.gui_mode
 
     codegra_fs.log.output_json = args.gui_mode
 
@@ -2289,14 +2274,13 @@ def main() -> None:
     })
 
     if sys.platform != 'win32':
-        if os.path.exists(mountpoint):
-            logger.critical('Mountpoint already exists!')
-            return
-
         try:
             os.mkdir(mountpoint)
-        except:
-            logger.critical('Could not create mountpoint')
+        except FileExistsError:
+            logger.critical('Mountpoint already exists!')
+            return
+        except Exception as e:
+            logger.critical(f'Could not create mountpoint: {str(e)}')
             return
 
     try:
@@ -2316,11 +2300,11 @@ def main() -> None:
                 os.rmdir(mountpoint)
             except FileNotFoundError:
                 pass
-            except Exception:
+            except Exception as e:
                 logger.warning(
-                    f'Could not delete mountpoint "${mountpoint}". Please'
-                    'delete it manually before starting the CodeGrade '
-                    'Filesystem the next time.',
+                    f'Could not delete mountpoint: ${mountpoint}: {str(e)}.'
+                    ' Please delete it before starting the CodeGrade'
+                    ' Filesystem the next time.',
                 )
 
 if __name__ == '__main__':

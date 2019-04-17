@@ -105,8 +105,10 @@ export default {
             const proc = childProcess.spawn('cgfs', this.getArgs());
 
             proc.stdin.write(`${this.config.password}`);
-            this.clearPassword();
             proc.stdin.end();
+            if (process.env.NODE_ENV !== 'development') {
+                this.clearPassword();
+            }
 
             proc.stderr.setEncoding('utf-8');
             const rl = readline.createInterface({
@@ -202,10 +204,7 @@ export default {
             this.eventSize = events.size;
             this.scrollToLastEvent();
 
-            if (
-                this.config.verbosity !== 'quiet' &&
-                (variant === 'warning' || variant === 'danger')
-            ) {
+            if (original && original.notify) {
                 // eslint-disable-next-line
                 new Notification('CodeGrade Filesystem', {
                     body: message,
