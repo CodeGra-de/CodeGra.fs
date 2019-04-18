@@ -2,7 +2,7 @@ import json
 import logging
 import logging.config
 
-json_output = False
+import codegra_fs.cgfs
 
 class JsonFormatter(logging.Formatter):
     ATTR_TO_JSON = set([
@@ -13,7 +13,6 @@ class JsonFormatter(logging.Formatter):
         'lineno',
         'module',
         'msecs',
-        'msg',
         'name',
         'pathname',
         'process',
@@ -28,15 +27,22 @@ class JsonFormatter(logging.Formatter):
             attr: getattr(record, attr)
             for attr in self.ATTR_TO_JSON
         }
+
+        message = record.msg % record.args
+        fuse_context = codegra_fs.cgfs.get_fuse_context()
+        if fuse_context:
+            message = f'{fuse_context}: {message}'
+
         obj.update({
-            'msg': record.msg % record.args,
+            'message': message,
             'notify': getattr(record, 'notify', False),
         })
 
-        if json_output or True:
+        if codegra_fs.cgfs.gui_mode:
             return json.dumps(obj, separators=(',', ':'))
         else:
             return logging.BASIC_FORMAT % obj
+
 
 logging.config.dictConfig({
     'version': 1,

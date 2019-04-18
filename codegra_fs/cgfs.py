@@ -47,7 +47,6 @@ except:
 
     class LoggingMixIn:  # type: ignore
         pass
-
 try:
     # Python 3.5 doesn't support the syntax below
     if sys.version_info >= (3, 6):
@@ -62,8 +61,10 @@ except:
 
 
 cgapi = None  # type: t.Optional[CGAPI]
-
+fuse_context = None  # type: t.Optional[t.Mapping[str, t.Any]]
+gui_mode = False
 logger = logging.getLogger(__name__)
+
 
 CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
 
@@ -105,13 +106,30 @@ def getegid() -> int:
 
 
 def handle_cgapi_exception(ex) -> t.NoReturn:
-    logger.error(ex.description, extra={ 'notify': True })
     if ex.code == APICodes.OBJECT_ID_NOT_FOUND.name:
+        logger.error(ex.message)
         raise FuseOSError(ENOENT)
-    elif ex.code == APICodes.INCORRECT_PERMISSION.name:
+
+    logger.error(ex.message, extra={ 'notify': True })
+    if ex.code == APICodes.INCORRECT_PERMISSION.name:
         raise FuseOSError(EPERM)
     else:
         raise FuseOSError(EINVAL)
+
+
+def set_fuse_context(fmt: str, *args: object) -> None:
+    global fuse_context
+    fuse_context = {
+        'fmt': fmt,
+        'args': args,
+    }
+
+
+def get_fuse_context() -> None:
+    if fuse_context is not None:
+        return fuse_context['fmt'] % fuse_context['args']
+    else:
+        return ''
 
 
 class ParseException(ValueError):
@@ -221,7 +239,7 @@ class Directory(BaseFile):
         try:
             file = self.children.pop(filename)
         except KeyError:
-            logger.error(f'File not found: "{filename}"')
+            logger.error('File not found.')
             raise FuseOSError(ENOENT)
         self.stat['st_nlink'] -= 1
 
@@ -337,18 +355,18 @@ class SpecialFile(SingleFile):
         return
 
     def truncate(self, length: int) -> None:
-        logger.error(f'Special file cannot be truncated: {self.name}')
+        logger.error('Special file cannot be truncated.')
         raise FuseOSError(EPERM)
 
     def unlink(self) -> None:
-        logger.error(f'Special file cannot be deleted: {self.name}')
+        logger.error('Special file cannot be deleted.')
         raise FuseOSError(EPERM)
 
     def utimens(self, atime: float, mtime: float) -> None:
         return
 
     def write(self, data: bytes, offset: int) -> int:
-        logger.error(f'Special file cannot be changed: {self.name}')
+        logger.error('Special file cannot be changed.')
         raise FuseOSError(EPERM)
 
     def flush(self) -> None:
@@ -474,7 +492,7 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
             parsed = self.parse(self.data)
         except ParseException as e:
             logger.error(
-                f'Error in file: {self.name}: {e.message}',
+                f'Error in file: {e.message}',
                 extra={ 'notify': True },
             )
             logger.debug(traceback.format_exc())
@@ -566,7 +584,7 @@ class GradeFile(CachedSpecialFile[t.Union[str, float]]):
             grade = float(data_list[0])
         except ValueError:
             raise ParseException(
-                f'Could not parse as a float: {data_list[0]}',
+                f'Could not parse as a float: {data_list[0]}.',
             )
 
         if grade < 0 or grade > 10:
@@ -846,7 +864,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                     if data[i] == '\n':
                         raise ParseException(
                             'Item header cannot contain a newline, you '
-                            'probably missed a "-" in your header'
+                            'probably missed a "-" in your header.'
                         )
                     else:
                         i += 1
@@ -908,7 +926,8 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                     del new_lookup[h]
                 return res
             except KeyError:
-                logger.error(f'Could not find rubric item: {h}')
+                # todo: more context
+                logger.error(f'Could not find rubric item: {h}.', { 'notify': True })
                 raise FuseOSError(EPERM)
 
         for header, row_id, desc, items in parsed:
@@ -990,7 +1009,7 @@ class AssignmentSettingsFile(CachedSpecialFile[t.Dict[str, str]]):
         if len(self.TO_USE) != len(res):
             not_supplied = ', '.join(self.TO_USE - set(res))
             raise ParseException(
-                f'Some assignment settings are missing: {not_supplied}'
+                f'Some assignment settings are missing: {not_supplied}.'
             )
 
         return res
@@ -1609,21 +1628,21 @@ class CGFS(LoggingMixIn, Operations):
                         self.load_submission_files(file)
             except AttributeError:  # pragma: no cover
                 if not isinstance(file, Directory):
-                    logger.error(f'File is not a directory: {path}')
+                    logger.error('File is not a directory.')
                     raise FuseOSError(ENOTDIR)
                 logger.error('An unexpected error occurred.')
                 logger.debug(traceback.format_exc())
                 raise
 
             if part not in file.children or file.children[part] is None:
-                logger.error(f'File does not exist: {os.sep.join(path)}')
+                logger.error('File does not exist.')
                 raise FuseOSError(ENOENT)
             file = file.children[part]  # type: ignore
 
         if expect_type is not None:
             if not isinstance(file, expect_type):
                 logger.error(
-                    f'File is not of expected type {expect_type.__name__}: {path}',
+                    f'File is not of expected type {expect_type.__name__}.',
                 )
                 raise FuseOSError(EISDIR)
 
@@ -1761,13 +1780,14 @@ class CGFS(LoggingMixIn, Operations):
             return self._mkdir(path, mode)
 
     def _mkdir(self, path: str, mode: int) -> None:
+        set_fuse_context('Making directory failed: %s', path)
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
 
         # Fuse should handle this but better safe than sorry
         if dname in parent.children:  # pragma: no cover
-            logger.error(f'File already exists: {path}')
+            logger.error('File already exists.')
             raise FuseOSError(EEXIST)
 
         if self.fixed:
@@ -1788,6 +1808,7 @@ class CGFS(LoggingMixIn, Operations):
             return self._open(path, flags)
 
     def _open(self, path: str, flags: int) -> FileHandle:
+        set_fuse_context('Opening file failed: %s', path)
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
 
@@ -1808,11 +1829,13 @@ class CGFS(LoggingMixIn, Operations):
 
     def read(self, path: str, size: int, offset: int, fh: FileHandle) -> bytes:
         with self._lock:
+            set_fuse_context('Reading file failed: %s', path)
             file = self._open_files[fh]
             return file.read(offset, size)
 
     def readdir(self, path: str, fh: OptFileHandle) -> t.List[str]:
         with self._lock:
+            set_fuse_context('Reading directory failed: %s', path)
             dir = self.get_dir(path)
 
             if not dir.children_loaded:
@@ -1829,6 +1852,7 @@ class CGFS(LoggingMixIn, Operations):
 
     def release(self, path: str, fh: FileHandle) -> None:
         with self._lock:
+            set_fuse_context('Closing file failed: %s', path)
             file = self._open_files[fh]
             file.release()
             del self._open_files[fh]
@@ -1842,39 +1866,46 @@ class CGFS(LoggingMixIn, Operations):
             return self._rename(old, new)
 
     def _rename(self, old: str, new: str) -> None:
+        set_fuse_context('Renaming file failed: %s -> %s', old, new)
         old_parts = self.split_path(old)
         old_parent = self.get_dir(old_parts[:-1])
         file = self.get_file(old_parts[-1], start=old_parent)  # type: BaseFile
 
         if isinstance(file, SpecialFile):
-            logger.error(f'You can not rename special file: {old}')
+            logger.error(
+                'Special files cannot be renamed.',
+                { 'notify': True },
+            )
             raise FuseOSError(EPERM)
 
         new_parts = self.split_path(new)
         new_parent = self.get_dir(new_parts[:-1])
 
         if new_parts[-1] in new_parent.children:
-            logger.error(f'File already exists: {new}')
+            logger.error('File already exists.')
             raise FuseOSError(EEXIST)
 
         if len(old_parts) < 4:
             logger.error(
                 'File is not part of a submission, but you can only rename'
-                f' files within submissions: {old}'
+                ' files within submissions.',
+                { 'notify': True },
             )
             raise FuseOSError(EPERM)
 
-        if len(new_parts) < 4 or len(old_parts) < 4:
+        if len(new_parts) < 4:
             logger.error(
                 'File is not part of a submission, but you can only rename'
-                f' files within submissions: {old}'
+                ' files within submissions.',
+                { 'notify': True },
             )
             raise FuseOSError(EPERM)
 
         submission = self.get_submission(old)
         if submission.id != self.get_submission(new).id:
             logger.error(
-                f'Files cannot be moved between submissions: {old}'
+                'Files cannot be moved between submissions.',
+                { 'notify': True },
             )
             raise FuseOSError(EPERM)
 
@@ -1884,7 +1915,8 @@ class CGFS(LoggingMixIn, Operations):
         if not isinstance(file, (TempDirectory, TempFile)):
             if self.fixed:
                 logger.error(
-                    f'Files can only be renamed in revision mode: {file}'
+                    'Files can only be renamed in revision mode.',
+                    { 'notify': True },
                 )
                 raise FuseOSError(EPERM)
 
@@ -1905,25 +1937,28 @@ class CGFS(LoggingMixIn, Operations):
             return self._rmdir(path)
 
     def _rmdir(self, path: str) -> None:
+        set_fuse_context('Removing directory failed: %s', path)
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dir = self.get_file(parts[-1], start=parent, expect_type=Directory)
 
         if dir.type != DirTypes.REGDIR:
             logger.error(
-                f'Only directories within submissions can be removed: {path}',
+                'Only directories within submissions can be removed.',
+                { 'notify': True },
             )
             raise FuseOSError(EPERM)
         if dir.children:
             logger.error(
-                f'Directory is not empty and cannot be removed: {path}',
+                'Directory is not empty and cannot be removed.',
             )
             raise FuseOSError(ENOTEMPTY)
 
         if not isinstance(dir, TempDirectory):
             if self.fixed:
                 logger.error(
-                    f'Directories can only be removed in revision mode.',
+                    'Directories can only be removed in revision mode.',
+                    { 'notify': True },
                 )
                 raise FuseOSError(EPERM)
 
@@ -1961,6 +1996,7 @@ class CGFS(LoggingMixIn, Operations):
         self, path: str, length: int, fh: OptFileHandle = None
     ) -> None:
         with self._lock:
+            set_fuse_context('Truncating file failed: %s', path)
             if length < 0:  # pragma: no cover
                 raise FuseOSError(EINVAL)
 
@@ -1968,7 +2004,8 @@ class CGFS(LoggingMixIn, Operations):
 
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 logger.error(
-                    'Files can only be edited in revision mode: {path}',
+                    'Files can only be edited in revision mode.',
+                    { 'notify': True },
                 )
                 raise FuseOSError(EPERM)
 
@@ -1976,6 +2013,7 @@ class CGFS(LoggingMixIn, Operations):
 
     def unlink(self, path: str) -> None:
         with self._lock:
+            set_fuse_context('Removing file failed: %s', path)
             parts = self.split_path(path)
             parent = self.get_dir(parts[:-1])
             fname = parts[-1]
@@ -1989,7 +2027,8 @@ class CGFS(LoggingMixIn, Operations):
             else:
                 if self.fixed:
                     logger.error(
-                        'Files can only be deleted in revision mode: {path}',
+                        'Files can only be deleted in revision mode.',
+                        { 'notify': True },
                     )
                     raise FuseOSError(EPERM)
 
@@ -2003,13 +2042,17 @@ class CGFS(LoggingMixIn, Operations):
 
     def utimens(self, path: str, times: t.Tuple[float, float] = None) -> None:
         with self._lock:
+            set_fuse_context(
+                'Changing file modification times failed: %s', path
+            )
             file = self.get_file(path, expect_type=SingleFile)
             assert file is not None
             atime, mtime = times or (time(), time())
 
             if isinstance(file, File) and self.fixed:
                 logger.error(
-                    'Files can only be edited in revision mode: {path}',
+                    'Files can only be edited in revision mode.',
+                    { 'notify': True },
                 )
                 raise FuseOSError(EPERM)
 
@@ -2019,11 +2062,13 @@ class CGFS(LoggingMixIn, Operations):
         self, path: str, data: bytes, offset: int, fh: FileHandle
     ) -> int:
         with self._lock:
+            set_fuse_context('Writing file failed: %s', path)
             file = self._open_files[fh]
 
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 logger.error(
-                    'Files can only be edited in revision mode: {path}',
+                    'Files can only be edited in revision mode.',
+                    { 'notify': True },
                 )
                 raise FuseOSError(EPERM)
 
@@ -2053,7 +2098,7 @@ def create_and_mount_fs(
         )
     except CGAPIException as e:
         logger.critical(
-            f'Logging in failed: {e.description}',
+            f'Login failed: {e.description}',
         )
         return
 
@@ -2128,6 +2173,7 @@ def check_version() -> None:
 
 def main() -> None:
     global cgapi
+    global gui_mode
 
     msg = codegra_fs.utils.get_fuse_install_message()
     if msg:
@@ -2258,8 +2304,7 @@ def main() -> None:
     rubric_append_only = args.rubric_append_only
     fixed = args.fixed
     assigned_only = args.assigned_only
-
-    codegra_fs.log.output_json = args.gui_mode
+    gui_mode = args.gui_mode
 
     if args.quiet:
         log_level = logging.WARNING
@@ -2277,10 +2322,12 @@ def main() -> None:
         try:
             os.mkdir(mountpoint)
         except FileExistsError:
-            logger.critical('Mountpoint already exists!')
+            logger.error('Mountpoint already exists!')
             return
         except Exception as e:
-            logger.critical(f'Could not create mountpoint: {str(e)}')
+            logger.error(
+                f'Could not create mountpoint: {mountpoint}: {str(e)}',
+            )
             return
 
     try:
@@ -2302,7 +2349,7 @@ def main() -> None:
                 pass
             except Exception as e:
                 logger.warning(
-                    f'Could not delete mountpoint: ${mountpoint}: {str(e)}.'
+                    f'Could not delete mountpoint: {mountpoint}: {str(e)}.'
                     ' Please delete it before starting the CodeGrade'
                     ' Filesystem the next time.',
                 )

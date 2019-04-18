@@ -189,7 +189,7 @@ export default {
                 CRITICAL: 'danger',
             }[event.levelname];
 
-            this.addEvent(event.msg, variant, event);
+            this.addEvent(event.message, variant, event);
         },
 
         addEvent(message, variant, original) {
