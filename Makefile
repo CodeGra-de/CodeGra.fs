@@ -25,8 +25,8 @@ node_modules/.install-deps: package.json
 	date >$@
 
 .PHONY: install
-install: install-deps env/bin/cgfs
-env/bin/cgfs: setup.py codegra_fs/*.py
+install: install-deps env/bin/cgfs env/bin/cgapi-consumer
+env/bin/%: setup.py codegra_fs/*.py
 	$(ENV) pip install .
 
 .PHONY: myypy
