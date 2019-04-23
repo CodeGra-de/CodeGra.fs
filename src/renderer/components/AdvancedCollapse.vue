@@ -34,7 +34,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "@/_mixins.scss";
+@import '@/_mixins.scss';
 
 .collapse-trigger {
     display: inline-block;

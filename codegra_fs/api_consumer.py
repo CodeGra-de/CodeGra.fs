@@ -13,6 +13,7 @@ def json_loads(s: t.Union[bytes, str]) -> t.Dict[str, t.Any]:
         return json.loads(s)
     return json.loads(s if isinstance(s, str) else s.decode('utf8'))
 
+
 def print_usage() -> None:
     print(
         (

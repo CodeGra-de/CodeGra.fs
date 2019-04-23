@@ -1,7 +1,7 @@
 <template>
-<div class="cgfs-logo">
-    <img src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
-</div>
+    <div class="cgfs-logo">
+        <img src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
+    </div>
 </template>
 
 <script>
@@ -11,7 +11,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "@/_mixins.scss";
+@import '@/_mixins.scss';
 
 img {
     display: block;

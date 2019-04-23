@@ -1,6 +1,6 @@
 <template>
     <div id="app" class="container-fluid">
-        <cgfs-log v-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken"/>
+        <cgfs-log v-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken" />
         <cgfs-options v-else @start="jwtToken = $event" />
     </div>
 </template>
@@ -49,7 +49,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "@/_mixins.scss";
+@import '@/_mixins.scss';
 
 #app {
     display: flex;

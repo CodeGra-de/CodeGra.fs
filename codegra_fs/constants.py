@@ -20,7 +20,6 @@ password_help = """Your CodeGra.de password, don't pass this option if you want
 to pass your password over stdin. You can also use the `CGFS_PASSWORD`
 environment variable to pass your password."""
 
-
 url_help = """The url to find the api. This defaults to
 'https://codegra.de/api/v1/'. This is most likely
 'https://{UNIVERSITY}.codegra.de/api/v1/' where '{UNIVERSITY}' is your

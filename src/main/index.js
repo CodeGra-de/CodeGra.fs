@@ -14,10 +14,7 @@ if (process.env.NODE_ENV !== 'development') {
 const devMode = process.env.NODE_ENV === 'development';
 
 let mainWindow;
-const winURL =
-    devMode
-        ? 'http://localhost:9080'
-        : `file://${__dirname}/index.html`;
+const winURL = devMode ? 'http://localhost:9080' : `file://${__dirname}/index.html`;
 
 app.setAppUserModelId('com.codegrade.codegrade-fs');
 

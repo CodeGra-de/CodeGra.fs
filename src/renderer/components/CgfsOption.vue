@@ -123,7 +123,7 @@ export default {
 </style>
 
 <style lang="scss">
-@import "@/_mixins.scss";
+@import '@/_mixins.scss';
 
 .input-group {
     @media (max-width: #{$options-width + 2 * $spacer}) {

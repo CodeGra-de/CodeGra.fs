@@ -1,8 +1,8 @@
 <template>
     <b-card no-body class="cgfs-log">
-        <cgfs-logo/>
+        <cgfs-logo />
 
-        <hr style="margin: 0;">
+        <hr style="margin: 0;" />
 
         <b-card-header>
             Mounted at: <code>{{ config.mountpoint }}/CodeGrade/</code>
@@ -289,7 +289,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "@/_mixins.scss";
+@import '@/_mixins.scss';
 
 .cgfs-log {
     min-height: 20rem;

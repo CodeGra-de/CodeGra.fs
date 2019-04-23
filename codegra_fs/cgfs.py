@@ -27,12 +27,13 @@ from errno import (  # type: ignore
 from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from dataclasses import dataclass
 
+import codegra_fs
+import codegra_fs.constants as constants
 # codegra_fs.log must be the first one to load, so that other modules
 # will use our custom logging configuration.
 from codegra_fs import log
-import codegra_fs
-import codegra_fs.constants as constants
 from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
 
 try:
@@ -42,11 +43,14 @@ try:
         import cffi
         import winfspy
 except:
+
     class Operations:  # type: ignore
         pass
 
     class LoggingMixIn:  # type: ignore
         pass
+
+
 try:
     # Python 3.5 doesn't support the syntax below
     if sys.version_info >= (3, 6):
@@ -60,11 +64,16 @@ except:
     APIHandlerResponse = dict  # type: ignore
 
 
+@dataclass
+class FuseContext:
+    msg: str
+    args: t.Tuple[object, ...]
+
+
 cgapi = None  # type: t.Optional[CGAPI]
-fuse_context = None  # type: t.Optional[t.Mapping[str, object]]
+fuse_context = None  # type: t.Optional[FuseContext]
 gui_mode = False
 logger = logging.getLogger(__name__)
-
 
 CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
 
@@ -110,7 +119,7 @@ def handle_cgapi_exception(ex) -> t.NoReturn:
         logger.error(ex.message)
         raise FuseOSError(ENOENT)
 
-    logger.error(ex.message, extra={ 'notify': True })
+    logger.error(ex.message, extra={'notify': True})
     if ex.code == APICodes.INCORRECT_PERMISSION.name:
         raise FuseOSError(EPERM)
     else:
@@ -119,17 +128,14 @@ def handle_cgapi_exception(ex) -> t.NoReturn:
 
 def set_fuse_context(fmt: str, *args: object) -> None:
     global fuse_context
-    fuse_context = {
-        'fmt': fmt,
-        'args': args,
-    }
+    fuse_context = FuseContext(fmt, args)
 
 
 def get_fuse_context() -> str:
-    if fuse_context is not None:
-        return fuse_context['fmt'] % fuse_context['args']
-    else:
+    if fuse_context is None:
         return ''
+    else:
+        return fuse_context.msg % fuse_context.args
 
 
 class ParseException(ValueError):
@@ -493,7 +499,7 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
         except ParseException as e:
             logger.error(
                 f'Error in file: {e.message}',
-                extra={ 'notify': True },
+                extra={'notify': True},
             )
             logger.debug(traceback.format_exc())
             raise FuseOSError(EPERM)
@@ -588,9 +594,7 @@ class GradeFile(CachedSpecialFile[t.Union[str, float]]):
             )
 
         if grade < 0 or grade > 10:
-            raise ParseException(
-                'Grade must be between 0 and 10.',
-            )
+            raise ParseException('Grade must be between 0 and 10.', )
 
         return grade
 
@@ -668,7 +672,9 @@ class RubricSelectFile(CachedSpecialFile[t.List[str]]):
                 try:
                     sel.append(self.lookup[i])
                 except KeyError:
-                    raise ParseException('Item on line {} ({}) not found!'.format(i, line))
+                    raise ParseException(
+                        'Item on line {} ({}) not found!'.format(i, line)
+                    )
 
         return sel
 
@@ -926,7 +932,9 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                     del new_lookup[h]
                 return res
             except KeyError:
-                logger.error(f'Could not find rubric item: {h}.', { 'notify': True })
+                logger.error(
+                    f'Could not find rubric item: {h}.', {'notify': True}
+                )
                 raise FuseOSError(EPERM)
 
         for header, row_id, desc, items in parsed:
@@ -1000,9 +1008,7 @@ class AssignmentSettingsFile(CachedSpecialFile[t.Dict[str, str]]):
 
             key, val = [v.decode('utf8').strip() for v in line.split(b'=', 1)]
             if key not in self.TO_USE:
-                raise ParseException(
-                    f'Invalid assignment setting: {key}.',
-                )
+                raise ParseException(f'Invalid assignment setting: {key}.', )
             res[key] = val
 
         if len(self.TO_USE) != len(res):
@@ -1416,9 +1422,8 @@ class CGFS(LoggingMixIn, Operations):
         # Typeshed bug: https://github.com/python/typeshed/issues/2526
         self.socket.listen()  # type: ignore
         self.api_handler = APIHandler(self)
-        threading.Thread(
-            target=self.api_handler.run, args=(self.socket, )
-        ).start()
+        threading.Thread(target=self.api_handler.run,
+                         args=(self.socket, )).start()
 
         self.special_socketfile = SocketFile(
             bytes(socketfile, 'utf8'), '.api.socket'
@@ -1551,10 +1556,12 @@ class CGFS(LoggingMixIn, Operations):
                     codegra_fs.utils.name_of_user(m).encode('utf-8')
                     for m in sub['user']['group']['members']
                 ]
-                sub_dir.insert(SpecialFile(
-                    '.cg-group-members',
-                    b'\n'.join(members) + b'\n',
-                ))
+                sub_dir.insert(
+                    SpecialFile(
+                        '.cg-group-members',
+                        b'\n'.join(members) + b'\n',
+                    )
+                )
 
             assignment.insert(sub_dir)
 
@@ -1877,7 +1884,7 @@ class CGFS(LoggingMixIn, Operations):
         if isinstance(file, SpecialFile):
             logger.error(
                 'Special files cannot be renamed.',
-                { 'notify': True },
+                {'notify': True},
             )
             raise FuseOSError(EPERM)
 
@@ -1892,7 +1899,7 @@ class CGFS(LoggingMixIn, Operations):
             logger.error(
                 'File is not part of a submission, but you can only rename'
                 ' files within submissions.',
-                { 'notify': True },
+                {'notify': True},
             )
             raise FuseOSError(EPERM)
 
@@ -1900,7 +1907,7 @@ class CGFS(LoggingMixIn, Operations):
             logger.error(
                 'File is not part of a submission, but you can only rename'
                 ' files within submissions.',
-                { 'notify': True },
+                {'notify': True},
             )
             raise FuseOSError(EPERM)
 
@@ -1908,7 +1915,7 @@ class CGFS(LoggingMixIn, Operations):
         if submission.id != self.get_submission(new).id:
             logger.error(
                 'Files cannot be moved between submissions.',
-                { 'notify': True },
+                {'notify': True},
             )
             raise FuseOSError(EPERM)
 
@@ -1919,7 +1926,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed:
                 logger.error(
                     'Files can only be renamed in revision mode.',
-                    { 'notify': True },
+                    {'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -1948,20 +1955,18 @@ class CGFS(LoggingMixIn, Operations):
         if dir.type != DirTypes.REGDIR:
             logger.error(
                 'Only directories within submissions can be removed.',
-                { 'notify': True },
+                {'notify': True},
             )
             raise FuseOSError(EPERM)
         if dir.children:
-            logger.error(
-                'Directory is not empty and cannot be removed.',
-            )
+            logger.error('Directory is not empty and cannot be removed.', )
             raise FuseOSError(ENOTEMPTY)
 
         if not isinstance(dir, TempDirectory):
             if self.fixed:
                 logger.error(
                     'Directories can only be removed in revision mode.',
-                    { 'notify': True },
+                    {'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2008,7 +2013,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    { 'notify': True },
+                    {'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2031,7 +2036,7 @@ class CGFS(LoggingMixIn, Operations):
                 if self.fixed:
                     logger.error(
                         'Files can only be deleted in revision mode.',
-                        { 'notify': True },
+                        {'notify': True},
                     )
                     raise FuseOSError(EPERM)
 
@@ -2055,7 +2060,7 @@ class CGFS(LoggingMixIn, Operations):
             if isinstance(file, File) and self.fixed:
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    { 'notify': True },
+                    {'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2071,7 +2076,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    { 'notify': True },
+                    {'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2080,8 +2085,8 @@ class CGFS(LoggingMixIn, Operations):
 
 def create_and_mount_fs(
     username: str,
-    password: str,
-    jwt_token: str,
+    password: t.Optional[str],
+    jwt_token: t.Optional[str],
     url: t.Optional[str],
     fixed: bool,
     assigned_only: bool,
@@ -2090,6 +2095,8 @@ def create_and_mount_fs(
     rubric_append_only: bool,
 ) -> None:
     global cgapi
+
+    assert password is not None or jwt_token is not None
 
     logger.info('Mounting... ')
 
@@ -2102,17 +2109,17 @@ def create_and_mount_fs(
             fixed=fixed,
         )
     except CGAPIException as e:
-        logger.critical(
-            f'Login failed: {e.description}',
-        )
+        logger.critical(f'Login failed: {e.description}', )
         return
 
     if not fixed:
-        logger.warning('''==============================================
+        logger.warning(
+            '''==============================================
 Mounting in revision mode, all changes will
 be visible and additions to students.
 Watch out when uploading grading scripts!
-==============================================''')
+=============================================='''
+        )
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
@@ -2307,11 +2314,15 @@ def main() -> None:
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
-    logging.config.dictConfig({
-        'version': 1,
-        'incremental': True,
-        'root': { 'level': log_level },
-    })
+    logging.config.dictConfig(
+        {
+            'version': 1,
+            'incremental': True,
+            'root': {
+                'level': log_level
+            },
+        }
+    )
 
     mountpoint = os.path.abspath(args.mountpoint)
     username = args.username
@@ -2380,6 +2391,7 @@ def main() -> None:
                     ' Please delete it before starting the CodeGrade'
                     ' Filesystem the next time.',
                 )
+
 
 if __name__ == '__main__':
     main()

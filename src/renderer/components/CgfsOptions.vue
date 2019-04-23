@@ -1,9 +1,9 @@
 <template>
     <b-form v-if="internalConfig" class="cgfs-options" @keyup.enter="start">
         <b-card>
-            <cgfs-logo/>
+            <cgfs-logo />
 
-            <hr>
+            <hr />
 
             <cgfs-option
                 v-model="internalConfig.institution"
@@ -93,27 +93,22 @@ export default {
     },
 
     mounted() {
-        this.showAdvanced = (
+        this.showAdvanced =
             this.config.mountpoint !== OPTIONS.mountpoint.default ||
             this.config.verbosity !== OPTIONS.verbosity.default ||
-            !isEqual(this.config.options, OPTIONS.options.default)
-        );
+            !isEqual(this.config.options, OPTIONS.options.default);
     },
 
     methods: {
         ...mapActions('Config', ['writeConfig', 'clearPassword']),
 
         start() {
-            this
-                .writeConfig(this.internalConfig)
-                .then(
-                    () => this.$http.post(
-                        `${this.getInstitutionURL()}/login`,
-                        {
-                            username: this.internalConfig.username,
-                            password: this.internalConfig.password,
-                        },
-                    ),
+            this.writeConfig(this.internalConfig)
+                .then(() =>
+                    this.$http.post(`${this.getInstitutionURL()}/login`, {
+                        username: this.internalConfig.username,
+                        password: this.internalConfig.password,
+                    }),
                 )
                 .then(response => {
                     if (!this.$devMode) {
