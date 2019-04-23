@@ -1448,7 +1448,6 @@ class CGFS(LoggingMixIn, Operations):
             )
             self.load_courses()
         logger.info('Mounted.')
-        print()
 
     def strippath(self, path: str) -> str:
         path = os.path.abspath(path)
@@ -2114,12 +2113,11 @@ def create_and_mount_fs(
 
     if not fixed:
         logger.warning(
-            '''==============================================
-Mounting in revision mode, all changes will
-be visible and additions to students.
-Watch out when uploading grading scripts!
-=============================================='''
-        )
+            '''+------------------------------------------------------+
+| Mounting in revision mode. All changes and additions |
+| visible to students.                                 |
+| Be careful when uploading grading scripts!           |
++------------------------------------------------------+''')
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
@@ -2172,17 +2170,14 @@ Watch out when uploading grading scripts!
 
 def check_version() -> None:
     if codegra_fs.utils.newer_version_available():
-        msg = [
-            (
-                'You are running an outdated version of'
-                ' CGFS, please consider upgrading.'
-            ),
-            'You can do this at https://codegra.de/codegra_fs/latest',
-        ]
-        print('-' * (max(len(l) for l in msg) + 4), file=sys.stderr)
-        for line in msg:
-            print('| {} |'.format(line), file=sys.stderr)
-        print('-' * (max(len(l) for l in msg) + 4), file=sys.stderr)
+        logger.warning('''+------------------------------------------------------+
+| You are running an outdated version of the CodeGrade |
+| Filesystem, please consider upgrading.               |
+|                                                      |
+| You can download the newest version at               |
+|                                                      |
+|        https://codegra.de/codegra_fs/latest          |
++------------------------------------------------------+''')
 
 
 def main() -> None:
@@ -2198,8 +2193,6 @@ def main() -> None:
         if url:
             print('You can download it here: {}'.format(url))
         sys.exit(2)
-
-    check_version()
 
     argparser = ArgumentParser(
         description='CodeGra.fs: The CodeGrade file system',
@@ -2323,6 +2316,8 @@ def main() -> None:
             },
         }
     )
+
+    check_version()
 
     mountpoint = os.path.abspath(args.mountpoint)
     username = args.username
