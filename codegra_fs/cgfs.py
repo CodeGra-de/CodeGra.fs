@@ -2119,11 +2119,9 @@ def create_and_mount_fs(
 
     if not fixed:
         logger.warning(
-            '''+------------------------------------------------------+
-| Mounting in revision mode. All changes and additions |
-| visible to students.                                 |
-| Be careful when uploading grading scripts!           |
-+------------------------------------------------------+'''
+            'Mounting in revision mode. All changes and additions'
+            ' are visible to students.\nBe careful when uploading'
+            ' grading scripts!'
         )
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
@@ -2177,16 +2175,14 @@ def create_and_mount_fs(
 
 def check_version() -> None:
     if codegra_fs.utils.newer_version_available():
-        logger.warning(
-            '''+------------------------------------------------------+
-| You are running an outdated version of the CodeGrade |
-| Filesystem, please consider upgrading.               |
-|                                                      |
-| You can download the newest version at               |
-|                                                      |
-|        https://codegra.de/codegra_fs/latest          |
-+------------------------------------------------------+'''
-        )
+        logger.warning('\n'.join([
+            (
+                'You are running an outdated version of the CodeGrade'
+                ' Filesystem. Please consider upgrading.\nYou can'
+                ' get the latest version at'
+                ' https://codegra.de/codegra_fs/latest.'
+            ),
+        ]))
 
 
 def main() -> None:
@@ -2197,7 +2193,7 @@ def main() -> None:
     if msg:
         err, url = msg
         if url:
-            err = '{}\nYou can download it here: {}'.format(err, url)
+            err = '{}\nYou can download it at {}'.format(err, url)
         logger.error(msg)
         sys.exit(2)
 

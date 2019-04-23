@@ -224,8 +224,8 @@ export default {
             }[event.levelname];
 
             const message = this.$htmlEscape(event.message).replace(
-                /https?:\/\/\S+/g,
-                match => `<a class="log-link" href="${match}">${match}</a>`,
+                /(https?:\/\/\S+?)([.,]?(\s|$))/g,
+                (_, url, trailing) => `<a class="log-link" href="${url}">${url}</a>${trailing || ''}`,
             );
 
             this.addEvent(message, variant, event);
@@ -345,12 +345,8 @@ export default {
     flex: 0 0 auto;
 }
 
-.alert {
-    font-family: monospace;
-
-    &:last-child {
-        margin-bottom: 0;
-    }
+.alert:last-child {
+    margin-bottom: 0;
 }
 
 .card-footer {
