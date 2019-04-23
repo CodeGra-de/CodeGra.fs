@@ -1,32 +1,69 @@
-export PYTHONPATH=$(CURDIR)
-TEST_FILE?=test/
-TEST_FLAGS?=
-PYTEST?=pytest
+export PYTHONPATH = $(CURDIR)
+MYPY_FLAGS += --package codegra_fs
+PYLINT_FLAGS += --rcfile=setup.cfg codegra_fs
+YAPF_FLAGS += --recursive --parallel codegra_fs
+ISORT_FLAGS += --recursive codegra_fs
+TEST_FILE ?= test/
+TEST_FLAGS ?= -vvv
 
-.PHONY: install_deps
-install_deps:
-	pip install -r requirements.txt
+ENV = . env/bin/activate;
+
+.PHONY: run
+run: install
+	$(ENV) npm run dev
+
+env:
+	virtualenv env
+
+.PHONY: install-deps
+install-deps: env/.install-deps node_modules/.install-deps
+env/.install-deps: requirements.txt | env
+	$(ENV) pip install -r requirements.txt
+	date >$@
+node_modules/.install-deps: package.json
+	npm install
+	date >$@
+
+.PHONY: install
+install: install-deps env/bin/cgfs
+env/bin/cgfs: setup.py codegra_fs/*.py
+	$(ENV) pip install .
+
+.PHONY: myypy
+mypy: install-deps
+	$(ENV) mypy $(MYPY_FLAGS)
+
+.PHONY: lint
+lint: install-deps
+	# Remove the "|| true" when pylint succeeds
+	$(ENV) pylint $(PYLINT_FLAGS) || true
+	npm run lint
 
 .PHONY: format
-format:
-	yapf -rip *.py
+format: install-deps
+	$(ENV) yapf --in-place $(YAPF_FLAGS)
+	$(ENV) isort $(ISORT_FLAGS)
 	npm run format
 
+.PHONY: check-format
+check-format: install-deps
+	$(ENV) yapf --diff $(YAPF_FLAGS)
+	$(ENV) isort --check-only $(ISORT_FLAGS)
+	npm run check-format
+
 .PHONY: test
-test:
-	which cgfs
-	coverage erase
-	$(PYTEST) $(TEST_FILE) -vvvvvvvvv $(TEST_FLAGS)
-	coverage report -m codegra_fs/cgfs.py
+test: install
+	$(ENV) coverage erase
+	$(ENV) pytest $(TEST_FILE) $(TEST_FLAGS)
+	$(ENV) coverage report -m codegra_fs/cgfs.py
 
 .PHONY: test_quick
 test_quick: TEST_FLAGS += -x
 test_quick: test
 
-.PHONY: build
-build:
-	python ./build.py
+.PHONY: check
+check: mypy lint check-format test
 
-.PHONY: gui
-gui:
-	npm run dev
+.PHONY: build
+build: install-deps
+	$(ENV) python ./build.py

@@ -1,2 +1,8 @@
-requests>=2.20.0
+coverage>=4.5.3
 fusepy>=3.0.0,<4.0.0
+isort>=4.3.17
+mypy>=0.701
+pylint>=2.3.1
+pytest>=4.4.1
+requests>=2.20.0
+yapf>=0.27.0
