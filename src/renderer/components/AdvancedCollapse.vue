@@ -34,6 +34,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/_mixins.scss";
+
 .collapse-trigger {
     display: inline-block;
     user-select: none;
@@ -41,14 +43,14 @@ export default {
 }
 
 .collapse-area {
-    padding-top: 0.5rem;
+    padding-top: 0.5 * $spacer;
 }
 
 .fa-icon {
     height: 1rem;
     width: 1rem;
     transform: translateY(-2px) rotate(0);
-    transition: transform 300ms;
+    transition: $transition-base;
 
     .collapse-trigger:not(.collapsed) & {
         transform: translateY(-2px) rotate(90deg);

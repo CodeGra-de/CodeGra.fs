@@ -1,6 +1,10 @@
 <template>
     <b-form v-if="internalConfig" class="cgfs-options" @keyup.enter="start">
         <b-card>
+            <cgfs-logo/>
+
+            <hr>
+
             <cgfs-option
                 v-model="internalConfig.institution"
                 :option="OPTIONS.institution"
@@ -57,6 +61,7 @@ import { mapActions, mapGetters } from 'vuex';
 import { isEqual } from '@/utils';
 import OPTIONS from '@/options';
 
+import CgfsLogo from '@/components/CgfsLogo';
 import CgfsOption from '@/components/CgfsOption';
 import HelpPopover from '@/components/HelpPopover';
 import AdvancedCollapse from '@/components/AdvancedCollapse';
@@ -143,6 +148,7 @@ export default {
     },
 
     components: {
+        CgfsLogo,
         CgfsOption,
         HelpPopover,
         AdvancedCollapse,
@@ -151,12 +157,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.cgfs-options {
-    width: 100%;
-    max-width: 550px;
-    margin: 0 auto;
-}
-
 .cgfs-option:last-child {
     margin-bottom: 0;
 }
@@ -168,15 +168,5 @@ export default {
 
 .start-button {
     float: right;
-}
-</style>
-
-<style lang="scss">
-.form-control.custom-control {
-    padding-left: 2rem;
-
-    label {
-        display: block;
-    }
 }
 </style>

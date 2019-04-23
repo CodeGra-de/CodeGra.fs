@@ -121,3 +121,40 @@ export default {
     float: right;
 }
 </style>
+
+<style lang="scss">
+@import "@/_mixins.scss";
+
+.input-group {
+    @media (max-width: #{$options-width + 2 * $spacer}) {
+        flex-direction: column;
+
+        .form-control {
+            width: 100%;
+
+            &:first-child {
+                border-bottom-left-radius: 0;
+                border-top-right-radius: $border-radius;
+            }
+
+            &:not(:first-child) {
+                margin-top: -1px;
+                margin-left: 0;
+            }
+
+            &:last-child {
+                border-top-right-radius: 0;
+                border-bottom-left-radius: $border-radius;
+            }
+        }
+    }
+}
+
+.form-control.custom-control {
+    padding-left: $input-padding-x + $custom-control-gutter + $custom-control-indicator-size;
+
+    label {
+        display: block;
+    }
+}
+</style>

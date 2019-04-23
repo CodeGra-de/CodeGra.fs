@@ -1,5 +1,9 @@
 <template>
     <b-card no-body class="cgfs-log">
+        <cgfs-logo/>
+
+        <hr style="margin: 0;">
+
         <b-card-header>
             Mounted at: <code>{{ config.mountpoint }}/CodeGrade/</code>
         </b-card-header>
@@ -50,6 +54,7 @@ import path from 'path';
 
 import { mapGetters } from 'vuex';
 
+import CgfsLogo from '@/components/CgfsLogo';
 import { downloadFile, mod, uniq } from '@/utils';
 
 const MAX_EVENTS = 2 ** 15;
@@ -276,21 +281,33 @@ export default {
 
         window.removeEventListener('beforeunload', this.stop);
     },
+
+    components: {
+        CgfsLogo,
+    },
 };
 </script>
 
 <style lang="scss" scoped>
+@import "@/_mixins.scss";
+
 .cgfs-log {
-    width: 100%;
-    max-width: 1024px;
     min-height: 20rem;
     position: relative;
+}
+
+.cgfs-logo {
+    padding: $card-spacer-x;
 }
 
 .card-body {
     overflow-y: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
+}
+
+.card-footer {
+    flex: 0 0 auto;
 }
 
 .alert:last-child {

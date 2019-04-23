@@ -1,7 +1,5 @@
 <template>
     <div id="app" class="container-fluid">
-        <img class="logo" src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
-
         <cgfs-log v-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken"/>
         <cgfs-options v-else @start="jwtToken = $event" />
     </div>
@@ -51,28 +49,26 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/_mixins.scss";
+
 #app {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    padding: 15px 15px 0;
-}
-
-.logo {
-    flex: 0 0 auto;
-    width: 100%;
-    max-width: 550px;
-    margin: 0 auto 1rem;
-    font-weight: 300;
-
-    @media (max-height: 30rem) {
-        max-width: 250px;
-    }
 }
 
 .cgfs-log,
 .cgfs-options {
     flex: 1 1 auto;
-    margin: 0 auto 1rem;
+    width: 100%;
+    margin: $spacer auto;
+}
+
+.cgfs-options {
+    max-width: $options-width;
+}
+
+.cgfs-log {
+    max-width: $log-width;
 }
 </style>

@@ -43,7 +43,7 @@ export default {
 <style lang="scss">
 .help-popover {
     cursor: help;
-    margin-top: -.125rem;
+    transform: translateY(-0.125rem);
 }
 
 .help-popover-content {

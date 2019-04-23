@@ -2106,11 +2106,11 @@ def create_and_mount_fs(
         return
 
     if not fixed:
-        logger.warning('''=====================================================
-Mounting in non-fixed mode, all changes will be
-visible and additions to students.
+        logger.warning('''==============================================
+Mounting in revision mode, all changes will
+be visible and additions to students.
 Watch out when uploading grading scripts!
-=====================================================''')
+==============================================''')
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
