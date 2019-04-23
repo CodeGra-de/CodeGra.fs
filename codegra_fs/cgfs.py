@@ -498,7 +498,7 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
             parsed = self.parse(self.data)
         except ParseException as e:
             logger.error(
-                f'Error in file: {e.message}',
+                'Error in file: {}'.format(e.message),
                 extra={'notify': True},
             )
             logger.debug(traceback.format_exc())
@@ -590,7 +590,7 @@ class GradeFile(CachedSpecialFile[t.Union[str, float]]):
             grade = float(data_list[0])
         except ValueError:
             raise ParseException(
-                f'Could not parse as a float: {data_list[0]}.',
+                'Could not parse as a float: {}'.format(data_list[0]),
             )
 
         if grade < 0 or grade > 10:
@@ -933,7 +933,8 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                 return res
             except KeyError:
                 logger.error(
-                    f'Could not find rubric item: {h}.', {'notify': True}
+                    'Could not find rubric item: {}.'.format(h),
+                    {'notify': True}
                 )
                 raise FuseOSError(EPERM)
 
@@ -1008,13 +1009,16 @@ class AssignmentSettingsFile(CachedSpecialFile[t.Dict[str, str]]):
 
             key, val = [v.decode('utf8').strip() for v in line.split(b'=', 1)]
             if key not in self.TO_USE:
-                raise ParseException(f'Invalid assignment setting: {key}.', )
+                raise ParseException(
+                    'Invalid assignment setting: {}.'.format(key)
+                )
             res[key] = val
 
         if len(self.TO_USE) != len(res):
             not_supplied = ', '.join(self.TO_USE - set(res))
             raise ParseException(
-                f'Some assignment settings are missing: {not_supplied}.'
+                'Some assignment settings are missing: {}.'.
+                format(not_supplied),
             )
 
         return res
@@ -1648,7 +1652,9 @@ class CGFS(LoggingMixIn, Operations):
         if expect_type is not None:
             if not isinstance(file, expect_type):
                 logger.error(
-                    f'File is not of expected type {expect_type.__name__}.',
+                    'File is not of expected type {}.'.format(
+                        expect_type.__name__
+                    ),
                 )
                 raise FuseOSError(EISDIR)
 
@@ -2108,7 +2114,7 @@ def create_and_mount_fs(
             fixed=fixed,
         )
     except CGAPIException as e:
-        logger.critical(f'Login failed: {e.description}', )
+        logger.critical('Login failed: {}'.format(e.description))
         return
 
     if not fixed:
@@ -2359,7 +2365,9 @@ def main() -> None:
             return
         except Exception as e:
             logger.error(
-                f'Could not create mountpoint: {mountpoint}: {str(e)}',
+                'Could not create mountpoint: {}: {}'.format(
+                    mountpoint, str(e)
+                ),
             )
             return
 
@@ -2383,9 +2391,11 @@ def main() -> None:
                 pass
             except Exception as e:
                 logger.warning(
-                    f'Could not delete mountpoint: {mountpoint}: {str(e)}.'
-                    ' Please delete it before starting the CodeGrade'
-                    ' Filesystem the next time.',
+                    (
+                        'Could not delete mountpoint: {}: {}. Please delete'
+                        ' it before starting the CodeGrade Filesystem the'
+                        ' next time.'
+                    ).format(mountpoint, str(e)),
                 )
 
 

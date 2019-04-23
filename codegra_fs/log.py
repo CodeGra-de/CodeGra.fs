@@ -31,7 +31,7 @@ class JsonFormatter(logging.Formatter):
         message = record.msg % record.args
         fuse_context = codegra_fs.cgfs.get_fuse_context()
         if fuse_context:
-            message = f'{fuse_context}: {message}'
+            message = '{}: {}'.format(fuse_context, message)
 
         obj.update(
             {
