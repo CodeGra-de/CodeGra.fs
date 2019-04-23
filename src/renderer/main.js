@@ -27,7 +27,6 @@ Vue.prototype.$htmlEscape = function htmlEscape(input) {
     return input && input.replace(/[&<>"'`]/g, match => htmlEscapes[match]);
 };
 
-
 /* eslint-disable no-new */
 new Vue({
     components: { App },

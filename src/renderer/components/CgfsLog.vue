@@ -14,7 +14,8 @@
                 :key="events.get(curStart + i - 1).id"
                 :class="`alert alert-${events.get(curStart + i - 1).variant}`"
                 v-html="events.get(curStart + i - 1).message"
-                @click.capture="onMessageClick"/>
+                @click.capture="onMessageClick"
+            />
         </b-card-body>
 
         <b-card-footer>

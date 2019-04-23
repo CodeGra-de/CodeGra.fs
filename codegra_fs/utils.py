@@ -33,7 +33,10 @@ def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
         if sys.platform.startswith('win32'):
             winfsp_version = _get_fuse_version_info()
             if winfsp_version < (1, 4):
-                return 'You need at least WinFsp version 1.4 (currently in beta).', 'https://github.com/billziss-gh/winfsp/releases'
+                return (
+                    'You need at least WinFsp version 1.4 (currently in beta).',
+                    'https://github.com/billziss-gh/winfsp/releases'
+                )
         return None
 
     if sys.platform.startswith('darwin'):
