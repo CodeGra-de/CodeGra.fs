@@ -30,7 +30,7 @@
         <b-form-file
             v-else-if="option.type === 'directory'"
             v-model="internal"
-            :placeholder="internal"
+            :placeholder="value"
             directory
         />
 

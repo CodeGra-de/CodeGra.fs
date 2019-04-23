@@ -1,5 +1,9 @@
 <template>
-    <div class="cgfs-log">
+    <b-card class="cgfs-log">
+        <div slot="header">
+            Mounted at: <code>{{ config.mountpoint }}/CodeGrade/</code>
+        </div>
+
         <div ref="output" class="output" @scroll="onScroll">
             <div
                 v-for="i in Math.min(this.eventSize, MAX_VISIBLE)"
@@ -12,10 +16,15 @@
             --></div>
         </div>
 
-        <div class="control">
+        <div slot="footer" class="control">
             <div class="btn-container">
-                <b-button :variant="following ? 'success' : 'primary'" @click="toggleFollowing">
-                    {{ following ? 'Following' : 'Follow' }} log
+                <b-button variant="danger" @click="stop(!proc)">
+                    <template v-if="proc"
+                        >Stop</template
+                    >
+                    <template v-else
+                        >Back</template
+                    >
                 </b-button>
             </div>
 
@@ -26,17 +35,12 @@
             </div>
 
             <div class="btn-container">
-                <b-button variant="primary" @click="stop(!proc)">
-                    <template v-if="proc"
-                        >Stop</template
-                    >
-                    <template v-else
-                        >Back</template
-                    >
+                <b-button :variant="following ? 'success' : 'primary'" @click="toggleFollowing">
+                    {{ following ? 'Following' : 'Follow' }} log
                 </b-button>
             </div>
         </div>
-    </div>
+    </b-card>
 </template>
 
 <script>
@@ -276,30 +280,30 @@ export default {
 .cgfs-log {
     width: 100%;
     max-width: 1024px;
+    position: relative;
+}
+
+.cgfs-log .card-body {
     display: flex;
     flex-direction: column;
-    margin: 0 auto;
-    position: relative;
+    flex: 1 1 auto;
+    overflow: hidden;
 }
 
 .output {
     flex: 1 1 auto;
     overflow-y: auto;
-    margin-right: -15px;
-    margin-bottom: 1rem;
     white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
-.output .alert {
-    margin-right: 15px;
-    word-wrap: break-word;
+.output .alert:last-child {
+    margin-bottom: 0;
 }
 
 .control {
     display: flex;
-    flex: 0 0 auto;
     flex-direction: row;
-    padding-right: 15px;
 }
 
 .control .btn-container {

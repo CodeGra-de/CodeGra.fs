@@ -69,5 +69,6 @@ export default {
 .cgfs-log,
 .cgfs-options {
     flex: 1 1 auto;
+    margin: 0 auto;
 }
 </style>

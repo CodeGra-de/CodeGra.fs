@@ -25,17 +25,17 @@
             :error="errors.password"
         />
 
-        <cgfs-option
-            v-model="internalConfig.mountpoint"
-            :option="OPTIONS.mountpoint"
-            :error="errors.mountpoint"
-        />
-
         <div class="required-desc text-muted font-italic">
             * indicates a required field
         </div>
 
         <advanced-collapse>
+            <cgfs-option
+                v-model="internalConfig.mountpoint"
+                :option="OPTIONS.mountpoint"
+                :error="errors.mountpoint"
+            />
+
             <cgfs-option v-model="internalConfig.options" :option="OPTIONS.options" />
 
             <cgfs-option v-model="internalConfig.verbosity" :option="OPTIONS.verbosity" />
