@@ -926,7 +926,6 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
                     del new_lookup[h]
                 return res
             except KeyError:
-                # todo: more context
                 logger.error(f'Could not find rubric item: {h}.', { 'notify': True })
                 raise FuseOSError(EPERM)
 
@@ -1669,6 +1668,7 @@ class CGFS(LoggingMixIn, Operations):
             return self._create(path, mode)
 
     def _create(self, path: str, mode: int) -> FileHandle:
+        set_fuse_context('%s: Could not create file', path)
         parts = self.split_path(path)
         if len(parts) <= 3:
             logger.error(
@@ -1719,6 +1719,7 @@ class CGFS(LoggingMixIn, Operations):
         self, path: str, fh: OptFileHandle, todo: FsyncLike
     ) -> None:
         with self._lock:
+            set_fuse_context('%s: Could not save file', path)
             file = self.get_file_with_fh(path, fh)
 
             if todo == FsyncLike.fsync:
@@ -1736,6 +1737,7 @@ class CGFS(LoggingMixIn, Operations):
             return self._getattr(path, fh)
 
     def _getattr(self, path: str, fh: OptFileHandle) -> FullStat:
+        set_fuse_context('%s', path)
         if fh is None or fh not in self._open_files:
             parts = self.split_path(path)
             file = self.get_file(parts)  # type: t.Union[Directory, SingleFile]
@@ -1781,7 +1783,7 @@ class CGFS(LoggingMixIn, Operations):
             return self._mkdir(path, mode)
 
     def _mkdir(self, path: str, mode: int) -> None:
-        set_fuse_context('Making directory failed: %s', path)
+        set_fuse_context('%s: Making directory failed', path)
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
@@ -1809,7 +1811,7 @@ class CGFS(LoggingMixIn, Operations):
             return self._open(path, flags)
 
     def _open(self, path: str, flags: int) -> FileHandle:
-        set_fuse_context('Opening file failed: %s', path)
+        set_fuse_context('%s: Opening file failed', path)
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
 
@@ -1830,13 +1832,13 @@ class CGFS(LoggingMixIn, Operations):
 
     def read(self, path: str, size: int, offset: int, fh: FileHandle) -> bytes:
         with self._lock:
-            set_fuse_context('Reading file failed: %s', path)
+            set_fuse_context('%s: Reading file failed', path)
             file = self._open_files[fh]
             return file.read(offset, size)
 
     def readdir(self, path: str, fh: OptFileHandle) -> t.List[str]:
         with self._lock:
-            set_fuse_context('Reading directory failed: %s', path)
+            set_fuse_context('%s: Reading directory failed', path)
             dir = self.get_dir(path)
 
             if not dir.children_loaded:
@@ -1853,7 +1855,7 @@ class CGFS(LoggingMixIn, Operations):
 
     def release(self, path: str, fh: FileHandle) -> None:
         with self._lock:
-            set_fuse_context('Closing file failed: %s', path)
+            set_fuse_context('%s: Closing file failed', path)
             file = self._open_files[fh]
             file.release()
             del self._open_files[fh]
@@ -1867,7 +1869,7 @@ class CGFS(LoggingMixIn, Operations):
             return self._rename(old, new)
 
     def _rename(self, old: str, new: str) -> None:
-        set_fuse_context('Renaming file failed: %s -> %s', old, new)
+        set_fuse_context('%s -> %s: Renaming file failed', old, new)
         old_parts = self.split_path(old)
         old_parent = self.get_dir(old_parts[:-1])
         file = self.get_file(old_parts[-1], start=old_parent)  # type: BaseFile
@@ -1938,7 +1940,7 @@ class CGFS(LoggingMixIn, Operations):
             return self._rmdir(path)
 
     def _rmdir(self, path: str) -> None:
-        set_fuse_context('Removing directory failed: %s', path)
+        set_fuse_context('%s: Removing directory failed', path)
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dir = self.get_file(parts[-1], start=parent, expect_type=Directory)
@@ -1997,7 +1999,7 @@ class CGFS(LoggingMixIn, Operations):
         self, path: str, length: int, fh: OptFileHandle = None
     ) -> None:
         with self._lock:
-            set_fuse_context('Truncating file failed: %s', path)
+            set_fuse_context('%s: Truncating file failed', path)
             if length < 0:  # pragma: no cover
                 raise FuseOSError(EINVAL)
 
@@ -2014,7 +2016,7 @@ class CGFS(LoggingMixIn, Operations):
 
     def unlink(self, path: str) -> None:
         with self._lock:
-            set_fuse_context('Removing file failed: %s', path)
+            set_fuse_context('%s: Removing file failed', path)
             parts = self.split_path(path)
             parent = self.get_dir(parts[:-1])
             fname = parts[-1]
@@ -2044,7 +2046,7 @@ class CGFS(LoggingMixIn, Operations):
     def utimens(self, path: str, times: t.Tuple[float, float] = None) -> None:
         with self._lock:
             set_fuse_context(
-                'Changing file modification times failed: %s', path
+                '%s: Changing file modification times failed', path
             )
             file = self.get_file(path, expect_type=SingleFile)
             assert file is not None
@@ -2063,7 +2065,7 @@ class CGFS(LoggingMixIn, Operations):
         self, path: str, data: bytes, offset: int, fh: FileHandle
     ) -> int:
         with self._lock:
-            set_fuse_context('Writing file failed: %s', path)
+            set_fuse_context('%s: Writing file failed', path)
             file = self._open_files[fh]
 
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
