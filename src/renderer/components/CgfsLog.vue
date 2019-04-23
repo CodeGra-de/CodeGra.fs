@@ -334,8 +334,12 @@ export default {
     flex: 0 0 auto;
 }
 
-.alert:last-child {
-    margin-bottom: 0;
+.alert {
+    font-family: monospace;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
 }
 
 .card-footer {
