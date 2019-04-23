@@ -30,7 +30,7 @@
                 * indicates a required field
             </div>
 
-            <advanced-collapse>
+            <advanced-collapse :value="showAdvanced">
                 <cgfs-option
                     v-model="internalConfig.mountpoint"
                     :option="OPTIONS.mountpoint"
@@ -54,6 +54,7 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 
+import { isEqual } from '@/utils';
 import OPTIONS from '@/options';
 
 import CgfsOption from '@/components/CgfsOption';
@@ -66,8 +67,8 @@ export default {
     data() {
         return {
             OPTIONS,
-            internalConfig: null,
             showAdvanced: false,
+            internalConfig: null,
             errors: {},
         };
     },
@@ -84,6 +85,14 @@ export default {
             },
             immediate: true,
         },
+    },
+
+    mounted() {
+        this.showAdvanced = (
+            this.config.mountpoint !== OPTIONS.mountpoint.default ||
+            this.config.verbosity !== OPTIONS.verbosity.default ||
+            !isEqual(this.config.options, OPTIONS.options.default)
+        );
     },
 
     methods: {
@@ -113,7 +122,13 @@ export default {
                         this.$emit('start', response.data.access_token);
                     },
                     err => {
-                        this.errors = err;
+                        if (err.response && err.response.data) {
+                            this.errors = {
+                                password: new Error(err.response.data.message),
+                            };
+                        } else {
+                            this.errors = err;
+                        }
                     },
                 );
         },

@@ -5,7 +5,7 @@
             Advanced
         </div>
 
-        <b-collapse id="advanced-collapse" @input="$emit('input', $event)">
+        <b-collapse id="advanced-collapse" :visible="value" @input="$emit('input', $event)">
             <div class="collapse-area">
                 <slot />
             </div>
@@ -41,7 +41,7 @@ export default {
 }
 
 .collapse-area {
-    padding-top: 1rem;
+    padding-top: 0.5rem;
 }
 
 .fa-icon {

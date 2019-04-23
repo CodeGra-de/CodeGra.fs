@@ -1,4 +1,4 @@
-function mod(x, n) {
+export function mod(x, n) {
     const ret = x % n;
     return ret < 0 ? n + ret : ret;
 }
@@ -10,9 +10,24 @@ const uniq = (function IIFE() {
         return i++;
     };
 }());
+export { uniq };
+
+export function isEqual(a, b) {
+    if (typeof a !== 'object' || typeof b !== 'object') {
+        throw new TypeError('isEqual: arguments must be of type "object".');
+    }
+
+    const bKeys = new Set(Object.keys(b));
+    for (const key of Object.keys(a)) {
+        if (!bKeys.delete(key) || a[key] !== b[key]) {
+            return false;
+        }
+    }
+    return bKeys.size === 0;
+}
 
 // https://stackoverflow.com/questions/13405129/javascript-create-and-save-file
-function downloadFile(data, filename, type) {
+export function downloadFile(data, filename, type) {
     const file = new Blob([data], { type });
     if (window.navigator.msSaveOrOpenBlob) {
         // IE10+
@@ -30,5 +45,3 @@ function downloadFile(data, filename, type) {
         }, 0);
     }
 }
-
-export { downloadFile, mod, uniq };
