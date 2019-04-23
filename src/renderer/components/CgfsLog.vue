@@ -292,7 +292,8 @@ export default {
             for (let i = 0; i < events.size; i++) {
                 log.push(events.get(i));
             }
-            downloadFile(JSON.stringify(log), 'cgfs-log.json', 'application/json');
+            const filename = `cgfs-log-${new Date().toISOString()}.json`;
+            downloadFile(JSON.stringify(log), filename, 'application/json');
         },
 
         onMessageClick(event) {
