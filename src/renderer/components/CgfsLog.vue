@@ -48,7 +48,10 @@
             </div>
 
             <div class="btn-container">
-                <b-button :variant="following ? 'success' : 'outline-primary'" @click="toggleFollowing">
+                <b-button
+                    :variant="following ? 'success' : 'outline-primary'"
+                    @click="toggleFollowing"
+                >
                     {{ following ? 'Following' : 'Follow' }} log
                 </b-button>
             </div>

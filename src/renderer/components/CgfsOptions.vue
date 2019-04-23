@@ -84,9 +84,9 @@ export default {
 
     watch: {
         config: {
-            handler() {
-                this.internalConfig = Object.assign({}, this.config);
-                this.internalConfig.options = Object.assign({}, this.config.options);
+            handler(config) {
+                this.internalConfig = Object.assign({}, config);
+                this.internalConfig.options = Object.assign({}, config.options);
             },
             immediate: true,
         },
@@ -100,22 +100,15 @@ export default {
     },
 
     methods: {
-        ...mapActions('Config', ['writeConfig', 'clearPassword']),
+        ...mapActions('Config', ['writeConfig']),
 
         start() {
+            const { username, password } = this.internalConfig;
+
             this.writeConfig(this.internalConfig)
                 .then(() =>
-                    this.$http.post(`${this.getInstitutionURL()}/login`, {
-                        username: this.internalConfig.username,
-                        password: this.internalConfig.password,
-                    }),
+                    this.$http.post(`${this.getInstitutionURL()}/login`, { username, password }),
                 )
-                .then(response => {
-                    if (!this.$devMode) {
-                        return this.clearPassword().then(() => response);
-                    }
-                    return response;
-                })
                 .then(
                     response => {
                         this.errors = {};

@@ -77,7 +77,10 @@
       "warningsAsErrors": false
     },
     "linux": {
-      "icon": "static/icons"
+      "icon": "static/icons",
+      "target": [
+        "AppImage"
+      ]
     }
   },
   "dependencies": {

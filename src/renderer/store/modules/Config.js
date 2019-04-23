@@ -93,6 +93,9 @@ const getters = {
 
 const mutations = {
     SET_CONFIG(state, config) {
+        if (process.env.NODE_ENV !== 'development') {
+            config.password = '';
+        }
         state.config = Object.assign({}, config);
     },
 };
@@ -100,14 +103,6 @@ const mutations = {
 const actions = {
     writeConfig({ commit }, config) {
         return validateConfig(config, OPTIONS).then(() => commit('SET_CONFIG', config));
-    },
-
-    clearPassword({ commit, state }) {
-        const config = Object.assign({}, state.config, {
-            password: '',
-        });
-
-        return commit('SET_CONFIG', config);
     },
 };
 
