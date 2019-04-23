@@ -84,3 +84,9 @@ def name_of_user(user: t.Dict[str, t.Any]) -> str:
 
 def format_datestring(datestring: str) -> str:
     return datestring.replace('T', ' ').split('.')[0]
+
+
+def maybe_strip_trailing_newline(s: str) -> str:
+    if s and s[-1] == '\n':
+        s = s[:-1]
+    return s

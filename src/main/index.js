@@ -11,9 +11,11 @@ if (process.env.NODE_ENV !== 'development') {
         .replace(/\\/g, '\\\\'); // eslint-disable-line
 }
 
+const devMode = process.env.NODE_ENV === 'development';
+
 let mainWindow;
 const winURL =
-    process.env.NODE_ENV === 'development'
+    devMode
         ? 'http://localhost:9080'
         : `file://${__dirname}/index.html`;
 
@@ -28,6 +30,9 @@ function createWindow() {
         useContentSize: true,
         width: 550,
         icon: path.join(__static, 'icons', 'icon-blue.png'),
+        webPreferences: {
+            webSecurity: !devMode,
+        },
     });
 
     mainWindow.setMenu(null);
@@ -69,6 +74,6 @@ autoUpdater.on('update-downloaded', () => {
 })
 
 app.on('ready', () => {
-  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates()
+  if (!devMode) autoUpdater.checkForUpdates()
 })
  */

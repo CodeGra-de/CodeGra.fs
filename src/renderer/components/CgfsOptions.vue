@@ -82,18 +82,43 @@ export default {
     },
 
     methods: {
-        ...mapActions('Config', ['writeConfig']),
+        ...mapActions('Config', ['writeConfig', 'clearPassword']),
 
         start() {
-            this.writeConfig(this.internalConfig).then(
-                () => {
-                    this.errors = {};
-                    this.$emit('start');
-                },
-                err => {
-                    this.errors = err;
-                },
-            );
+            this
+                .writeConfig(this.internalConfig)
+                .then(
+                    () => this.$http.post(
+                        `${this.getInstitutionURL()}/login`,
+                        {
+                            username: this.internalConfig.username,
+                            password: this.internalConfig.password,
+                        },
+                    ),
+                )
+                .then(response => {
+                    if (!this.$devMode) {
+                        return this.clearPassword().then(() => response);
+                    }
+                    return response;
+                })
+                .then(
+                    response => {
+                        this.errors = {};
+                        this.$emit('start', response.data.access_token);
+                    },
+                    err => {
+                        this.errors = err;
+                    },
+                );
+        },
+
+        getInstitutionURL() {
+            if (this.internalConfig.institution === 'custom') {
+                return this.internalConfig.customInstitution;
+            } else {
+                return this.internalConfig.institution;
+            }
         },
     },
 

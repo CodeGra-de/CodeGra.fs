@@ -61,7 +61,7 @@ except:
 
 
 cgapi = None  # type: t.Optional[CGAPI]
-fuse_context = None  # type: t.Optional[t.Mapping[str, t.Any]]
+fuse_context = None  # type: t.Optional[t.Mapping[str, object]]
 gui_mode = False
 logger = logging.getLogger(__name__)
 
@@ -125,7 +125,7 @@ def set_fuse_context(fmt: str, *args: object) -> None:
     }
 
 
-def get_fuse_context() -> None:
+def get_fuse_context() -> str:
     if fuse_context is not None:
         return fuse_context['fmt'] % fuse_context['args']
     else:
@@ -1444,6 +1444,7 @@ class CGFS(LoggingMixIn, Operations):
             )
             self.load_courses()
         logger.info('Mounted.')
+        print()
 
     def strippath(self, path: str) -> str:
         path = os.path.abspath(path)
@@ -2078,6 +2079,7 @@ class CGFS(LoggingMixIn, Operations):
 def create_and_mount_fs(
     username: str,
     password: str,
+    jwt_token: str,
     url: t.Optional[str],
     fixed: bool,
     assigned_only: bool,
@@ -2093,6 +2095,7 @@ def create_and_mount_fs(
         cgapi = CGAPI(
             username,
             password,
+            jwt_token,
             url,
             fixed=fixed,
         )
@@ -2148,8 +2151,10 @@ Watch out when uploading grading scripts!
                 **kwargs,
             )
         except RuntimeError:  # pragma: no cover
+            set_fuse_context('Unexpected error')
             logger.critical(traceback.format_exc())
         finally:
+            set_fuse_context('Error occurred during exit')
             if fs is not None and hasattr(fs, 'api_handler'):
                 fs.api_handler.stop = True
             if os.path.isfile(sockfile):
@@ -2178,6 +2183,7 @@ def main() -> None:
     msg = codegra_fs.utils.get_fuse_install_message()
     if msg:
         err, url = msg
+        logger.critical('''ERROR!''')
         print('ERROR!')
         print(msg, file=sys.stderr)
         if url:
@@ -2275,6 +2281,13 @@ def main() -> None:
         help='Run in GUI mode: output log messagess in JSON.',
     )
     argparser.add_argument(
+        '--jwt',
+        dest='jwt_token',
+        default=False,
+        action='store_true',
+        help='Login using a JWT token that is read from stdin.',
+    )
+    argparser.add_argument(
         '--version',
         dest='version',
         action='version',
@@ -2285,27 +2298,7 @@ def main() -> None:
     )
     args = argparser.parse_args()
 
-    mountpoint = os.path.abspath(args.mountpoint)
-    username = args.username
-
-    password = args.password
-    if password is None and not sys.stdin.isatty():
-        password = sys.stdin.readline()
-        if len(password) and password[-1] == '\n':
-            password = password[:-1]
-        if not password:
-            password = None
-    if password is None:
-        password = getenv('CGFS_PASSWORD')
-    if password is None:
-        password = getpass('Password: ')
-
-    latest_only = args.latest_only
-    rubric_append_only = args.rubric_append_only
-    fixed = args.fixed
-    assigned_only = args.assigned_only
     gui_mode = args.gui_mode
-
     if args.quiet:
         log_level = logging.WARNING
     elif args.debug:
@@ -2317,6 +2310,37 @@ def main() -> None:
         'incremental': True,
         'root': { 'level': log_level },
     })
+
+    mountpoint = os.path.abspath(args.mountpoint)
+    username = args.username
+    password = None
+    jwt_token = None
+
+    if args.jwt_token:
+        if not sys.stdin.isatty():
+            jwt_token = codegra_fs.utils.maybe_strip_trailing_newline(
+                sys.stdin.readline()
+            )
+        if not jwt_token:
+            logger.error('JWT token expected on stdin.')
+            return
+    else:
+        password = args.password
+        if password is None and not sys.stdin.isatty():
+            password = codegra_fs.utils.maybe_strip_trailing_newline(
+                sys.stdin.readline()
+            )
+            if not password:
+                password = None
+        if password is None:
+            password = getenv('CGFS_PASSWORD')
+        if password is None:
+            password = getpass('Password: ')
+
+    latest_only = args.latest_only
+    rubric_append_only = args.rubric_append_only
+    fixed = args.fixed
+    assigned_only = args.assigned_only
 
     if sys.platform != 'win32':
         try:
@@ -2334,6 +2358,7 @@ def main() -> None:
         create_and_mount_fs(
             username=username,
             password=password,
+            jwt_token=jwt_token,
             url=args.url or getenv('CGAPI_BASE_URL', None),
             fixed=fixed,
             assigned_only=assigned_only,

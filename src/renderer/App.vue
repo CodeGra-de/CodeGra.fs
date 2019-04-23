@@ -2,8 +2,8 @@
     <div id="app" class="container-fluid">
         <img class="logo" src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
 
-        <cgfs-log v-if="running" @stop="running = false" />
-        <cgfs-options v-else @start="running = true" />
+        <cgfs-log v-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken"/>
+        <cgfs-options v-else @start="jwtToken = $event" />
     </div>
 </template>
 
@@ -16,7 +16,8 @@ export default {
 
     data() {
         return {
-            running: false,
+            console,
+            jwtToken: '',
         };
     },
 

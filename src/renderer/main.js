@@ -14,6 +14,8 @@ Vue.config.productionTip = false;
 
 Vue.use(BootstrapVue);
 
+Vue.prototype.$devMode = process.env.NODE_ENV === 'development';
+
 /* eslint-disable no-new */
 new Vue({
     components: { App },

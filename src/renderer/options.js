@@ -10,19 +10,19 @@ const OPTIONS = {
         options: [
             {
                 text: 'Amsterdam UMC (amc.codegra.de)',
-                value: 'https://amc.codegra.de/api/v1/',
+                value: 'https://amc.codegra.de/api/v1',
             },
             {
                 text: 'Erasmus Universiteit Rotterdam (eur.codegra.de)',
-                value: 'https://eur.codegra.de/api/v1/',
+                value: 'https://eur.codegra.de/api/v1',
             },
             {
                 text: 'Universiteit Twente (ut.codegra.de)',
-                value: 'https://ut.codegra.de/api/v1/',
+                value: 'https://ut.codegra.de/api/v1',
             },
             {
                 text: 'Universiteit van Amsterdam (uva.codegra.de)',
-                value: 'https://uva.codegra.de/api/v1/',
+                value: 'https://uva.codegra.de/api/v1',
             },
             {
                 text: 'Other',
@@ -121,7 +121,7 @@ const OPTIONS = {
 if (process.env.NODE_ENV === 'development') {
     OPTIONS.institution.options.unshift({
         text: 'Development (localhost:5000)',
-        value: 'http://localhost:5000/api/v1/',
+        value: 'http://localhost:5000/api/v1',
     });
 }
 

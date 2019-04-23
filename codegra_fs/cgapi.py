@@ -175,30 +175,37 @@ class CGAPIException(Exception):
 class CGAPI():
     def __init__(
         self,
-        username: str,
-        password: str,
+        username: t.Optional[str] = None,
+        password: t.Optional[str] = None,
+        jwt_token: t.Optional[str] = None,
         base: t.Optional[str] = None,
         fixed: bool = False
     ) -> None:
+        assert (username and password) or jwt_token
+
         owner = 'student' if fixed else 'auto'
         self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL, owner)
 
-        r = requests.post(
-            self.routes.get_login(),
-            json={
-                'username': username,
-                'password': password,
-            }
-        )
+        if jwt_token is None:
+            r = requests.post(
+                self.routes.get_login(),
+                json={
+                    'username': username,
+                    'password': password,
+                }
+            )
 
-        self._handle_response_error(r)
-        try:
-            json = r.json()
-        except:
-            raise CGAPIException(r)
+            self._handle_response_error(r)
+            try:
+                json = r.json()
+            except:
+                raise CGAPIException(r)
 
-        self.user = json['user']
-        self.access_token = json['access_token']
+            self.user = json['user']
+            self.access_token = json['access_token']
+        else:
+            self.access_token = jwt_token
+
         self.s = requests.Session()
         self.fixed = fixed
 

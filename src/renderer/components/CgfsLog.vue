@@ -44,7 +44,7 @@ import childProcess from 'child_process';
 import readline from 'readline';
 import path from 'path';
 
-import { mapActions, mapGetters } from 'vuex';
+import { mapGetters } from 'vuex';
 
 import { downloadFile, mod, uniq } from '@/utils';
 
@@ -74,6 +74,13 @@ const events = {
 export default {
     name: 'cgfs-log',
 
+    props: {
+        jwtToken: {
+            type: String,
+            required: true,
+        },
+    },
+
     data() {
         return {
             proc: null,
@@ -97,18 +104,13 @@ export default {
     },
 
     methods: {
-        ...mapActions('Config', ['clearPassword']),
-
         start() {
             this.addEvent('Starting...', 'info');
 
             const proc = childProcess.spawn('cgfs', this.getArgs());
 
-            proc.stdin.write(`${this.config.password}`);
+            proc.stdin.write(`${this.jwtToken}`);
             proc.stdin.end();
-            if (process.env.NODE_ENV !== 'development') {
-                this.clearPassword();
-            }
 
             proc.stderr.setEncoding('utf-8');
             const rl = readline.createInterface({
@@ -127,7 +129,7 @@ export default {
 
         getArgs() {
             const conf = this.config;
-            const args = ['--gui'];
+            const args = ['--gui', '--jwt'];
 
             if (conf.institution === 'custom') {
                 args.push('--url', conf.customInstitution);
