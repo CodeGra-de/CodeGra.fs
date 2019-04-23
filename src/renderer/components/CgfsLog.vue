@@ -22,14 +22,23 @@
 
         <b-card-footer>
             <div class="btn-container">
-                <b-button :variant="proc ? 'danger' : 'primary'" @click="stop(!proc)">
-                    <template v-if="proc"
-                        >Stop</template
-                    >
-                    <template v-else
-                        >Back</template
-                    >
-                </b-button>
+                <b-dropdown
+                    split
+                    :variant="running ? 'outline-danger' : 'outline-primary'"
+                    :split-variant="running ? 'danger' : 'primary'"
+                    @click="running ? stop() : $emit('stop')"
+                >
+                    <template slot="button-content" v-if="running">
+                        Stop
+                    </template>
+                    <template slot="button-content" v-else>
+                        Back
+                    </template>
+
+                    <b-dropdown-item @click="restart">
+                        Restart
+                    </b-dropdown-item>
+                </b-dropdown>
             </div>
 
             <div class="btn-container">
@@ -39,7 +48,7 @@
             </div>
 
             <div class="btn-container">
-                <b-button :variant="following ? 'success' : 'primary'" @click="toggleFollowing">
+                <b-button :variant="following ? 'success' : 'outline-primary'" @click="toggleFollowing">
                     {{ following ? 'Following' : 'Follow' }} log
                 </b-button>
             </div>
@@ -93,6 +102,7 @@ export default {
     data() {
         return {
             proc: null,
+            running: false,
             eventSize: 0,
             following: true,
             previousY: 0,
@@ -134,6 +144,7 @@ export default {
             });
 
             this.proc = proc;
+            this.running = true;
         },
 
         getArgs() {
@@ -172,15 +183,25 @@ export default {
             return args;
         },
 
-        stop(goBack) {
+        restart() {
+            if (this.proc) {
+                this.proc.on('close', () => {
+                    this.start();
+                });
+                this.stop(true);
+            } else {
+                this.start();
+            }
+        },
+
+        stop(restart = false) {
             if (this.proc != null) {
                 this.addEvent('Stopping...', 'info');
                 this.proc.kill();
                 this.proc = null;
-            }
-
-            if (goBack) {
-                this.$emit('stop');
+                if (!restart) {
+                    this.running = false;
+                }
             }
         },
 
