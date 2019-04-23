@@ -6,7 +6,9 @@
         </div>
 
         <b-collapse id="advanced-collapse" @input="$emit('input', $event)">
-            <slot />
+            <div class="collapse-area">
+                <slot />
+            </div>
         </b-collapse>
     </div>
 </template>
@@ -36,10 +38,10 @@ export default {
     display: inline-block;
     user-select: none;
     cursor: pointer;
+}
 
-    &:not(.collapsed) {
-        margin-bottom: 1rem;
-    }
+.collapse-area {
+    padding-top: 1rem;
 }
 
 .fa-icon {

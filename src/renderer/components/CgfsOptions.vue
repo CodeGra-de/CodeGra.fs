@@ -67,6 +67,7 @@ export default {
         return {
             OPTIONS,
             internalConfig: null,
+            showAdvanced: false,
             errors: {},
         };
     },
@@ -155,7 +156,7 @@ export default {
 }
 </style>
 
-<style lang="css">
+<style lang="scss">
 .form-control.custom-control {
     padding-left: 2rem;
 

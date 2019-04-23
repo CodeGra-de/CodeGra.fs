@@ -1,10 +1,10 @@
 <template>
     <b-card no-body class="cgfs-log">
-        <div slot="header">
+        <b-card-header>
             Mounted at: <code>{{ config.mountpoint }}/CodeGrade/</code>
-        </div>
+        </b-card-header>
 
-        <div ref="output" class="card-body" @scroll="onScroll">
+        <b-card-body ref="output" @scroll="onScroll">
             <div
                 v-for="i in Math.min(this.eventSize, MAX_VISIBLE)"
                 :key="events.get(curStart + i - 1).id"
@@ -14,9 +14,9 @@
             -->{{ events.get(curStart + i - 1).message
                 }}<!--
             --></div>
-        </div>
+        </b-card-body>
 
-        <div slot="footer" class="control">
+        <b-card-footer>
             <div class="btn-container">
                 <b-button :variant="proc ? 'danger' : 'primary'" @click="stop(!proc)">
                     <template v-if="proc"
@@ -39,7 +39,7 @@
                     {{ following ? 'Following' : 'Follow' }} log
                 </b-button>
             </div>
-        </div>
+        </b-card-footer>
     </b-card>
 </template>
 
@@ -294,7 +294,7 @@ export default {
     margin-bottom: 0;
 }
 
-.control {
+.card-footer {
     display: flex;
     flex-direction: row;
 }
