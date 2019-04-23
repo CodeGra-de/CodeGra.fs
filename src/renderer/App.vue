@@ -50,12 +50,12 @@ export default {
 };
 </script>
 
-<style lang="css" scoped>
+<style lang="scss" scoped>
 #app {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    padding: 15px;
+    padding: 15px 15px 0;
 }
 
 .logo {
@@ -64,11 +64,15 @@ export default {
     max-width: 550px;
     margin: 0 auto 1rem;
     font-weight: 300;
+
+    @media (max-height: 30rem) {
+        max-width: 250px;
+    }
 }
 
 .cgfs-log,
 .cgfs-options {
     flex: 1 1 auto;
-    margin: 0 auto;
+    margin: 0 auto 1rem;
 }
 </style>

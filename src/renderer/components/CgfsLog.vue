@@ -1,10 +1,10 @@
 <template>
-    <b-card class="cgfs-log">
+    <b-card no-body class="cgfs-log">
         <div slot="header">
             Mounted at: <code>{{ config.mountpoint }}/CodeGrade/</code>
         </div>
 
-        <div ref="output" class="output" @scroll="onScroll">
+        <div ref="output" class="card-body" @scroll="onScroll">
             <div
                 v-for="i in Math.min(this.eventSize, MAX_VISIBLE)"
                 :key="events.get(curStart + i - 1).id"
@@ -18,7 +18,7 @@
 
         <div slot="footer" class="control">
             <div class="btn-container">
-                <b-button variant="danger" @click="stop(!proc)">
+                <b-button :variant="proc ? 'danger' : 'primary'" @click="stop(!proc)">
                     <template v-if="proc"
                         >Stop</template
                     >
@@ -29,7 +29,7 @@
             </div>
 
             <div class="btn-container">
-                <b-button variant="secondary" @click="exportLog">
+                <b-button variant="outline-primary" @click="exportLog">
                     Export log
                 </b-button>
             </div>
@@ -276,28 +276,21 @@ export default {
 };
 </script>
 
-<style lang="css" scoped>
+<style lang="scss" scoped>
 .cgfs-log {
     width: 100%;
     max-width: 1024px;
+    min-height: 20rem;
     position: relative;
 }
 
-.cgfs-log .card-body {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    overflow: hidden;
-}
-
-.output {
-    flex: 1 1 auto;
+.card-body {
     overflow-y: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
 
-.output .alert:last-child {
+.alert:last-child {
     margin-bottom: 0;
 }
 
@@ -306,15 +299,15 @@ export default {
     flex-direction: row;
 }
 
-.control .btn-container {
+.btn-container {
     flex: 1 1 33.333%;
-}
 
-.btn-container:nth-child(2) {
-    text-align: center;
-}
+    &:nth-child(2) {
+        text-align: center;
+    }
 
-.btn-container:last-child {
-    text-align: right;
+    &:nth-child(3) {
+        text-align: right;
+    }
 }
 </style>

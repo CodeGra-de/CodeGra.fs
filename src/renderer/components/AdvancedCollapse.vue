@@ -31,22 +31,25 @@ export default {
 };
 </script>
 
-<style lang="css" scoped>
+<style lang="scss" scoped>
 .collapse-trigger {
     display: inline-block;
-    margin-bottom: 1rem;
     user-select: none;
     cursor: pointer;
+
+    &:not(.collapsed) {
+        margin-bottom: 1rem;
+    }
 }
 
 .fa-icon {
     height: 1rem;
     width: 1rem;
-    transform: rotate(0);
+    transform: translateY(-2px) rotate(0);
     transition: transform 300ms;
-}
 
-.collapse-trigger:not(.collapsed) .fa-icon {
-    transform: rotate(90deg);
+    .collapse-trigger:not(.collapsed) & {
+        transform: translateY(-2px) rotate(90deg);
+    }
 }
 </style>

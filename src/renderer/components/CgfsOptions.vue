@@ -1,49 +1,53 @@
 <template>
     <b-form v-if="internalConfig" class="cgfs-options" @keyup.enter="start">
-        <cgfs-option
-            v-model="internalConfig.institution"
-            :option="OPTIONS.institution"
-            :error="errors.institution"
-        />
-
-        <cgfs-option
-            v-if="internalConfig.institution === 'custom'"
-            v-model="internalConfig.customInstitution"
-            :option="OPTIONS.customInstitution"
-            :error="errors.customInstitution"
-        />
-
-        <cgfs-option
-            v-model="internalConfig.username"
-            :option="OPTIONS.username"
-            :error="errors.username"
-        />
-
-        <cgfs-option
-            v-model="internalConfig.password"
-            :option="OPTIONS.password"
-            :error="errors.password"
-        />
-
-        <div class="required-desc text-muted font-italic">
-            * indicates a required field
-        </div>
-
-        <advanced-collapse>
+        <b-card>
             <cgfs-option
-                v-model="internalConfig.mountpoint"
-                :option="OPTIONS.mountpoint"
-                :error="errors.mountpoint"
+                v-model="internalConfig.institution"
+                :option="OPTIONS.institution"
+                :error="errors.institution"
             />
 
-            <cgfs-option v-model="internalConfig.options" :option="OPTIONS.options" />
+            <cgfs-option
+                v-if="internalConfig.institution === 'custom'"
+                v-model="internalConfig.customInstitution"
+                :option="OPTIONS.customInstitution"
+                :error="errors.customInstitution"
+            />
 
-            <cgfs-option v-model="internalConfig.verbosity" :option="OPTIONS.verbosity" />
-        </advanced-collapse>
+            <cgfs-option
+                v-model="internalConfig.username"
+                :option="OPTIONS.username"
+                :error="errors.username"
+            />
 
-        <b-button class="start-button" variant="primary" @click="start">
-            Start
-        </b-button>
+            <cgfs-option
+                v-model="internalConfig.password"
+                :option="OPTIONS.password"
+                :error="errors.password"
+            />
+
+            <div class="required-desc text-muted font-italic">
+                * indicates a required field
+            </div>
+
+            <advanced-collapse>
+                <cgfs-option
+                    v-model="internalConfig.mountpoint"
+                    :option="OPTIONS.mountpoint"
+                    :error="errors.mountpoint"
+                />
+
+                <cgfs-option v-model="internalConfig.options" :option="OPTIONS.options" />
+
+                <cgfs-option v-model="internalConfig.verbosity" :option="OPTIONS.verbosity" />
+            </advanced-collapse>
+
+            <div slot="footer">
+                <b-button class="start-button" variant="primary" @click="start">
+                    Start
+                </b-button>
+            </div>
+        </b-card>
     </b-form>
 </template>
 
@@ -130,11 +134,15 @@ export default {
 };
 </script>
 
-<style lang="css" scoped>
+<style lang="scss" scoped>
 .cgfs-options {
     width: 100%;
     max-width: 550px;
     margin: 0 auto;
+}
+
+.cgfs-option:last-child {
+    margin-bottom: 0;
 }
 
 .required-desc {
@@ -144,16 +152,15 @@ export default {
 
 .start-button {
     float: right;
-    margin-bottom: 1rem;
 }
 </style>
 
 <style lang="css">
 .form-control.custom-control {
     padding-left: 2rem;
-}
 
-.form-control.custom-control label {
-    display: block;
+    label {
+        display: block;
+    }
 }
 </style>

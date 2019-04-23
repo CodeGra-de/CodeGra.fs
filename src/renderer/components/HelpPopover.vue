@@ -40,7 +40,7 @@ export default {
 };
 </script>
 
-<style lang="css">
+<style lang="scss">
 .help-popover {
     cursor: help;
     margin-top: -.125rem;

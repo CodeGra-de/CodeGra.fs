@@ -47,6 +47,25 @@ let rendererConfig = {
         use: ['vue-style-loader', 'css-loader', 'less-loader']
       },
       {
+        test: /\.scss$/,
+        use: [{
+          loader: 'vue-style-loader'
+        }, {
+          loader: 'css-loader'
+        }, {
+          loader: 'postcss-loader',
+          options: {
+            plugins: function() {
+              return [
+                require('autoprefixer')
+              ];
+            }
+          },
+        }, {
+          loader: 'sass-loader'
+        }]
+      },
+      {
         test: /\.css$/,
         use: ['vue-style-loader', 'css-loader']
       },
