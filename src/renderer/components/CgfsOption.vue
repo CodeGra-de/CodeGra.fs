@@ -8,7 +8,7 @@
         <template slot="label">
             {{ option.label }}
 
-            <span v-if="option.required" class="text-muted">
+            <span v-if="option.required" class="text-primary">
                 *
             </span>
 

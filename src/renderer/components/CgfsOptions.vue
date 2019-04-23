@@ -31,7 +31,7 @@
             />
 
             <div class="required-desc text-muted font-italic">
-                * indicates a required field
+                <span class="text-primary">*</span> indicates a required field
             </div>
 
             <advanced-collapse :value="showAdvanced">
