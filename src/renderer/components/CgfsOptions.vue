@@ -62,8 +62,9 @@
             hide-footer
             id="help-modal"
             size="xl"
-            title="CodeGrade Filesystem Documentation">
-            <webview src="https://fs-docs.codegra.de/"/>
+            title="CodeGrade Filesystem Documentation"
+        >
+            <webview src="https://fs-docs.codegra.de/" />
         </b-modal>
     </b-form>
 </template>
@@ -178,7 +179,7 @@ export default {
 </style>
 
 <style lang="scss">
-@import "@/_mixins.scss";
+@import '@/_mixins.scss';
 
 .cgfs-options {
     .modal-dialog {
@@ -201,22 +202,6 @@ export default {
 
     webview {
         flex: 1 1 auto;
-    }
-
-    .help-modal-close-button {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 2rem;
-        height: 2rem;
-        padding: 0.5rem;
-        cursor: pointer;
-        color: map-get($theme-colors, "primary");
-
-
-        &:hover {
-            color: map-get($theme-colors, "danger");
-        }
     }
 }
 </style>

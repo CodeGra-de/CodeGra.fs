@@ -15,6 +15,19 @@ Vue.use(BootstrapVue);
 
 Vue.prototype.$devMode = process.env.NODE_ENV === 'development';
 
+const htmlEscapes = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '`': '&#96;',
+};
+Vue.prototype.$htmlEscape = function htmlEscape(input) {
+    return input && input.replace(/[&<>"'`]/g, match => htmlEscapes[match]);
+};
+
+
 /* eslint-disable no-new */
 new Vue({
     components: { App },

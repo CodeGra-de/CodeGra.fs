@@ -13,11 +13,8 @@
                 v-for="i in Math.min(this.eventSize, MAX_VISIBLE)"
                 :key="events.get(curStart + i - 1).id"
                 :class="`alert alert-${events.get(curStart + i - 1).variant}`"
-            >
-                <!--
-            -->{{ events.get(curStart + i - 1).message
-                }}<!--
-            --></div>
+                v-html="events.get(curStart + i - 1).message"
+                @click.capture="onMessageClick"/>
         </b-card-body>
 
         <b-card-footer>
@@ -64,6 +61,7 @@ import childProcess from 'child_process';
 import readline from 'readline';
 import path from 'path';
 
+import { shell } from 'electron';
 import { mapGetters } from 'vuex';
 
 import CgfsLogo from '@/components/CgfsLogo';
@@ -224,7 +222,12 @@ export default {
                 CRITICAL: 'danger',
             }[event.levelname];
 
-            this.addEvent(event.message, variant, event);
+            const message = this.$htmlEscape(event.message).replace(
+                /https?:\/\/\S+/g,
+                match => `<a class="log-link" href="${match}">${match}</a>`,
+            );
+
+            this.addEvent(message, variant, event);
         },
 
         addEvent(message, variant, original) {
@@ -289,6 +292,13 @@ export default {
                 log.push(events.get(i));
             }
             downloadFile(JSON.stringify(log), 'cgfs-log.json', 'application/json');
+        },
+
+        onMessageClick(event) {
+            if (event.target.closest('.log-link')) {
+                event.preventDefault();
+                shell.openExternal(event.target.href);
+            }
         },
     },
 

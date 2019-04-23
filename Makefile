@@ -62,7 +62,7 @@ test_quick: TEST_FLAGS += -x
 test_quick: test
 
 .PHONY: check
-check: mypy lint check-format test
+check: check-format mypy lint test
 
 .PHONY: build
 build: install-deps
