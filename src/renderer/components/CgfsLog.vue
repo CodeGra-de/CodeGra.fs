@@ -218,7 +218,7 @@ export default {
             }
         },
 
-        scrollToLastEvent() {
+        scrollToLastEvent(behavior = 'auto') {
             const out = this.$refs.output;
 
             // Only scroll when at the bottom.
@@ -227,7 +227,10 @@ export default {
             }
 
             this.$nextTick(async () => {
-                out.scrollTop = out.scrollHeight;
+                out.scrollTo({
+                    top: out.scrollHeight,
+                    behavior,
+                });
             });
         },
 
@@ -235,7 +238,7 @@ export default {
             this.following = !this.following;
 
             if (this.following) {
-                this.scrollToLastEvent();
+                this.scrollToLastEvent('smooth');
             }
         },
 
