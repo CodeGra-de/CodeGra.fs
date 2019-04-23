@@ -47,16 +47,32 @@
             </advanced-collapse>
 
             <div slot="footer">
+                <b-button variant="outline-primary" v-b-modal.help-modal>
+                    Help
+                </b-button>
+
                 <b-button class="start-button" variant="primary" @click="start">
                     Start
                 </b-button>
             </div>
         </b-card>
+
+        <b-modal
+            lazy
+            hide-footer
+            id="help-modal"
+            size="xl"
+            title="CodeGrade Filesystem Documentation">
+            <webview src="https://fs-docs.codegra.de/"/>
+        </b-modal>
     </b-form>
 </template>
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
+
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/times';
 
 import { isEqual } from '@/utils';
 import OPTIONS from '@/options';
@@ -71,6 +87,7 @@ export default {
 
     data() {
         return {
+            console,
             OPTIONS,
             showAdvanced: false,
             internalConfig: null,
@@ -140,6 +157,7 @@ export default {
         CgfsOption,
         HelpPopover,
         AdvancedCollapse,
+        Icon,
     },
 };
 </script>
@@ -156,5 +174,49 @@ export default {
 
 .start-button {
     float: right;
+}
+</style>
+
+<style lang="scss">
+@import "@/_mixins.scss";
+
+.cgfs-options {
+    .modal-dialog {
+        height: calc(100vh - 2 * #{$spacer});
+        width: calc(100vw - 2 * #{$spacer});
+        max-width: initial;
+        margin: $spacer;
+    }
+
+    .modal-content {
+        height: 100%;
+    }
+
+    .modal-body {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+    }
+
+    webview {
+        flex: 1 1 auto;
+    }
+
+    .help-modal-close-button {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 2rem;
+        height: 2rem;
+        padding: 0.5rem;
+        cursor: pointer;
+        color: map-get($theme-colors, "primary");
+
+
+        &:hover {
+            color: map-get($theme-colors, "danger");
+        }
+    }
 }
 </style>
