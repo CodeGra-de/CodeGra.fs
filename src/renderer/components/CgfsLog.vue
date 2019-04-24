@@ -188,6 +188,7 @@ export default {
         restart() {
             if (this.proc) {
                 this.proc.on('close', () => {
+                    this.addEvent('Restarting...', 'info');
                     this.start();
                 });
                 this.stop(true);
