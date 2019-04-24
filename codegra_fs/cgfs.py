@@ -27,7 +27,6 @@ from errno import (  # type: ignore
 from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from dataclasses import dataclass
 
 import codegra_fs
 import codegra_fs.constants as constants
@@ -64,10 +63,13 @@ except:
     APIHandlerResponse = dict  # type: ignore
 
 
-@dataclass
 class FuseContext:
     msg: str
     args: t.Tuple[object, ...]
+
+    def __init__(self, msg: str, *args: object) -> None:
+        self.msg = msg
+        self.args = args
 
 
 cgapi = None  # type: t.Optional[CGAPI]
