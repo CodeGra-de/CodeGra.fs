@@ -36,8 +36,8 @@ def password():
         (
             b'# Header\nDescription\n----\n- (1.0) Item - Desc\n', (
                 [('Header', 'Description', [(1.0, 'Item', 'Desc')])],
-                '# \[{id}\] Header\n  Description\n-+\n- '
-                '\[{id}\] \(1\.0\) Item - Desc\n'
+                '# \\[{id}\\] Header\n  Description\n-+\n- '
+                '\\[{id}\\] \\(1\\.0\\) Item - Desc\n'
             )
         ),
         (
@@ -48,8 +48,8 @@ def password():
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (4.0, 'Item2', 'Desc2')]
                     )
-                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
-                ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n'
+                ], '# \\[{id}\\] Header\n  Description\n-+\n- \\[{id}\\] \\(1\\.0\\)'
+                ' Item - Desc\n- \\[{id}\\] \\(4\\.0\\) Item2 - Desc2\n'
             )
         ),
         (
@@ -65,9 +65,9 @@ def password():
                             (2.5, 'I', 'D\nC\n\nA\n\n\nM'),
                         ]
                     )
-                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
-                ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n\n#'
-                ' \[{id}\] Header 2\n  Description 2\n-+\n- \[{id}\] \(2\.5\) I'
+                ], '# \\[{id}\\] Header\n  Description\n-+\n- \\[{id}\\] \\(1\\.0\\)'
+                ' Item - Desc\n- \\[{id}\\] \\(4\\.0\\) Item2 - Desc2\n\n#'
+                ' \\[{id}\\] Header 2\n  Description 2\n-+\n- \\[{id}\\] \\(2\\.5\\) I'
                 ' - D\n  C\n  \n  A\n  \n  \n  M\n'
             )
         ),
@@ -160,16 +160,16 @@ def test_get_set_rubric(
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (4.0, 'Item2', 'Desc2')]
                     )
-                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
-                ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n'
+                ], '# \\[{id}\\] Header\n  Description\n-+\n- \\[{id}\\] \\(1\\.0\\)'
+                ' Item - Desc\n- \\[{id}\\] \\(4\\.0\\) Item2 - Desc2\n'
             ), '- (5.0) Item4 - Desc4\n', (
                 [
                     (
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (5.0, 'Item4', 'Desc4')]
                     )
-                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
-                ' Item - Desc\n- \[{id}\] \(5\.0\) Item4 - Desc4\n'
+                ], '# \\[{id}\\] Header\n  Description\n-+\n- \\[{id}\\] \\(1\\.0\\)'
+                ' Item - Desc\n- \\[{id}\\] \\(5\\.0\\) Item4 - Desc4\n'
             )
         ),
     ]

@@ -22,7 +22,7 @@ def setup():
 @pytest.fixture
 def mount_dir():
     name = tempfile.mkdtemp()
-    yield name + '/'
+    yield name + '/CodeGrade/'
     os.removedirs(name)
 
 

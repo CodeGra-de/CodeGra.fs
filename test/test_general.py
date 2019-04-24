@@ -62,7 +62,7 @@ def admin_jwt():
 
 
 def test_create_symlink(sub_done):
-    with pytest.raises(PermissionError):
+    with pytest.raises(OSError):
         symlink([sub_done, 'dir'], [sub_done, 'wowsers'])
 
     assert isdir(sub_done, 'dir')
