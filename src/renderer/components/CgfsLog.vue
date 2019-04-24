@@ -226,7 +226,8 @@ export default {
 
             const message = this.$htmlEscape(event.message).replace(
                 /(https?:\/\/\S+?)([.,]?(\s|$))/g,
-                (_, url, trailing) => `<a class="log-link" href="${url}">${url}</a>${trailing || ''}`,
+                (_, url, trailing) =>
+                    `<a class="log-link" href="${url}">${url}</a>${trailing || ''}`,
             );
 
             this.addEvent(message, variant, event);

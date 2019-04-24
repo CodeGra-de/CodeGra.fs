@@ -2177,14 +2177,18 @@ def create_and_mount_fs(
 
 def check_version() -> None:
     if codegra_fs.utils.newer_version_available():
-        logger.warning('\n'.join([
-            (
-                'You are running an outdated version of the CodeGrade'
-                ' Filesystem. Please consider upgrading.\nYou can'
-                ' get the latest version at'
-                ' https://codegra.de/codegra_fs/latest.'
-            ),
-        ]))
+        logger.warning(
+            '\n'.join(
+                [
+                    (
+                        'You are running an outdated version of the CodeGrade'
+                        ' Filesystem. Please consider upgrading.\nYou can'
+                        ' get the latest version at'
+                        ' https://codegra.de/codegra_fs/latest.'
+                    ),
+                ]
+            )
+        )
 
 
 def main() -> None:
