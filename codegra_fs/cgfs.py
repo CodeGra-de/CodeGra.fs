@@ -67,7 +67,7 @@ class FuseContext:
     msg: str
     args: t.Tuple[object, ...]
 
-    def __init__(self, msg: str, *args: object) -> None:
+    def __init__(self, msg: str, args: t.Tuple[object]) -> None:
         self.msg = msg
         self.args = args
 
