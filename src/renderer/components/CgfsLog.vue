@@ -62,6 +62,7 @@ import childProcess from 'child_process';
 import readline from 'readline';
 import path from 'path';
 
+// eslint-disable-next-line
 import { shell } from 'electron';
 import { mapGetters } from 'vuex';
 

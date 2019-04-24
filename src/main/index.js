@@ -23,7 +23,7 @@ function createWindow() {
      * Initial window options
      */
     mainWindow = new BrowserWindow({
-        height: 768,
+        height: 700,
         useContentSize: true,
         width: 550,
         icon: path.join(__static, 'icons', 'icon-blue.png'),

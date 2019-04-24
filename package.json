@@ -28,9 +28,9 @@
   "build": {
     "productName": "CodeGrade Filesystem",
     "appId": "com.codegrade.codegrade-fs",
+    "license": "LICENSE",
     "files": [
-      "dist/electron/**/*",
-      "static/icons/icon-blue.png"
+      "dist/electron/**/*"
     ],
     "dmg": {
       "contents": [
@@ -48,11 +48,31 @@
       ]
     },
     "mac": {
-      "icon": "static/icons/icon.icns"
+      "icon": "static/icons/icon.icns",
+      "target": [
+        "pkg"
+      ],
+      "extraFiles": [
+        {
+          "from": "dist/cgfs",
+          "to": "cgfs"
+        },
+        {
+          "from": "dist/cgapi-consumer",
+          "to": "cgapi-consumer"
+        },
+        {
+          "from": "dist/OSXFUSE.pkg",
+          "to": "OSXFUSE.pkg"
+        }
+      ]
     },
     "win": {
       "forceCodeSigning": true,
       "icon": "static/icons/ms-icon.ico",
+      "files": [
+        "static/icons/icon-blue.png"
+      ],
       "extraFiles": [
         {
           "from": "dist/cgfs",
@@ -70,7 +90,6 @@
     },
     "nsis": {
       "include": "build/installer.nsh",
-      "license": "LICENSE",
       "oneClick": false,
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
@@ -87,7 +106,6 @@
     "axios": "^0.18.0",
     "bootstrap": "^4.3.1",
     "bootstrap-vue": "^2.0.0-rc.15",
-    "electron": "^2.0.4",
     "jquery": "^3.3.1",
     "then-fs": "^2.0.0",
     "vue": "^2.5.16",
@@ -115,6 +133,7 @@
     "css-loader": "^0.28.11",
     "del": "^3.0.0",
     "devtron": "^1.4.0",
+    "electron": "^2.0.4",
     "electron-builder": "^20.19.2",
     "electron-debug": "^1.5.0",
     "electron-devtools-installer": "^2.2.4",

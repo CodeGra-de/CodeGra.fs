@@ -6,11 +6,14 @@ import subprocess
 
 import requests
 
-if sys.platform.startswith('win32'):
-    os.chdir(os.path.dirname(__file__))
+os.chdir(os.path.dirname(__file__))
+
+
+def run_pyinstaller():
     subprocess.check_call(
         [
             'pyinstaller',
+            '--noconfirm',
             os.path.join('codegra_fs', 'cgfs.py'),
             '--onedir',
             '--name',
@@ -22,12 +25,17 @@ if sys.platform.startswith('win32'):
     subprocess.check_call(
         [
             'pyinstaller',
+            '--noconfirm',
             os.path.join('codegra_fs', 'api_consumer.py'),
             '--onedir',
             '--name',
             'cgapi-consumer',
         ]
     )
+
+
+if sys.platform.startswith('win32'):
+    run_pyinstaller()
 
     url = 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
     r = requests.get(url, allow_redirects=True)
@@ -54,6 +62,16 @@ elif sys.platform.startswith('linux'):
 
     `twine upload dist/*`
     """
+    )
+elif sys.platform.startswith('darwin'):
+    run_pyinstaller()
+
+    subprocess.check_call(
+        [
+            'npm',
+            'run',
+            'build:mac',
+        ],
     )
 else:
     print('Your platform cannot build cgfs yet')
