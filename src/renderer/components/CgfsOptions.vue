@@ -46,6 +46,10 @@
                 <cgfs-option v-model="internalConfig.verbosity" :option="OPTIONS.verbosity" />
             </advanced-collapse>
 
+            <b-alert v-if="errors && errors.network" show variant="danger">
+                {{ errors.network.message }}
+            </b-alert>
+
             <div slot="footer">
                 <b-button variant="outline-primary" v-b-modal.help-modal>
                     Help
@@ -133,10 +137,16 @@ export default {
                         this.$emit('start', response.data.access_token);
                     },
                     err => {
-                        if (err.response && err.response.data) {
-                            this.errors = {
-                                password: new Error(err.response.data.message),
-                            };
+                        if (err.request) {
+                            if (err.response && err.response.data) {
+                                this.errors = {
+                                    password: new Error(err.response.data.message),
+                                };
+                            } else {
+                                this.errors = {
+                                    network: new Error(err.message),
+                                };
+                            }
                         } else {
                             this.errors = err;
                         }
@@ -171,6 +181,11 @@ export default {
 .required-desc {
     float: right;
     cursor: default;
+}
+
+.alert {
+    margin-top: 1rem;
+    margin-bottom: 0;
 }
 
 .start-button {
