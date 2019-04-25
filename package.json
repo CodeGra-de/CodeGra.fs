@@ -28,29 +28,13 @@
   "build": {
     "productName": "CodeGrade Filesystem",
     "appId": "com.codegrade.codegrade-fs",
-    "license": "LICENSE",
     "files": [
       "dist/electron/**/*"
     ],
-    "dmg": {
-      "contents": [
-        {
-          "x": 410,
-          "y": 150,
-          "type": "link",
-          "path": "/Applications"
-        },
-        {
-          "x": 130,
-          "y": 150,
-          "type": "file"
-        }
-      ]
-    },
     "mac": {
       "icon": "static/icons/icon.icns",
       "target": [
-        "pkg"
+        "dir"
       ],
       "extraFiles": [
         {
@@ -60,10 +44,6 @@
         {
           "from": "dist/cgapi-consumer",
           "to": "cgapi-consumer"
-        },
-        {
-          "from": "dist/OSXFUSE.pkg",
-          "to": "OSXFUSE.pkg"
         }
       ]
     },
@@ -90,6 +70,7 @@
     },
     "nsis": {
       "include": "build/installer.nsh",
+      "license": "LICENSE",
       "oneClick": false,
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,

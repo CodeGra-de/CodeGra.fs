@@ -6,6 +6,8 @@ import subprocess
 
 import requests
 
+from codegra_fs import __version__
+
 os.chdir(os.path.dirname(__file__))
 
 
@@ -72,6 +74,23 @@ elif sys.platform.startswith('darwin'):
             'run',
             'build:mac',
         ],
+    )
+
+    subprocess.check_call(
+        [
+            'pkgbuild',
+            '--root',
+            'dist/mac',
+            '--install-location',
+            '/Applications',
+            '--component-plist',
+            'build/com.codegrade.codegrade-fs.plist',
+            '--scripts',
+            'build/pkg-scripts',
+            'dist/CodeGrade Filesystem {}.pkg'.format('.'.join(map(str, __version__))),
+        ],
+        stdout=sys.stdout.fileno(),
+        stderr=sys.stderr.fileno(),
     )
 else:
     print('Your platform cannot build cgfs yet')

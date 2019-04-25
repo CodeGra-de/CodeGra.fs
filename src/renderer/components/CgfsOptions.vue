@@ -115,6 +115,7 @@ export default {
     },
 
     mounted() {
+        alert(JSON.stringify(process.env));
         this.showAdvanced =
             this.config.mountpoint !== OPTIONS.mountpoint.default ||
             this.config.verbosity !== OPTIONS.verbosity.default ||

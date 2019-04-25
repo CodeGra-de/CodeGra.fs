@@ -131,20 +131,27 @@ export default {
 
             const proc = childProcess.spawn('cgfs', this.getArgs());
 
-            proc.stdin.write(`${this.jwtToken}`);
-            proc.stdin.end();
-
             proc.stderr.setEncoding('utf-8');
             const rl = readline.createInterface({
                 input: proc.stderr,
             });
             rl.on('line', this.addFSEvent);
 
+            proc.on('error', err => {
+                this.addEvent(
+                    `The CodeGrade Filesystem could not be started: ${err.message}`,
+                    'danger',
+                );
+            });
+
             proc.on('close', () => {
                 rl.close();
                 this.addEvent('Stopped.', 'info');
                 this.proc = null;
             });
+
+            proc.stdin.write(`${this.jwtToken}`);
+            proc.stdin.end();
 
             this.proc = proc;
             this.running = true;

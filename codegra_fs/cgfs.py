@@ -28,12 +28,14 @@ from getpass import getpass
 from pathlib import Path
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-import codegra_fs
-import codegra_fs.constants as constants
 # codegra_fs.log must be the first one to load, so that other modules
 # will use our custom logging configuration.
 from codegra_fs import log
-from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
+
+if True:
+    import codegra_fs
+    import codegra_fs.constants as constants
+    from codegra_fs.cgapi import CGAPI, APICodes, CGAPIException
 
 try:
     import fuse  # type: ignore
@@ -67,14 +69,21 @@ class FuseContext:
     msg: str
     args: t.Tuple[object, ...]
 
-    def __init__(self, msg: str, args: t.Tuple[object]) -> None:
+    def __init__(self, msg: str, args: t.Tuple[object, ...]) -> None:
         self.msg = msg
         self.args = args
 
 
+class GuiMode:
+    enabled: bool = False
+
+    def enable(self) -> None:
+        self.enabled = True
+
+
 cgapi = None  # type: t.Optional[CGAPI]
 fuse_context = None  # type: t.Optional[FuseContext]
-gui_mode = False
+gui_mode = GuiMode()
 logger = logging.getLogger(__name__)
 
 CGFS_TESTING = bool(os.getenv('CGFS_TESTING', False))  # type: bool
@@ -2193,7 +2202,6 @@ def check_version() -> None:
 
 def main() -> None:
     global cgapi
-    global gui_mode
 
     msg = codegra_fs.utils.get_fuse_install_message()
     if msg:
@@ -2309,7 +2317,8 @@ def main() -> None:
     )
     args = argparser.parse_args()
 
-    gui_mode = args.gui_mode
+    if args.gui_mode:
+        codegra_fs.cgfs.gui_mode.enable()
     if args.quiet:
         log_level = logging.WARNING
     elif args.debug:

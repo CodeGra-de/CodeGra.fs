@@ -40,7 +40,7 @@ class JsonFormatter(logging.Formatter):
             }
         )
 
-        if codegra_fs.cgfs.gui_mode:
+        if codegra_fs.cgfs.gui_mode.enabled:
             return json.dumps(obj, separators=(',', ':'))
         else:
             return logging.BASIC_FORMAT % obj

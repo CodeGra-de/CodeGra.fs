@@ -13,6 +13,10 @@ if (process.env.NODE_ENV !== 'development') {
 
 const devMode = process.env.NODE_ENV === 'development';
 
+if (process.platform === 'darwin') {
+    process.env.PATH = `/usr/local/bin:${process.env.PATH}`;
+}
+
 let mainWindow;
 const winURL = devMode ? 'http://localhost:9080' : `file://${__dirname}/index.html`;
 
