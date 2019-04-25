@@ -142,6 +142,7 @@ export default {
                     `The CodeGrade Filesystem could not be started: ${err.message}`,
                     'danger',
                 );
+                this.proc = null;
             });
 
             proc.on('close', () => {
