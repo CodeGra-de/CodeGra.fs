@@ -199,6 +199,20 @@ class CGAPI():
             self.user = json['user']
             self.access_token = json['access_token']
         else:
+            r = requests.get(
+                self.routes.get_login(),
+                headers={
+                    'Authorization': 'Bearer ' + jwt_token,
+                },
+            )
+
+            self._handle_response_error(r)
+            try:
+                json = r.json()
+            except:
+                raise CGAPIException(r)
+
+            self.user = json
             self.access_token = jwt_token
 
         self.s = requests.Session()

@@ -1656,7 +1656,6 @@ class CGFS(LoggingMixIn, Operations):
                 raise
 
             if part not in file.children or file.children[part] is None:
-                logger.error('File does not exist.')
                 raise FuseOSError(ENOENT)
             file = file.children[part]  # type: ignore
 
