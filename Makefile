@@ -68,5 +68,5 @@ test_quick: test
 check: check-format mypy lint test
 
 .PHONY: build
-build: install-deps
+build: check
 	$(ENV) python ./build.py
