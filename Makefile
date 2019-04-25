@@ -17,8 +17,11 @@ env:
 
 .PHONY: install-deps
 install-deps: env/.install-deps node_modules/.install-deps
-env/.install-deps: requirements.txt | env
+env/.install-deps: requirements.txt requirements-mac.txt | env
 	$(ENV) pip install -r requirements.txt
+	if [ "$(uname)" == 'Darwin' ]; then \
+		$(ENV) pip install -r requirements-mac.txt; \
+	fi
 	date >$@
 node_modules/.install-deps: package.json
 	npm install
