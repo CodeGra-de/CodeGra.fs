@@ -945,7 +945,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
             except KeyError:
                 logger.error(
                     'Could not find rubric item: {}.'.format(h),
-                    {'notify': True}
+                    extra={'notify': True}
                 )
                 raise FuseOSError(EPERM)
 
@@ -1899,7 +1899,7 @@ class CGFS(LoggingMixIn, Operations):
         if isinstance(file, SpecialFile):
             logger.error(
                 'Special files cannot be renamed.',
-                {'notify': True},
+                extra={'notify': True},
             )
             raise FuseOSError(EPERM)
 
@@ -1914,7 +1914,7 @@ class CGFS(LoggingMixIn, Operations):
             logger.error(
                 'File is not part of a submission, but you can only rename'
                 ' files within submissions.',
-                {'notify': True},
+                extra={'notify': True},
             )
             raise FuseOSError(EPERM)
 
@@ -1922,7 +1922,7 @@ class CGFS(LoggingMixIn, Operations):
             logger.error(
                 'File is not part of a submission, but you can only rename'
                 ' files within submissions.',
-                {'notify': True},
+                extra={'notify': True},
             )
             raise FuseOSError(EPERM)
 
@@ -1930,7 +1930,7 @@ class CGFS(LoggingMixIn, Operations):
         if submission.id != self.get_submission(new).id:
             logger.error(
                 'Files cannot be moved between submissions.',
-                {'notify': True},
+                extra={'notify': True},
             )
             raise FuseOSError(EPERM)
 
@@ -1941,7 +1941,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed:
                 logger.error(
                     'Files can only be renamed in revision mode.',
-                    {'notify': True},
+                    extra={'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -1970,7 +1970,7 @@ class CGFS(LoggingMixIn, Operations):
         if dir.type != DirTypes.REGDIR:
             logger.error(
                 'Only directories within submissions can be removed.',
-                {'notify': True},
+                extra={'notify': True},
             )
             raise FuseOSError(EPERM)
         if dir.children:
@@ -1981,7 +1981,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed:
                 logger.error(
                     'Directories can only be removed in revision mode.',
-                    {'notify': True},
+                    extra={'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2028,7 +2028,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    {'notify': True},
+                    extra={'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2051,7 +2051,7 @@ class CGFS(LoggingMixIn, Operations):
                 if self.fixed:
                     logger.error(
                         'Files can only be deleted in revision mode.',
-                        {'notify': True},
+                        extra={'notify': True},
                     )
                     raise FuseOSError(EPERM)
 
@@ -2075,7 +2075,7 @@ class CGFS(LoggingMixIn, Operations):
             if isinstance(file, File) and self.fixed:
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    {'notify': True},
+                    extra={'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2091,7 +2091,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    {'notify': True},
+                    extra={'notify': True},
                 )
                 raise FuseOSError(EPERM)
 
