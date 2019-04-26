@@ -180,7 +180,6 @@ export default {
 
 .required-desc {
     float: right;
-    cursor: default;
 }
 
 .alert {
@@ -197,6 +196,13 @@ export default {
 @import '@/_mixins.scss';
 
 .cgfs-options {
+    .col-form-label,
+    .required-desc,
+    .advanced-collapse {
+        user-select: none;
+        cursor: default;
+    }
+
     .modal-dialog {
         height: calc(100vh - 2 * #{$spacer});
         width: calc(100vw - 2 * #{$spacer});

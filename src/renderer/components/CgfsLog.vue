@@ -257,7 +257,11 @@ export default {
             this.eventSize = events.size;
             this.scrollToLastEvent();
 
-            if (original && original.notify) {
+            if (
+                original &&
+                (original.notify === 'critical' ||
+                    (original.notify === 'normal' && this.config.verbosity !== 'quiet'))
+            ) {
                 // eslint-disable-next-line
                 new Notification('CodeGrade Filesystem', {
                     body: message,

@@ -53,6 +53,9 @@
     "win": {
       "forceCodeSigning": true,
       "icon": "static/icons/ms-icon.ico",
+      "files": [
+        "static/icons/512x512.png"
+      ],
       "extraFiles": [
         {
           "from": "dist/cgfs",

@@ -133,7 +133,7 @@ def handle_cgapi_exception(ex) -> t.NoReturn:
         logger.error(ex.message)
         raise FuseOSError(ENOENT)
 
-    logger.error(ex.message, extra={'notify': True})
+    logger.error(ex.message, extra={'notify': 'critical'})
     if ex.code == APICodes.INCORRECT_PERMISSION.name:
         raise FuseOSError(EPERM)
     else:
@@ -371,14 +371,18 @@ class SpecialFile(SingleFile):
         raise FuseOSError(EPERM)
 
     def unlink(self) -> None:
-        logger.error('Special file cannot be deleted.')
+        logger.error(
+            'Special file cannot be deleted.', extra={'notify': 'normal'}
+        )
         raise FuseOSError(EPERM)
 
     def utimens(self, atime: float, mtime: float) -> None:
         return
 
     def write(self, data: bytes, offset: int) -> int:
-        logger.error('Special file cannot be changed.')
+        logger.error(
+            'Special file cannot be changed.', extra={'notify': 'normal'}
+        )
         raise FuseOSError(EPERM)
 
     def flush(self) -> None:
@@ -505,7 +509,7 @@ class CachedSpecialFile(SpecialFile, t.Generic[T]):
         except ParseException as e:
             logger.error(
                 'Error in file: {}'.format(e.message),
-                extra={'notify': True},
+                extra={'notify': 'critical'},
             )
             logger.debug(traceback.format_exc())
             raise FuseOSError(EPERM)
@@ -940,7 +944,7 @@ class RubricEditorFile(CachedSpecialFile[t.List[RubricRow]]):
             except KeyError:
                 logger.error(
                     'Could not find rubric item: {}.'.format(h),
-                    extra={'notify': True}
+                    extra={'notify': 'critical'}
                 )
                 raise FuseOSError(EPERM)
 
@@ -1674,11 +1678,11 @@ class CGFS(LoggingMixIn, Operations):
 
     def chmod(self, path: str, mode: int) -> None:
         logger.error('Changing file permissions is not supported.')
-        raise FuseOSError(EPERM)
+        raise FuseOSError(ENOTSUP)
 
     def chown(self, path: str, uid: int, gid: int) -> None:
         logger.error('Changing file owner is not supported.')
-        raise FuseOSError(EPERM)
+        raise FuseOSError(ENOTSUP)
 
     def create(self, path: str, mode: int) -> FileHandle:
         with self._lock:
@@ -1894,7 +1898,7 @@ class CGFS(LoggingMixIn, Operations):
         if isinstance(file, SpecialFile):
             logger.error(
                 'Special files cannot be renamed.',
-                extra={'notify': True},
+                extra={'notify': 'normal'},
             )
             raise FuseOSError(EPERM)
 
@@ -1909,7 +1913,7 @@ class CGFS(LoggingMixIn, Operations):
             logger.error(
                 'File is not part of a submission, but you can only rename'
                 ' files within submissions.',
-                extra={'notify': True},
+                extra={'notify': 'normal'},
             )
             raise FuseOSError(EPERM)
 
@@ -1917,7 +1921,7 @@ class CGFS(LoggingMixIn, Operations):
             logger.error(
                 'File is not part of a submission, but you can only rename'
                 ' files within submissions.',
-                extra={'notify': True},
+                extra={'notify': 'normal'},
             )
             raise FuseOSError(EPERM)
 
@@ -1925,7 +1929,7 @@ class CGFS(LoggingMixIn, Operations):
         if submission.id != self.get_submission(new).id:
             logger.error(
                 'Files cannot be moved between submissions.',
-                extra={'notify': True},
+                extra={'notify': 'normal'},
             )
             raise FuseOSError(EPERM)
 
@@ -1936,7 +1940,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed:
                 logger.error(
                     'Files can only be renamed in revision mode.',
-                    extra={'notify': True},
+                    extra={'notify': 'critical'},
                 )
                 raise FuseOSError(EPERM)
 
@@ -1965,18 +1969,18 @@ class CGFS(LoggingMixIn, Operations):
         if dir.type != DirTypes.REGDIR:
             logger.error(
                 'Only directories within submissions can be removed.',
-                extra={'notify': True},
+                extra={'notify': 'normal'},
             )
             raise FuseOSError(EPERM)
         if dir.children:
-            logger.error('Directory is not empty and cannot be removed.', )
+            logger.error('Directory is not empty and cannot be removed.')
             raise FuseOSError(ENOTEMPTY)
 
         if not isinstance(dir, TempDirectory):
             if self.fixed:
                 logger.error(
                     'Directories can only be removed in revision mode.',
-                    extra={'notify': True},
+                    extra={'notify': 'critical'},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2023,7 +2027,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    extra={'notify': True},
+                    extra={'notify': 'critical'},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2046,7 +2050,7 @@ class CGFS(LoggingMixIn, Operations):
                 if self.fixed:
                     logger.error(
                         'Files can only be deleted in revision mode.',
-                        extra={'notify': True},
+                        extra={'notify': 'critical'},
                     )
                     raise FuseOSError(EPERM)
 
@@ -2070,7 +2074,7 @@ class CGFS(LoggingMixIn, Operations):
             if isinstance(file, File) and self.fixed:
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    extra={'notify': True},
+                    extra={'notify': 'critical'},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2086,7 +2090,7 @@ class CGFS(LoggingMixIn, Operations):
             if self.fixed and not isinstance(file, (TempFile, SpecialFile)):
                 logger.error(
                     'Files can only be edited in revision mode.',
-                    extra={'notify': True},
+                    extra={'notify': 'critical'},
                 )
                 raise FuseOSError(EPERM)
 
@@ -2167,8 +2171,9 @@ def create_and_mount_fs(
                 direct_io=True,
                 **kwargs,
             )
-        except RuntimeError:  # pragma: no cover
+        except RuntimeError as e:  # pragma: no cover
             set_fuse_context('Unexpected error')
+            logger.critical(str(e), extra={'notify': 'critical'})
             logger.critical(traceback.format_exc())
         finally:
             set_fuse_context('Error occurred during exit')
