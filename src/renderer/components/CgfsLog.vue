@@ -1,7 +1,11 @@
 <template>
     <div class="cgfs-log">
         <b-card-header>
-            Mounted at: <code>{{ config.mountpoint }}{{ sep }}CodeGrade{{ sep }}</code>
+            Mounted at:
+            <code class="mountpoint" @click="openPath(displayMountpoint)">
+                {{ displayMountpoint
+                }}<icon name="share-square" :scale="0.9" class="text-primary" />
+            </code>
         </b-card-header>
 
         <b-card-body ref="output" @scroll="onScroll">
@@ -10,7 +14,7 @@
                 :key="events.get(curStart + i - 1).id"
                 :class="`alert alert-${events.get(curStart + i - 1).variant}`"
                 v-html="events.get(curStart + i - 1).message"
-                @click.capture="onMessageClick"
+                @click.capture="openLink"
             />
         </b-card-body>
 
@@ -61,6 +65,9 @@ import path from 'path';
 // eslint-disable-next-line
 import { shell } from 'electron';
 import { mapGetters } from 'vuex';
+
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/share-square';
 
 import CgfsLogo from '@/components/CgfsLogo';
 import { downloadFile, mod, uniq } from '@/utils';
@@ -123,6 +130,10 @@ export default {
 
         running() {
             return this.proc !== null || this.restarting;
+        },
+
+        displayMountpoint() {
+            return `${this.config.mountpoint}${path.sep}CodeGrade${path.sep}`;
         },
     },
 
@@ -315,11 +326,15 @@ export default {
             downloadFile(JSON.stringify(log), filename, 'application/json');
         },
 
-        onMessageClick(event) {
+        openLink(event) {
             if (event.target.closest('[target="_blank"]')) {
                 event.preventDefault();
                 shell.openExternal(event.target.href);
             }
+        },
+
+        openPath(path) {
+            shell.openItem(path);
         },
     },
 
@@ -339,6 +354,7 @@ export default {
 
     components: {
         CgfsLogo,
+        Icon,
     },
 };
 </script>
@@ -351,6 +367,22 @@ export default {
     flex-direction: column;
     min-height: 20rem;
     position: relative;
+}
+
+.mountpoint {
+    cursor: pointer;
+    border-radius: $border-radius;
+    padding: 3px 5px;
+    transition: background-color 250ms ease-out;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .fa-icon {
+        margin-left: 0.5rem;
+        transform: translateY(-1px);
+    }
 }
 
 .card-body {

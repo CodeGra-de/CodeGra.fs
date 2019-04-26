@@ -16,9 +16,9 @@
                         <a target="_blank" href="https://codegra.de/codegra_fs/latest" @click="downloadNewVersion">codegra.de</a>.
                     </b-alert>
                 </b-card-body>
-            </div>
 
-            <hr style="margin: 0;" />
+                <hr style="margin: 0;" />
+            </div>
 
             <cgfs-log v-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken" />
             <cgfs-options v-else @start="jwtToken = $event" />
