@@ -1,0 +1,12 @@
+#!/bin/sh
+
+exec >/tmp/postinstall.log 2>&1
+
+INSTALL_DIR="$2/CodeGrade Filesystem.app"
+
+dest=/usr/local/bin
+[ -d "$dest" ] || mkdir -p "$dest"
+
+for bin in cgfs cgapi-consumer; do
+    ln -fsv "$INSTALL_DIR/Contents/$bin/$bin" "$dest/$bin"
+done
