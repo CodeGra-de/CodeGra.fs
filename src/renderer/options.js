@@ -102,7 +102,7 @@ const OPTIONS = {
             {
                 label: 'Quiet',
                 value: 'quiet',
-                help: 'Do not show notifications. Errors and warnings will still be logged.',
+                help: 'Hide most notifications. Errors and warnings will still be logged.',
             },
             {
                 label: 'Normal',
