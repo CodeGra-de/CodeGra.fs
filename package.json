@@ -51,7 +51,7 @@
       ]
     },
     "win": {
-      "forceCodeSigning": true,
+      "forceCodeSigning": false,
       "icon": "static/icons/ms-icon.ico",
       "extraFiles": [
         {
@@ -71,9 +71,8 @@
     "nsis": {
       "include": "build/installer.nsh",
       "license": "LICENSE",
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": true,
-      "allowToChangeInstallationDirectory": true,
       "warningsAsErrors": false
     },
     "linux": {
