@@ -29,7 +29,7 @@ class JsonFormatter(logging.Formatter):
         obj = {attr: getattr(record, attr) for attr in self.ATTR_TO_JSON}
 
         message = record.msg % record.args
-        fuse_context = codegra_fs.cgfs.get_fuse_context()
+        fuse_context = codegra_fs.cgfs.fuse_context.read()
         if fuse_context:
             message = '{}: {}'.format(fuse_context, message)
 

@@ -13,7 +13,7 @@ if (process.env.NODE_ENV !== 'development') {
 
 const devMode = process.env.NODE_ENV === 'development';
 
-if (process.platform === 'darwin') {
+if (!devMode && process.platform === 'darwin') {
     process.env.PATH = `/usr/local/bin:${process.env.PATH}`;
 }
 
@@ -30,7 +30,7 @@ function createWindow() {
         height: 700,
         useContentSize: true,
         width: 550,
-        icon: path.join(__static, 'icons', 'icon-blue.png'),
+        icon: path.join(__static, 'icons', '512x512.png'),
         webPreferences: {
             webSecurity: !devMode,
         },
@@ -48,9 +48,7 @@ function createWindow() {
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+    app.quit();
 });
 
 app.on('activate', () => {

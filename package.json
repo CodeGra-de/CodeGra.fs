@@ -31,7 +31,8 @@
     "productName": "CodeGrade Filesystem",
     "appId": "com.codegrade.codegrade-fs",
     "files": [
-      "dist/electron/**/*"
+      "dist/electron/**/*",
+      "static/icons/512x512.png"
     ],
     "mac": {
       "icon": "static/icons/icon.icns",
@@ -52,9 +53,6 @@
     "win": {
       "forceCodeSigning": true,
       "icon": "static/icons/ms-icon.ico",
-      "files": [
-        "static/icons/icon-blue.png"
-      ],
       "extraFiles": [
         {
           "from": "dist/cgfs",

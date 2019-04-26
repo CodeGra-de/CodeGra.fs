@@ -66,12 +66,15 @@ except:
 
 
 class FuseContext:
-    msg: str
-    args: t.Tuple[object, ...]
+    msg: str = ''
+    args: t.Tuple[object, ...] = ()
 
-    def __init__(self, msg: str, args: t.Tuple[object, ...]) -> None:
+    def update(self, msg: str, args: t.Tuple[object, ...]) -> None:
         self.msg = msg
         self.args = args
+
+    def read(self) -> str:
+        return self.msg % self.args
 
 
 class GuiMode:
@@ -82,7 +85,7 @@ class GuiMode:
 
 
 cgapi = None  # type: t.Optional[CGAPI]
-fuse_context = None  # type: t.Optional[FuseContext]
+fuse_context = FuseContext()
 gui_mode = GuiMode()
 logger = logging.getLogger(__name__)
 
@@ -138,15 +141,7 @@ def handle_cgapi_exception(ex) -> t.NoReturn:
 
 
 def set_fuse_context(fmt: str, *args: object) -> None:
-    global fuse_context
-    fuse_context = FuseContext(fmt, args)
-
-
-def get_fuse_context() -> str:
-    if fuse_context is None:
-        return ''
-    else:
-        return fuse_context.msg % fuse_context.args
+    codegra_fs.cgfs.fuse_context.update(fmt, args)
 
 
 class ParseException(ValueError):

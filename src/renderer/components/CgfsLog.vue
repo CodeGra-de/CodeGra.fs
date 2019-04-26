@@ -105,7 +105,7 @@ export default {
     data() {
         return {
             proc: null,
-            running: false,
+            restarting: false,
             eventSize: 0,
             following: true,
             previousY: 0,
@@ -122,6 +122,10 @@ export default {
 
         curStart() {
             return Math.max(0, this.eventSize - MAX_VISIBLE);
+        },
+
+        running() {
+            return this.proc !== null || this.restarting;
         },
     },
 
@@ -155,7 +159,7 @@ export default {
             proc.stdin.end();
 
             this.proc = proc;
-            this.running = true;
+            this.restarting = false;
         },
 
         getArgs() {
@@ -195,7 +199,8 @@ export default {
         },
 
         restart() {
-            if (this.proc) {
+            if (this.running) {
+                this.restarting = true;
                 this.proc.on('close', () => {
                     this.addEvent('Restarting...', 'info');
                     this.start();
@@ -206,14 +211,11 @@ export default {
             }
         },
 
-        stop(restart = false) {
+        stop() {
             if (this.proc != null) {
                 this.addEvent('Stopping...', 'info');
                 this.proc.kill();
                 this.proc = null;
-                if (!restart) {
-                    this.running = false;
-                }
             }
         },
 
@@ -233,22 +235,23 @@ export default {
                 CRITICAL: 'danger',
             }[event.levelname];
 
-            const message = this.$htmlEscape(event.message).replace(
+            this.addEvent(event.message, variant, event);
+        },
+
+        addEvent(message, variant, original) {
+            const html = this.$htmlEscape(message).replace(
                 /(https?:\/\/\S+?)([.,]?(\s|$))/g,
                 (_, url, trailing) =>
                     `<a class="log-link" href="${url}">${url}</a>${trailing || ''}`,
             );
 
-            this.addEvent(message, variant, event);
-        },
-
-        addEvent(message, variant, original) {
             events.add({
-                message,
+                message: html,
                 variant,
                 original,
                 id: uniq(),
             });
+
             // Reset to 0 first to force Vue update.
             this.eventSize = 0;
             this.eventSize = events.size;
