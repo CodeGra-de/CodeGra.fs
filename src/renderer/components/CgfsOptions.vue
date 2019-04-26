@@ -1,10 +1,6 @@
 <template>
     <b-form v-if="internalConfig" class="cgfs-options" @keyup.enter="start">
-        <b-card>
-            <cgfs-logo />
-
-            <hr />
-
+        <b-card-body>
             <cgfs-option
                 v-model="internalConfig.institution"
                 :option="OPTIONS.institution"
@@ -49,17 +45,17 @@
             <b-alert v-if="errors && errors.network" show variant="danger">
                 {{ errors.network.message }}
             </b-alert>
+        </b-card-body>
 
-            <div slot="footer">
-                <b-button variant="outline-primary" v-b-modal.help-modal>
-                    Help
-                </b-button>
+        <b-card-footer>
+            <b-button variant="outline-primary" v-b-modal.help-modal>
+                Help
+            </b-button>
 
-                <b-button class="start-button" variant="primary" @click="start">
-                    Start
-                </b-button>
-            </div>
-        </b-card>
+            <b-button class="start-button" variant="primary" @click="start">
+                Start
+            </b-button>
+        </b-card-footer>
 
         <b-modal
             lazy
@@ -156,7 +152,7 @@ export default {
 
         getInstitutionURL() {
             if (this.internalConfig.institution === 'custom') {
-                return this.internalConfig.customInstitution;
+                return `https://${this.internalConfig.customInstitution}.codegra.de/api/v1/`;
             } else {
                 return this.internalConfig.institution;
             }
@@ -174,6 +170,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.cgfs-options {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-body {
+    overflow: auto;
+}
+
 .cgfs-option:last-child {
     margin-bottom: 0;
 }

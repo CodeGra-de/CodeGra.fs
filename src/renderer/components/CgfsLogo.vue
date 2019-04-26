@@ -17,6 +17,6 @@ img {
     display: block;
     width: 100%;
     max-width: min($options-width, $log-width) - 2 * $card-spacer-x;
-    margin: 0 auto;
+    margin: 1rem auto;
 }
 </style>

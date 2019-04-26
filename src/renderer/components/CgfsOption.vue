@@ -15,16 +15,23 @@
             <help-popover v-if="option.help" :help="option.help" />
         </template>
 
-        <b-form-input
+        <b-input-group
             v-if="option.type in { text: 0, password: 0 }"
-            v-model="internal"
-            :type="option.type"
-        />
+            :prepend="option.prepend"
+            :append="option.append"
+        >
+            <b-form-input
+                v-model="internal"
+                :type="option.type"
+                :placeholder="option.placeholder"
+            />
+        </b-input-group>
 
         <b-form-select
             v-else-if="option.type === 'select'"
             v-model="internal"
             :options="option.options"
+            :placeholder="option.placeholder"
         />
 
         <b-form-file
@@ -34,7 +41,7 @@
             directory
         />
 
-        <b-input-group v-else-if="option.type === 'checkbox'">
+        <b-input-group v-else-if="option.type === 'checkbox'" class="check">
             <b-form-checkbox
                 v-for="suboption in option.options"
                 :key="suboption.key"
@@ -47,7 +54,7 @@
             </b-form-checkbox>
         </b-input-group>
 
-        <b-input-group v-else-if="option.type === 'radio'">
+        <b-input-group v-else-if="option.type === 'radio'" class="radio">
             <b-form-radio
                 v-for="suboption in option.options"
                 :key="suboption.value"
@@ -125,27 +132,26 @@ export default {
 <style lang="scss">
 @import '@/_mixins.scss';
 
-.input-group {
-    @media (max-width: #{$options-width + 2 * $spacer}) {
-        flex-direction: column;
+.input-group.check,
+.input-group.radio {
+    flex-direction: column;
 
-        .form-control {
-            width: 100%;
+    .form-control {
+        width: 100%;
 
-            &:first-child {
-                border-bottom-left-radius: 0;
-                border-top-right-radius: $border-radius;
-            }
+        &:first-child {
+            border-bottom-left-radius: 0;
+            border-top-right-radius: $border-radius;
+        }
 
-            &:not(:first-child) {
-                margin-top: -1px;
-                margin-left: 0;
-            }
+        &:not(:first-child) {
+            margin-top: -1px;
+            margin-left: 0;
+        }
 
-            &:last-child {
-                border-top-right-radius: 0;
-                border-bottom-left-radius: $border-radius;
-            }
+        &:last-child {
+            border-top-right-radius: 0;
+            border-bottom-left-radius: $border-radius;
         }
     }
 }

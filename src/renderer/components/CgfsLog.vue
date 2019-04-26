@@ -1,9 +1,5 @@
 <template>
-    <b-card no-body class="cgfs-log">
-        <cgfs-logo />
-
-        <hr style="margin: 0;" />
-
+    <div class="cgfs-log">
         <b-card-header>
             Mounted at: <code>{{ config.mountpoint }}{{ sep }}CodeGrade{{ sep }}</code>
         </b-card-header>
@@ -54,7 +50,7 @@
                 </b-button>
             </div>
         </b-card-footer>
-    </b-card>
+    </div>
 </template>
 
 <script>
@@ -167,11 +163,7 @@ export default {
             const conf = this.config;
             const args = ['--gui', '--jwt'];
 
-            if (conf.institution === 'custom') {
-                args.push('--url', conf.customInstitution);
-            } else {
-                args.push('--url', conf.institution);
-            }
+            args.push('--url', this.getInstitutionURL());
 
             switch (conf.verbosity) {
                 case 'verbose':
@@ -197,6 +189,14 @@ export default {
             args.push(path.join(conf.mountpoint, 'CodeGrade'));
 
             return args;
+        },
+
+        getInstitutionURL() {
+            if (this.config.institution === 'custom') {
+                return `https://${this.config.customInstitution}.codegra.de/api/v1/`;
+            } else {
+                return this.config.institution;
+            }
         },
 
         restart() {
@@ -243,7 +243,7 @@ export default {
             const html = this.$htmlEscape(message).replace(
                 /(https?:\/\/\S+?)([.,]?(\s|$))/g,
                 (_, url, trailing) =>
-                    `<a class="log-link" href="${url}">${url}</a>${trailing || ''}`,
+                    `<a target="_blank" href="${url}">${url}</a>${trailing || ''}`,
             );
 
             events.add({
@@ -316,7 +316,7 @@ export default {
         },
 
         onMessageClick(event) {
-            if (event.target.closest('.log-link')) {
+            if (event.target.closest('[target="_blank"]')) {
                 event.preventDefault();
                 shell.openExternal(event.target.href);
             }
@@ -347,16 +347,15 @@ export default {
 @import '@/_mixins.scss';
 
 .cgfs-log {
+    display: flex;
+    flex-direction: column;
     min-height: 20rem;
     position: relative;
 }
 
-.cgfs-logo {
-    padding: $card-spacer-x;
-}
-
 .card-body {
-    overflow-y: auto;
+    flex: 1 1 auto;
+    overflow: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
