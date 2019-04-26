@@ -5,7 +5,7 @@
         <hr style="margin: 0;" />
 
         <b-card-header>
-            Mounted at: <code>{{ config.mountpoint }}/CodeGrade/</code>
+            Mounted at: <code>{{ config.mountpoint }}{{ sep }}CodeGrade{{ sep }}</code>
         </b-card-header>
 
         <b-card-body ref="output" @scroll="onScroll">
@@ -110,6 +110,7 @@ export default {
             following: true,
             previousY: 0,
             MAX_VISIBLE,
+            sep: path.sep,
         };
     },
 
