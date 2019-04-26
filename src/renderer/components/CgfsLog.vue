@@ -2,10 +2,28 @@
     <div class="cgfs-log">
         <b-card-header>
             Mounted at:
+
             <code class="mountpoint" @click="openPath(displayMountpoint)">
                 {{ displayMountpoint
                 }}<icon name="share-square" :scale="0.9" class="text-primary" />
             </code>
+
+            <help-popover class="options-list-trigger">
+                <table class="options-list">
+                    <tr>
+                        <td>Revision</td>
+                        <td>{{ config.options.revision ? 'Enabled' : 'Disabled'}}</td>
+                    </tr>
+                    <tr>
+                        <td>Assigned to me</td>
+                        <td>{{ config.options.assigned ? 'Enabled' : 'Disabled' }}</td>
+                    </tr>
+                    <tr>
+                        <td>Latest submissions only</td>
+                        <td>{{ config.options.latest ? 'Enabled' : 'Disabled' }}</td>
+                    </tr>
+                </table>
+            </help-popover>
         </b-card-header>
 
         <b-card-body ref="output" @scroll="onScroll">
@@ -69,8 +87,8 @@ import { mapGetters } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/share-square';
 
-import CgfsLogo from '@/components/CgfsLogo';
 import { downloadFile, mod, uniq } from '@/utils';
+import HelpPopover from '@/components/HelpPopover';
 
 const MAX_EVENTS = 2 ** 15;
 const MAX_VISIBLE = 2 ** 10;
@@ -353,7 +371,7 @@ export default {
     },
 
     components: {
-        CgfsLogo,
+        HelpPopover,
         Icon,
     },
 };
@@ -367,22 +385,6 @@ export default {
     flex-direction: column;
     min-height: 20rem;
     position: relative;
-}
-
-.mountpoint {
-    cursor: pointer;
-    border-radius: $border-radius;
-    padding: 3px 5px;
-    transition: background-color 250ms ease-out;
-
-    &:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    .fa-icon {
-        margin-left: 0.5rem;
-        transform: translateY(-1px);
-    }
 }
 
 .card-body {
@@ -414,6 +416,36 @@ export default {
 
     &:nth-child(3) {
         text-align: right;
+    }
+}
+
+.mountpoint {
+    cursor: pointer;
+    border-radius: $border-radius;
+    padding: 3px 5px;
+    transition: background-color 250ms ease-out;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .fa-icon {
+        margin-left: 0.5rem;
+        transform: translateY(-1px);
+    }
+}
+
+.options-list-trigger {
+    float: right;
+}
+
+.options-list {
+    margin-bottom: 0;
+    padding-left: 1rem;
+
+    td:first-child {
+        padding-right: 0.75rem;
+        font-weight: bold;
     }
 }
 </style>

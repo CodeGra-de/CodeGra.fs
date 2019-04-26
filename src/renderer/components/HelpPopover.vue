@@ -24,7 +24,7 @@ export default {
     props: {
         help: {
             type: String,
-            required: true,
+            default: '',
         },
     },
 

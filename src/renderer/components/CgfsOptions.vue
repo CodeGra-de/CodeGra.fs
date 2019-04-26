@@ -78,7 +78,6 @@ import 'vue-awesome/icons/times';
 import { isEqual } from '@/utils';
 import OPTIONS from '@/options';
 
-import CgfsLogo from '@/components/CgfsLogo';
 import CgfsOption from '@/components/CgfsOption';
 import HelpPopover from '@/components/HelpPopover';
 import AdvancedCollapse from '@/components/AdvancedCollapse';
@@ -160,7 +159,6 @@ export default {
     },
 
     components: {
-        CgfsLogo,
         CgfsOption,
         HelpPopover,
         AdvancedCollapse,
