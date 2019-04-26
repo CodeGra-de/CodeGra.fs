@@ -101,11 +101,11 @@ def test_delete_invalid_file(mount_dir):
 def test_invalid_perm_setting(sub_done):
     assert isfile(sub_done, 'dir', 'single_file_work')
 
-    with pytest.raises(PermissionError):
+    with pytest.raises(OSError):
         chown([sub_done, 'dir', 'single_file_work'], 7, 7)
     assert isfile(sub_done, 'dir', 'single_file_work')
 
-    with pytest.raises(PermissionError):
+    with pytest.raises(OSError):
         chmod([sub_done, 'dir', 'single_file_work'], stat.S_IRGRP)
     assert isfile(sub_done, 'dir', 'single_file_work')
 
