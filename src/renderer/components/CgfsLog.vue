@@ -12,7 +12,7 @@
                 <table class="options-list">
                     <tr>
                         <td>Revision mode</td>
-                        <td>{{ config.options.revision ? 'Enabled' : 'Disabled'}}</td>
+                        <td>{{ config.options.revision ? 'Enabled' : 'Disabled' }}</td>
                     </tr>
                     <tr>
                         <td>Assigned to me</td>
@@ -136,7 +136,7 @@ export default {
     },
 
     computed: {
-        ...mapGetters('Config', ['config']),
+        ...mapGetters('Config', ['config', 'institutionURL']),
 
         events() {
             return events;
@@ -153,46 +153,12 @@ export default {
         displayMountpoint() {
             return `${this.config.mountpoint}${path.sep}CodeGrade${path.sep}`;
         },
-    },
 
-    methods: {
-        start() {
-            this.addEvent('Starting...', 'info');
-
-            const proc = childProcess.spawn('cgfs', this.getArgs());
-
-            proc.stderr.setEncoding('utf-8');
-            const rl = readline.createInterface({
-                input: proc.stderr,
-            });
-            rl.on('line', this.addFSEvent);
-
-            proc.on('error', err => {
-                this.addEvent(
-                    `The CodeGrade Filesystem could not be started: ${err.message}`,
-                    'danger',
-                );
-                this.proc = null;
-            });
-
-            proc.on('close', () => {
-                rl.close();
-                this.addEvent('Stopped.', 'info');
-                this.proc = null;
-            });
-
-            proc.stdin.write(`${this.jwtToken}`);
-            proc.stdin.end();
-
-            this.proc = proc;
-            this.restarting = false;
-        },
-
-        getArgs() {
+        args() {
             const conf = this.config;
             const args = ['--gui', '--jwt'];
 
-            args.push('--url', this.getInstitutionURL());
+            args.push('--url', this.institutionURL);
 
             switch (conf.verbosity) {
                 case 'verbose':
@@ -219,13 +185,49 @@ export default {
 
             return args;
         },
+    },
 
-        getInstitutionURL() {
-            if (this.config.institution === 'custom') {
-                return `https://${this.config.customInstitution}.codegra.de/api/v1/`;
+    watch: {
+        running(newValue) {
+            if (newValue) {
+                document.title = `CodeGrade Filesystem - ${this.displayMountpoint}`;
             } else {
-                return this.config.institution;
+                document.title = 'CodeGrade Filesystem';
             }
+        },
+    },
+
+    methods: {
+        start() {
+            this.addEvent('Starting...', 'info');
+
+            const proc = childProcess.spawn('cgfs', this.args);
+
+            proc.stderr.setEncoding('utf-8');
+            const rl = readline.createInterface({
+                input: proc.stderr,
+            });
+            rl.on('line', this.addFSEvent);
+
+            proc.on('error', err => {
+                this.addEvent(
+                    `The CodeGrade Filesystem could not be started: ${err.message}`,
+                    'danger',
+                );
+                this.proc = null;
+            });
+
+            proc.on('close', () => {
+                rl.close();
+                this.addEvent('Stopped.', 'info');
+                this.proc = null;
+            });
+
+            proc.stdin.write(`${this.jwtToken}`);
+            proc.stdin.end();
+
+            this.proc = proc;
+            this.restarting = false;
         },
 
         restart() {

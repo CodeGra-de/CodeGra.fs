@@ -159,7 +159,8 @@ export default {
 .form-control.custom-control {
     padding-left: $input-padding-x + $custom-control-gutter + $custom-control-indicator-size;
 
-    label {
+    .custom-control-label {
+        cursor: pointer;
         display: block;
     }
 }
