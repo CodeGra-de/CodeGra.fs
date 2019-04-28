@@ -123,9 +123,7 @@ export default {
             const { username, password } = this.internalConfig;
 
             this.writeConfig(this.internalConfig)
-                .then(() =>
-                    this.$http.post(`${this.institutionURL}/login`, { username, password }),
-                )
+                .then(() => this.$http.post(`${this.institutionURL}/login`, { username, password }))
                 .then(
                     response => {
                         this.errors = {};

@@ -6,13 +6,9 @@ const OPTIONS = {
         label: 'Institution',
         required: true,
         type: 'select',
-        default: 'default',
+        default: '',
+        placeholder: 'Choose your institution',
         options: [
-            {
-                text: 'Choose your institution',
-                value: 'default',
-                disabled: true,
-            },
             {
                 text: 'Other',
                 value: 'custom',
@@ -122,5 +118,5 @@ export function updateInstitutions(institutions) {
         });
     }
 
-    OPTIONS.institution.options.splice(1, 0, ...institutions);
+    OPTIONS.institution.options.unshift(...institutions);
 }

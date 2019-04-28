@@ -24,7 +24,10 @@
                 </b-card-body>
             </div>
 
-            <cgfs-log v-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken" />
+            <b-card-body v-if="loading" class="loader" no-body>
+                <icon name="circle-notch" spin :scale="4" />
+            </b-card-body>
+            <cgfs-log v-else-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken" />
             <cgfs-options v-else @start="jwtToken = $event" />
         </b-card>
     </div>
@@ -33,6 +36,9 @@
 <script>
 // eslint-disable-next-line
 import { shell } from 'electron';
+
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/circle-notch';
 
 import { updateInstitutions } from '@/options';
 
@@ -46,6 +52,7 @@ export default {
         return {
             newestVersion: null,
             jwtToken: '',
+            loading: true,
         };
     },
 
@@ -101,12 +108,14 @@ export default {
         this.$http.get('https://codegra.de/.cgfs.json').then(({ data }) => {
             this.newestVersion = data.version;
             updateInstitutions(data.institutions);
+            this.loading = false;
         });
     },
 
     components: {
         CgfsLog,
         CgfsOptions,
+        Icon,
     },
 };
 </script>
@@ -127,6 +136,19 @@ export default {
 
     &.options {
         max-width: $options-width;
+    }
+}
+
+.loader {
+    position: relative;
+    width: 100%;
+    flex: 1 1 100vh;
+
+    .fa-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
 }
 
