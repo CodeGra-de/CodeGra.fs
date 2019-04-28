@@ -11,7 +11,7 @@
             <help-popover class="options-list-trigger">
                 <table class="options-list">
                     <tr>
-                        <td>Revision</td>
+                        <td>Revision mode</td>
                         <td>{{ config.options.revision ? 'Enabled' : 'Disabled'}}</td>
                     </tr>
                     <tr>
