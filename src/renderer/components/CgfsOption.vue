@@ -27,11 +27,13 @@
             />
         </b-input-group>
 
-        <b-form-select
+        <multiselect
             v-else-if="option.type === 'select'"
             v-model="internal"
             :options="option.options"
             :placeholder="option.placeholder"
+            label="text"
+            track-by="value"
         />
 
         <b-form-file
@@ -71,6 +73,9 @@
 </template>
 
 <script>
+import Multiselect from 'vue-multiselect';
+import 'vue-multiselect/dist/vue-multiselect.min.css';
+
 import HelpPopover from '@/components/HelpPopover';
 
 export default {
@@ -94,30 +99,50 @@ export default {
     },
 
     watch: {
-        internal(newValue) {
-            if (this.option.type === 'directory') {
-                this.$emit('input', newValue.path);
-            } else {
-                this.$emit('input', newValue);
-            }
+        internal: {
+            handler() {
+                this.$emit('input', this.external);
+            },
+            immediate: true,
         },
     },
 
     data() {
-        let internal = this.value || '';
+        let internal;
 
-        if (!internal && this.option.type === 'checkbox') {
-            internal = {};
+        switch (this.option.type) {
+            case 'checkbox':
+                internal = this.value || {};
+                break;
+            case 'select':
+                internal = this.option.options.find(option => option.value === this.value);
+                break;
+            case 'directory':
+                internal = { path: this.value };
+                break;
+            default:
+                internal = this.value || '';
+                break;
         }
 
         return { internal };
     },
 
-    mounted() {
-        this.$emit('input', this.internal);
+    computed: {
+        external() {
+            switch (this.option.type) {
+                case 'directory':
+                    return this.internal.path;
+                case 'select':
+                    return this.internal.value;
+                default:
+                    return this.internal;
+            }
+        },
     },
 
     components: {
+        Multiselect,
         HelpPopover,
     },
 };
@@ -159,7 +184,8 @@ export default {
 .form-control.custom-control {
     padding-left: $input-padding-x + $custom-control-gutter + $custom-control-indicator-size;
 
-    label {
+    .custom-control-label {
+        cursor: pointer;
         display: block;
     }
 }

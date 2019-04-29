@@ -19,7 +19,7 @@ env:
 install-deps: env/.install-deps node_modules/.install-deps
 env/.install-deps: requirements.txt requirements-mac.txt | env
 	$(ENV) pip install -r requirements.txt
-	if [ "$(uname)" == 'Darwin' ]; then \
+	if [ "$$(uname)" == 'Darwin' ]; then \
 		$(ENV) pip install -r requirements-mac.txt; \
 	fi
 	date >$@

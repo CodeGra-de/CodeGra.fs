@@ -96,7 +96,7 @@ export default {
     },
 
     computed: {
-        ...mapGetters('Config', ['config']),
+        ...mapGetters('Config', ['config', 'institutionURL']),
     },
 
     watch: {
@@ -123,9 +123,7 @@ export default {
             const { username, password } = this.internalConfig;
 
             this.writeConfig(this.internalConfig)
-                .then(() =>
-                    this.$http.post(`${this.getInstitutionURL()}/login`, { username, password }),
-                )
+                .then(() => this.$http.post(`${this.institutionURL}/login`, { username, password }))
                 .then(
                     response => {
                         this.errors = {};
@@ -147,14 +145,6 @@ export default {
                         }
                     },
                 );
-        },
-
-        getInstitutionURL() {
-            if (this.internalConfig.institution === 'custom') {
-                return `https://${this.internalConfig.customInstitution}.codegra.de/api/v1/`;
-            } else {
-                return this.internalConfig.institution;
-            }
         },
     },
 
@@ -201,7 +191,8 @@ export default {
 .cgfs-options {
     .col-form-label,
     .required-desc,
-    .advanced-collapse {
+    .advanced-collapse,
+    .input-group-text {
         user-select: none;
         cursor: default;
     }

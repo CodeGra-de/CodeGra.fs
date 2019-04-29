@@ -1,26 +1,33 @@
 <template>
     <div id="app" :class="jwtToken ? 'log' : 'options'">
         <b-card no-body>
-            <div class="logo">
-                <img src="~@/assets/codegrade-fs.png"
-                     alt="CodeGrade Filesystem" />
-            </div>
-
-            <hr style="margin: 0;" />
+            <b-card-body class="logo">
+                <img src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
+            </b-card-body>
 
             <div v-if="newerVersionAvailable">
-                <b-card-body>
-                    <b-alert show variant="info" class="version-info">
-                        A newer version of the CodeGrade Filesystem is available. Please consider upgrading.
-                        You can download the new version at
-                        <a target="_blank" href="https://codegra.de/codegra_fs/latest" @click="downloadNewVersion">codegra.de</a>.
+                <b-card-body class="version-info">
+                    <b-alert show variant="info">
+                        A newer version of the CodeGrade Filesystem is available. You can download
+                        the latest version at
+                        <a
+                            target="_blank"
+                            href="https://codegra.de/codegra_fs/latest"
+                            @click="downloadNewVersion"
+                        >
+                            codegra.de/codegra_fs/latest</a
+                        >.
+                        <template v-if="jwtToken">
+                            Make sure to stop the filesystem before upgrading.
+                        </template>
                     </b-alert>
                 </b-card-body>
-
-                <hr style="margin: 0;" />
             </div>
 
-            <cgfs-log v-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken" />
+            <b-card-body v-if="loading" class="loader" no-body>
+                <icon name="circle-notch" spin :scale="4" />
+            </b-card-body>
+            <cgfs-log v-else-if="jwtToken" @stop="jwtToken = ''" :jwt-token="jwtToken" />
             <cgfs-options v-else @start="jwtToken = $event" />
         </b-card>
     </div>
@@ -29,6 +36,9 @@
 <script>
 // eslint-disable-next-line
 import { shell } from 'electron';
+
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/circle-notch';
 
 import { updateInstitutions } from '@/options';
 
@@ -42,6 +52,7 @@ export default {
         return {
             newestVersion: null,
             jwtToken: '',
+            loading: true,
         };
     },
 
@@ -94,17 +105,17 @@ export default {
             true,
         );
 
-        this.$http.get('https://codegra.de/.cgfs.json').then(
-            ({ data }) => {
-                this.newestVersion = data.version;
-                updateInstitutions(data.institutions);
-            },
-        );
+        this.$http.get('https://codegra.de/.cgfs.json').then(({ data }) => {
+            this.newestVersion = data.version;
+            updateInstitutions(data.institutions);
+            this.loading = false;
+        });
     },
 
     components: {
         CgfsLog,
         CgfsOptions,
+        Icon,
     },
 };
 </script>
@@ -128,18 +139,36 @@ export default {
     }
 }
 
-.logo {
-    flex: 0 0 auto;
-    margin: 0 auto;
-    padding: 1rem;
+.loader {
+    position: relative;
+    width: 100%;
+    flex: 1 1 100vh;
 
-    img {
-        max-height: 8rem;
-        max-width: 100%;
+    .fa-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
 }
 
+.logo,
 .version-info {
+    border-bottom: $border-width solid $border-color;
+}
+
+.logo {
+    flex: 0 0 auto;
+
+    img {
+        display: block;
+        max-height: 8rem;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+}
+
+.version-info .alert {
     margin: 0;
 }
 

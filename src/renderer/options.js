@@ -6,13 +6,9 @@ const OPTIONS = {
         label: 'Institution',
         required: true,
         type: 'select',
-        default: 'default',
+        default: '',
+        placeholder: 'Choose your institution',
         options: [
-            {
-                text: 'Choose your institution',
-                value: 'default',
-                disabled: true,
-            },
             {
                 text: 'Other',
                 value: 'custom',
@@ -54,7 +50,7 @@ const OPTIONS = {
         type: 'directory',
         default: path.join(os.homedir(), 'Desktop'),
         help:
-            'Location of the CodeGrade Filesystem folder. This should be a directory that has no children called "CodeGrade".',
+            'Location of the CodeGrade Filesystem folder. This should be a directory that does not contain a directory named "CodeGrade".',
     },
     options: {
         label: 'Options',
@@ -70,7 +66,7 @@ const OPTIONS = {
                 key: 'revision',
                 label: 'Revision mode',
                 help:
-                    'Enter "revision" mode, in which the teacher can add/edit/delete student files. The student will be able to see the edits made by the teacher. When this option is turned off, files cannot be changed or deleted. New files can still be added, however they will **NOT** be synced with the CodeGrade server.',
+                    'Enter revision mode. In revision mode the teacher can add, edit, and delete student files. The student will be able to see the edits made by the teacher. When this option is turned off, files cannot be changed or deleted. New files can still be added, but they will **NOT** be synced with the CodeGrade server and will be lost once the filesystem shuts down..',
             },
             {
                 key: 'assigned',
@@ -82,7 +78,7 @@ const OPTIONS = {
                 key: 'latest',
                 label: 'Latest submissions only',
                 help:
-                    'Show only the most recent submissions of each student, rather than all submissions.',
+                    'Show only the most recent submissions of each student, rather than all their submissions.',
             },
         ],
     },
@@ -95,7 +91,7 @@ const OPTIONS = {
             {
                 label: 'Critical only',
                 value: 'quiet',
-                help: 'Hide most notifications. Errors and warnings will still be logged.',
+                help: 'Hide most notifications. Errors and warnings will still be shown.',
             },
             {
                 label: 'All',
@@ -105,7 +101,8 @@ const OPTIONS = {
             {
                 label: 'Debug',
                 value: 'verbose',
-                help: 'Show notifications for errors and warnings, and log all messages.',
+                help:
+                    'Show notifications for errors and warnings, and log all messages. This option should generally not be selected.',
             },
         ],
     },
@@ -121,5 +118,5 @@ export function updateInstitutions(institutions) {
         });
     }
 
-    OPTIONS.institution.options.splice(1, 0, ...institutions);
+    OPTIONS.institution.options.unshift(...institutions);
 }

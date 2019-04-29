@@ -89,6 +89,13 @@ const getters = {
     config(state) {
         return state.config;
     },
+    institutionURL(state) {
+        if (state.config.institution === 'custom') {
+            return `https://${state.config.customInstitution}.codegra.de/api/v1`;
+        } else {
+            return state.config.institution;
+        }
+    },
 };
 
 const mutations = {
