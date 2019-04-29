@@ -67,6 +67,8 @@
     },
     "nsis": {
       "include": "build/installer.nsh",
+      "installerIcon": "static/icons/ms-icon-blue.ico",
+      "uninstallerIcon": "static/icons/ms-icon-blue.ico",
       "license": "LICENSE",
       "oneClick": true,
       "perMachine": true,

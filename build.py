@@ -11,28 +11,41 @@ from codegra_fs import __version__
 os.chdir(os.path.dirname(__file__))
 
 
-def run_pyinstaller():
+def pyinstaller(module, name):
+    if sys.platform == 'darwin':
+        icon = os.path.join('static', 'icons', 'icon.icns')
+    else:
+        icon = os.path.join('static', 'icons', 'ms-icon.ico')
+
     subprocess.check_call(
         [
             'pyinstaller',
             '--noconfirm',
-            os.path.join('codegra_fs', 'cgfs.py'),
             '--onedir',
+            '--specpath',
+            'dist',
             '--name',
-            'cgfs',
+            name,
             '--icon',
-            os.path.join('static', 'icons', 'ms-icon.ico'),
-        ]
+            icon,
+            module,
+        ],
     )
+
+
+def run_pyinstaller():
+    pyinstaller(os.path.join('codegra_fs', 'cgfs.py'), 'cgfs')
+    pyinstaller(os.path.join('codegra_fs', 'api_consumer.py'), 'cgapi-consumer')
+
+
+def npm(job):
     subprocess.check_call(
         [
-            'pyinstaller',
-            '--noconfirm',
-            os.path.join('codegra_fs', 'api_consumer.py'),
-            '--onedir',
-            '--name',
-            'cgapi-consumer',
-        ]
+            'npm',
+            'run',
+            job,
+        ],
+        shell=True,
     )
 
 
@@ -44,21 +57,11 @@ if sys.platform.startswith('win32'):
     r.raise_for_status()
     open('dist/winfsp.msi', 'wb').write(r.content)
 
-    subprocess.check_call(
-        [
-            os.path.join(
-                'C:\\',
-                'Program Files',
-                'nodejs',
-                'npm',
-            ),
-            'run',
-            'build:win',
-        ],
-        shell=True,
-    )
+
+    npm('build:win')
 elif sys.platform.startswith('linux'):
     subprocess.check_call(['python3', 'sdist', 'bdist_wheel'])
+
     print(
         """You can now upload this dist to pypi using:
 
@@ -68,13 +71,7 @@ elif sys.platform.startswith('linux'):
 elif sys.platform.startswith('darwin'):
     run_pyinstaller()
 
-    subprocess.check_call(
-        [
-            'npm',
-            'run',
-            'build:mac',
-        ],
-    )
+    npm('build:mac')
 
     subprocess.check_call(
         [
