@@ -289,30 +289,25 @@ export default {
             this.scrollToLastEvent();
 
             if (
-                !original ||
-                !original.notify ||
-                (original.notify !== 'critical' && this.config.verbosity === 'quiet')
+                original &&
+                original.notify &&
+                (original.notify === 'critical' || this.config.verbosity !== 'quiet')
             ) {
-                return;
+                ipcRenderer.send('cgfs-notify', message);
             }
-
-            ipcRenderer.send('cgfs-notify', message);
         },
 
         scrollToLastEvent(behavior = 'auto') {
             const out = this.$refs.output;
 
-            // Only scroll when at the bottom.
-            if (!out || !this.following) {
-                return;
-            }
-
-            this.$nextTick(async () => {
-                out.scrollTo({
-                    top: out.scrollHeight,
-                    behavior,
+            if (out && this.following) {
+                this.$nextTick(async () => {
+                    out.scrollTo({
+                        top: out.scrollHeight,
+                        behavior,
+                    });
                 });
-            });
+            }
         },
 
         toggleFollowing() {

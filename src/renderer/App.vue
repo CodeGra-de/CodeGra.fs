@@ -7,8 +7,8 @@
 
             <b-card-body v-if="newerVersionAvailable" class="alert-section">
                 <b-alert show dismissible variant="info">
-                    A newer version of the CodeGrade Filesystem is available. You can download
-                    the latest version at
+                    A newer version of the CodeGrade Filesystem is available. You can download the
+                    latest version at
                     <a
                         target="_blank"
                         href="https://codegra.de/codegra_fs/latest"
