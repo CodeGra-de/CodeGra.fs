@@ -255,7 +255,6 @@ export default {
             try {
                 event = JSON.parse(event);
             } catch (e) {
-                this.addEvent(`Could not parse event: ${event}`, 'warning');
                 return;
             }
 

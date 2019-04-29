@@ -7,14 +7,12 @@
   "main": "./dist/electron/main.js",
   "scripts": {
     "build": "npm run build:only && npm run build:package",
+    "build:only": "node .electron-vue/build.js",
+    "build:package": "electron-builder",
     "build:mac": "npm run build --mac",
     "build:win": "npm run build --win --x64 --ia32",
     "build:linux": "npm run build --linux",
-    "build:dir": "npm run build --dir",
     "build:clean": "cross-env BUILD_TARGET=clean npm run build:only",
-    "build:web": "cross-env BUILD_TARGET=web npm run build:only",
-    "build:only": "node .electron-vue/build.js",
-    "build:package": "electron-builder",
     "dev": "node .electron-vue/dev-runner.js",
     "e2e": "npm run pack && mocha test/e2e",
     "lint": "eslint --ext .js,.vue -f ./node_modules/eslint-friendly-formatter src test",
@@ -36,9 +34,7 @@
     ],
     "mac": {
       "icon": "static/icons/icon.icns",
-      "target": [
-        "dir"
-      ],
+      "target": "dir",
       "extraFiles": [
         {
           "from": "dist/cgfs",
@@ -53,6 +49,7 @@
     "win": {
       "forceCodeSigning": false,
       "icon": "static/icons/ms-icon.ico",
+      "target": "nsis",
       "extraFiles": [
         {
           "from": "dist/cgfs",
@@ -77,9 +74,7 @@
     },
     "linux": {
       "icon": "static/icons",
-      "target": [
-        "AppImage"
-      ]
+      "target": "AppImage"
     }
   },
   "dependencies": {
