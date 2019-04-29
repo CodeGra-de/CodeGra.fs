@@ -85,6 +85,7 @@
     "bootstrap": "^4.3.1",
     "bootstrap-vue": "^2.0.0-rc.15",
     "jquery": "^3.3.1",
+    "node-notifier": "^5.4.0",
     "then-fs": "^2.0.0",
     "vue": "^2.5.16",
     "vue-awesome": "^3.4.0",

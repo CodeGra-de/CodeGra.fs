@@ -2,27 +2,33 @@
     <div id="app" :class="jwtToken ? 'log' : 'options'">
         <b-card no-body>
             <b-card-body class="logo">
-                <img src="~@/assets/codegrade-fs.png" alt="CodeGrade Filesystem" />
+                <img :src="$staticFile('codegrade-fs.png')" alt="CodeGrade Filesystem" />
             </b-card-body>
 
-            <div v-if="newerVersionAvailable">
-                <b-card-body class="version-info">
-                    <b-alert show variant="info">
-                        A newer version of the CodeGrade Filesystem is available. You can download
-                        the latest version at
-                        <a
-                            target="_blank"
-                            href="https://codegra.de/codegra_fs/latest"
-                            @click="downloadNewVersion"
-                        >
-                            codegra.de/codegra_fs/latest</a
-                        >.
-                        <template v-if="jwtToken">
-                            Make sure to stop the filesystem before upgrading.
-                        </template>
-                    </b-alert>
-                </b-card-body>
-            </div>
+            <b-card-body v-if="newerVersionAvailable" class="alert-section">
+                <b-alert show dismissible variant="info">
+                    A newer version of the CodeGrade Filesystem is available. You can download
+                    the latest version at
+                    <a
+                        target="_blank"
+                        href="https://codegra.de/codegra_fs/latest"
+                        @click="downloadNewVersion"
+                    >
+                        codegra.de/codegra_fs/latest</a
+                    >.
+                    <template v-if="jwtToken">
+                        Make sure to stop the filesystem before upgrading.
+                    </template>
+                </b-alert>
+            </b-card-body>
+
+            <b-card-body v-if="showNotificationMessage" class="alert-section">
+                <b-alert show dismissible variant="info">
+                    We do not have permsision to send desktop notifications. The filesystem uses
+                    them, however, to notify you when certain actions cannot be perform, such as
+                    saving changed files. We strongly encourage you to allow notifications.
+                </b-alert>
+            </b-card-body>
 
             <b-card-body v-if="loading" class="loader" no-body>
                 <icon name="circle-notch" spin :scale="4" />
@@ -50,9 +56,10 @@ export default {
 
     data() {
         return {
-            newestVersion: null,
-            jwtToken: '',
             loading: true,
+            jwtToken: '',
+            newestVersion: null,
+            showNotificationMessage: Notification.permission !== 'granted',
         };
     },
 
@@ -153,7 +160,7 @@ export default {
 }
 
 .logo,
-.version-info {
+.alert-section {
     border-bottom: $border-width solid $border-color;
 }
 
@@ -168,8 +175,14 @@ export default {
     }
 }
 
-.version-info .alert {
-    margin: 0;
+.alert-section {
+    .alert {
+        margin: 0;
+    }
+
+    .alert-dismissible {
+        padding-right: 3 * $spacer;
+    }
 }
 
 .cgfs-log,

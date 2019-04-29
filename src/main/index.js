@@ -1,5 +1,6 @@
 import path from 'path';
-import { app, BrowserWindow } from 'electron'; // eslint-disable-line
+import { app, BrowserWindow, ipcMain } from 'electron'; // eslint-disable-line
+import notifier from 'node-notifier';
 
 /**
  * Set `__static` path to static files in production
@@ -27,12 +28,15 @@ function createWindow() {
      * Initial window options
      */
     mainWindow = new BrowserWindow({
-        height: 700,
-        useContentSize: true,
         width: 550,
-        icon: process.platform === 'win32' ?
-            path.join(__static, 'icons', 'ms-icon-blue.ico') :
-            path.join(__static, 'icons', '512x512.png'),
+        height: 700,
+        minWidth: 550,
+        minHeight: 550,
+        useContentSize: true,
+        icon:
+            process.platform === 'win32'
+                ? path.join(__static, 'icons', 'ms-icon-blue.ico')
+                : path.join(__static, 'icons', '512x512.png'),
         webPreferences: {
             webSecurity: !devMode,
         },
@@ -44,6 +48,21 @@ function createWindow() {
 
     mainWindow.on('closed', () => {
         mainWindow = null;
+    });
+
+    ipcMain.on('cgfs-notify', (event, message) => {
+        notifier.notify(
+            {
+                title: 'CodeGrade Filesystem',
+                message,
+                icon: path.join(__static, 'icons', '512x512.png'),
+            },
+            err => {
+                if (err) {
+                    mainWindow.flashFrame(true);
+                }
+            },
+        );
     });
 }
 

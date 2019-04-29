@@ -81,7 +81,7 @@ import readline from 'readline';
 import path from 'path';
 
 // eslint-disable-next-line
-import { shell } from 'electron';
+import { ipcRenderer, shell } from 'electron';
 import { mapGetters } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -289,15 +289,14 @@ export default {
             this.scrollToLastEvent();
 
             if (
-                original &&
-                (original.notify === 'critical' ||
-                    (original.notify === 'normal' && this.config.verbosity !== 'quiet'))
+                !original ||
+                !original.notify ||
+                (original.notify !== 'critical' && this.config.verbosity === 'quiet')
             ) {
-                // eslint-disable-next-line
-                new Notification('CodeGrade Filesystem', {
-                    body: message,
-                });
+                return;
             }
+
+            ipcRenderer.send('cgfs-notify', message);
         },
 
         scrollToLastEvent(behavior = 'auto') {

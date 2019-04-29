@@ -27,6 +27,8 @@ Vue.prototype.$htmlEscape = function htmlEscape(input) {
     return input && input.replace(/[&<>"'`]/g, match => htmlEscapes[match]);
 };
 
+Vue.prototype.$staticFile = path => `file://${__static}/${path}`;
+
 /* eslint-disable no-new */
 new Vue({
     components: { App },
