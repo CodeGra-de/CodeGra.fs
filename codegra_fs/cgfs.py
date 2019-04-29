@@ -66,8 +66,8 @@ except:
 
 
 class FuseContext:
-    msg: str = ''
-    args: t.Tuple[object, ...] = ()
+    msg = ''  # type: str
+    args = ()  # type: t.Tuple[object, ...]
 
     def update(self, msg: str, args: t.Tuple[object, ...]) -> None:
         self.msg = msg
@@ -78,7 +78,7 @@ class FuseContext:
 
 
 class GuiMode:
-    enabled: bool = False
+    enabled = False  # type: bool
 
     def enable(self) -> None:
         self.enabled = True
@@ -128,7 +128,9 @@ def getegid() -> int:
     return os.getegid()
 
 
-def handle_cgapi_exception(ex) -> t.NoReturn:
+# FIXME: The python version shipped with Debian stable
+# does not support typing.NoReturn.
+def handle_cgapi_exception(ex) -> None:
     if ex.code == APICodes.OBJECT_ID_NOT_FOUND.name:
         logger.error(ex.message)
         raise FuseOSError(ENOENT)
