@@ -13,14 +13,14 @@ run: install
 	$(ENV) npm run dev
 
 env:
-	virtualenv env
+	virtualenv --python=python3 env
 
 .PHONY: install-deps
 install-deps: env/.install-deps node_modules/.install-deps
 env/.install-deps: requirements.txt requirements-mac.txt | env
-	$(ENV) pip install -r requirements.txt
+	$(ENV) pip3 install -r requirements.txt
 	if [ "$$(uname)" == 'Darwin' ]; then \
-		$(ENV) pip install -r requirements-mac.txt; \
+		$(ENV) pip3 install -r requirements-mac.txt; \
 	fi
 	date >$@
 node_modules/.install-deps: package.json
@@ -30,7 +30,7 @@ node_modules/.install-deps: package.json
 .PHONY: install
 install: install-deps env/bin/cgfs env/bin/cgapi-consumer
 env/bin/%: setup.py codegra_fs/*.py
-	$(ENV) pip install .
+	$(ENV) pip3 install .
 
 .PHONY: myypy
 mypy: install-deps
