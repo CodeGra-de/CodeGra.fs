@@ -30,7 +30,8 @@
     "appId": "com.codegrade.codegrade-fs",
     "files": [
       "dist/electron/**/*",
-      "static/icons/512x512.png"
+      "static/icons/512x512.png",
+      "static/codegra-fs.png"
     ],
     "mac": {
       "icon": "static/icons/icon.icns",

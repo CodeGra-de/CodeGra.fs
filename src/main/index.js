@@ -21,13 +21,33 @@ if (!devMode && process.platform === 'darwin') {
 let mainWindow;
 const winURL = devMode ? 'http://localhost:9080' : `file://${__dirname}/index.html`;
 
-app.setAppUserModelId('com.codegrade.codegrade-fs');
+const appID = 'com.codegrade.codegrade-fs';
+const title = 'CodeGrade Filesystem';
+
+app.setAppUserModelId(appID);
+
+function notify(event, message) {
+    notifier.notify(
+        {
+            title,
+            message,
+            appID,
+            icon: path.join(__static, 'icons', '512x512.png'),
+        },
+        err => {
+            if (err) {
+                mainWindow.flashFrame(true);
+            }
+        },
+    );
+}
 
 function createWindow() {
     /**
      * Initial window options
      */
     mainWindow = new BrowserWindow({
+        title,
         width: 550,
         height: 700,
         minWidth: 550,
@@ -50,20 +70,7 @@ function createWindow() {
         mainWindow = null;
     });
 
-    ipcMain.on('cgfs-notify', (event, message) => {
-        notifier.notify(
-            {
-                title: 'CodeGrade Filesystem',
-                message,
-                icon: path.join(__static, 'icons', '512x512.png'),
-            },
-            err => {
-                if (err) {
-                    mainWindow.flashFrame(true);
-                }
-            },
-        );
-    });
+    ipcMain.on('cgfs-notify', notify);
 }
 
 app.on('ready', createWindow);
