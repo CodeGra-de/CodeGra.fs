@@ -30,7 +30,9 @@ function createWindow() {
         height: 700,
         useContentSize: true,
         width: 550,
-        icon: path.join(__static, 'icons', '512x512.png'),
+        icon: process.platform === 'win32' ?
+            path.join(__static, 'icons', 'ms-icon-blue.ico') :
+            path.join(__static, 'icons', '512x512.png'),
         webPreferences: {
             webSecurity: !devMode,
         },
