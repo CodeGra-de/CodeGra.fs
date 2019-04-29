@@ -1,5 +1,5 @@
 import path from 'path';
-import { app, BrowserWindow, ipcMain } from 'electron'; // eslint-disable-line
+import { app, BrowserWindow, ipcMain, Notification } from 'electron'; // eslint-disable-line
 import notifier from 'node-notifier';
 
 /**
@@ -23,23 +23,32 @@ const winURL = devMode ? 'http://localhost:9080' : `file://${__dirname}/index.ht
 
 const appID = 'com.codegrade.codegrade-fs';
 const title = 'CodeGrade Filesystem';
+const icon = path.join(__static, 'icons', '512x512.png');
 
 app.setAppUserModelId(appID);
 
 function notify(event, message) {
-    notifier.notify(
-        {
+    if (process.platform === 'darwin') {
+        new Notification({
             title,
-            message,
-            appID,
-            icon: path.join(__static, 'icons', '512x512.png'),
-        },
-        err => {
-            if (err) {
-                mainWindow.flashFrame(true);
-            }
-        },
-    );
+            body: message,
+            icon,
+        }).show();
+    } else {
+        notifier.notify(
+            {
+                title,
+                message,
+                appID,
+                icon,
+            },
+            err => {
+                if (err) {
+                    mainWindow.flashFrame(true);
+                }
+            },
+        );
+    }
 }
 
 function createWindow() {
