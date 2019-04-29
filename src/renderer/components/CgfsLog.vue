@@ -125,13 +125,13 @@ export default {
 
     data() {
         return {
+            initialTitle: document.title,
             proc: null,
             restarting: false,
             eventSize: 0,
             following: true,
             previousY: 0,
             MAX_VISIBLE,
-            sep: path.sep,
         };
     },
 
@@ -190,9 +190,9 @@ export default {
     watch: {
         running(newValue) {
             if (newValue) {
-                document.title = `CodeGrade Filesystem - ${this.displayMountpoint}`;
+                document.title = `${this.initialTitle} - ${this.displayMountpoint}`;
             } else {
-                document.title = 'CodeGrade Filesystem';
+                document.title = this.initialTitle;
             }
         },
     },
