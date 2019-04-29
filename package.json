@@ -33,6 +33,7 @@
       "static/icons/512x512.png",
       "static/codegra-fs.png"
     ],
+    "asar": false,
     "mac": {
       "icon": "static/icons/icon.icns",
       "target": "dir",
