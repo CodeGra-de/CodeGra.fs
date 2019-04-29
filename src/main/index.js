@@ -65,7 +65,7 @@ function createWindow() {
         icon:
             process.platform === 'win32'
                 ? path.join(__static, 'icons', 'ms-icon-blue.ico')
-                : path.join(__static, 'icons', '512x512.png'),
+                : icon,
         webPreferences: {
             webSecurity: !devMode,
         },
