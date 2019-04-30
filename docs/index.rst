@@ -7,13 +7,16 @@
 CodeGrade Filesystem
 ======================================
 
-The CodeGrade Filesystem (or CodeGra.fs) can be used in combination with the web application.
-It can mount a local CodeGrade instance on your computer to locally browse submissions and files on the CodeGrade server.
-The filesystem can be used for students to locally work on the CodeGrade mount and thus automatically hand in the assignment
-with each save. For teachers the filesystem can be used to locally grade work using an editor of choice without any overhead. The Filesystem
-is aimed to drastically enhance the grading experience and make it more efficient.
+The CodeGrade Filesystem is the extension of CodeGrade that allows you to
+test, review and grade all CodeGrade assignments locally from within your
+favourite editor. The Filesystem application mounts a local CodeGrade instance
+on your computer, which makes browsing through all your CodeGrade courses,
+assignments and submissions very easy.
 
-The code of the CodeGrade filesystem is open-source and can be found on
+We aim to further enhance the grading experience and decrease overhead with the
+CodeGrade Filesystem.
+
+The code of the CodeGrade Filesystem is open-source and can be found on
 `Github <https://github.com/CodeGra-de/CodeGra.fs>`__.
 
 .. toctree::
