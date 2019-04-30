@@ -23,70 +23,66 @@
   </a>
 </p>
 
+# CodeGrade Filesystem
+The CodeGrade Filesystem is the extension of CodeGrade that allows you to
+test, review and grade all CodeGrade assignments locally from within your
+favourite editor. The Filesystem application mounts a local CodeGrade instance
+on your computer, which makes browsing through all your CodeGrade courses,
+assignments and submissions very easy.
+
+We aim to further enhance the grading experience and decrease overhead with the
+CodeGrade Filesystem.
+
 ## Installation
-CodeGra.fs should work on all popular operating systems: GNU/Linux, MacOS and
-Windows. The support for windows is currently experimental: we would love to
-hear your feedback!
+The CodeGrade Filesystem is an external application that can be installed on
+Windows, MacOS and GNU/Linux. Follow the install instructions for your operating
+system below.
 
-### GNU/Linux and MacOS
-The installation for GNU/Linux and mac is done using `pip`: `sudo pip install
-CodeGra.fs`. This installs three scripts, `cgfs` used to mount the file-system,
-`cgfs-qt` a GUI that can be used to mount the file-system, and `cgapi-consumer`
-used by editor plugins. You can also install `cgfs` by giving `pip` the `--user`
-flag, however make sure `$HOME/.local/bin` is in your `$PATH` in this case.
+### Windows and MacOS
+Installing the CodeGrade Filesystem on a Windows or MacOS system can be done
+using the installers. Follow the instructions in the installers to successfully
+install the CodeGrade Filesystem.
 
-Please note that `pip3` is used, this because CodeGra.fs only with works with
-python **3.5** or higher. For MacOS this will probably mean you need to install
-Python3, you can do this using [homebrew](https://brew.sh/) (`brew install
-python`) or by doing python [here](https://www.python.org/downloads/mac-osx/).
-
-On GNU/Linux and MacOS CodeGra.fs depends on:
-- [fusepy](https://github.com/terencehonles/fusepy)
+The supplied installers install all required dependencies for the CodeGrade
+Filesystem to work, these are:
+- Python 3
+- [FUSE (MacOS)](https://osxfuse.github.io/)
+- [WinFsp (Windows)](https://github.com/billziss-gh/winfsp)
 - [requests](http://docs.python-requests.org/en/master/)
-
-### Windows (**experimental**)
-Installation on windows can also be done by using `pip`, however we also supply
-an installer. You can download the installer for the latest release
-[here](https://github.com/CodeGra-de/CodeGra.fs/releases). The installer doesn't
-install the command line `cgfs` script, if you need this script for whatever
-reason simply install the package using `pip`.
-
-When using the Windows installer you still need to install
-[WinFsp](https://github.com/billziss-gh/winfsp) separately. Currently only
-version 1.4B3 is supported (which is in beta), you can download it
-[here](https://github.com/billziss-gh/winfsp/releases/tag/v1.4B3).
-
-When installing using pip CodeGra.fs depends on:
 - [fusepy](https://github.com/terencehonles/fusepy)
-- [requests](http://docs.python-requests.org/en/master/)
 - [cffi](https://bitbucket.org/cffi/cffi)
-- [WinFsp](https://github.com/billziss-gh/winfsp) installed with dev headers.
 - [winfspy](https://github.com/Scille/winfspy)
 
-## Usage
-### Command line usage
-The basic used of the `cgfs` can be viewed by executing `cgfs --help`. The idea
-behind `cgfs` is that you mount a CodeGra.de instance on you local computer, in
-the mounted folder you can now browse, alter and delete files submitted by
-yourself and people you have to grade.
 
-### GUI usage
-If you prefer to use a GUI you can use the `cgfs-qt` command. This is a simple
-GUI to use CodeGra.fs. Please note that this GUI is still in alpha state. To use
-the GUI fill in all required fields, you can get help for each field by clicking
-the question mark, and click mount. You will now see a output field stating
-'Mounting...' and a bit later 'Mounted...'. You can now use the file system as
-normal. To unmount simply click 'Stop!'.
+### GNU/Linux
+<!-- TODO: Add commands for apt repos -->
+Installing the CodeGrade Filesystem can be done using the package manager in
+your Linux distro. In Ubuntu `apt-get install codegrade-fs`.
+
+## Usage
+Open the CodeGrade Filesystem program to mount the CodeGrade server locally.
+Follow the steps below to mount:
+1. Select your institution, or select _Other_ to use a custom CodeGrade instance.
+2. Fill in your CodeGrade username and password.
+3. _Optional:_ Select the mount location (default is desktop).
+4. _Optional:_ Set Revision mode, Assigned to me and Latest Only options.
+5. _Optional:_ Set verbosity of the notifications of CodeGrade Filesystem.
+6. Click mount to mount the CodeGrade Filesystem.
+
+### Command line usage __(deprecated)__
+Installing the filesystem automatically installs the `cgfs` command, which is
+also used in the back-end of the GUI. Use `cgfs --help` for an overview of the
+options of the `cgfs` command line tool. Using the GUI is highly recommended.
 
 ### Available files
-The basic layout of the file-system is `/course/assingment/submission -
-submission_time`, so for example `/datastructures/linked-list/Thomas Schaper -
-2017-11-14T13:41:26.324712`. All files that a student submitted can be found in
-the submission folder.
+The basic layout of the file-system is `/course/assignment/submission -
+submission_time`. All files that a student submitted can be found in
+the submission folder. Depending on the __Assigned to me__ and __Latest Only__
+options, this shows respectively only the submissions assigned to you and only
+the latest submissions.
 
-The file-system also contains a few *special* files, these are files that are
-not submitted by a student but can be used to control CodeGra.de. These files
-are validated on a close, which fails if the file format is not correct. The
+The CodeGrade Filesystem also uses a few *special files*, these are files that are not submitted by a student but can be used to control CodeGrade. These files
+are validated on a save, which fails if the file format is not correct. The
 following special files exist:
 
 | Name | Editable<a href="#footnote-1-b"><sup id="footnote-1-a">1</sup></a> | Location | Use | Format |
@@ -116,29 +112,10 @@ can't easily recover anymore. This isn't a really big deal, you can write the
 string `__RESET__` to any writable special file to reset it to its server state.
 
 CodeGra.fs is best used in combination with an editor plugin, such plugins exist
-for [emacs](https://github.com/CodeGra-de/CodeGra.el) and
-[atom](https://github.com/CodeGra-de/CodeGra.atom) and more are being created.
-
-## Privacy
-You can use CodeGra.fs for any CodeGrade instance. The application does a
-version check at every startup, this is done by doing a request to
-`https://codegra.de/.cgfs.version`. We do not collect any personal information
-at this route. It is currently not possible to disable this version check. If
-this request is a problem for you, it is possible to block this host/url:
-CodeGra.fs will continue to function normally; creating a pull request to make
-this check optional is also possible of course!
-
-## Support
-Please report any issues by creating a GitHub issue
-[here](https://github.com/CodeGra-de/CodeGra.fs/issues/new), if possible please
-include link to uploaded a log output when encountering the bug using the
-`verbose` mode (use the `--verbose` command line flag, or click 'verbose' in the
-GUI). You can upload logs to any pastebin like website, for example
-[glot.io](https://glot.io/new/plaintext).
-
-Commercial support of CodeGra.fs is available and included in a commercial
-CodeGrade instance. We would love to provide more information, please send an
-e-mail to info@codegra.de!
+for [emacs](https://github.com/CodeGra-de/CodeGra.el),
+[atom](https://github.com/CodeGra-de/CodeGra.atom) and
+[vim](https://github.com/CodeGra-de/CodeGra.vim) and more are being created
+upon request.
 
 ## License
 CodeGra.fs as a whole is licensed under the [GNU Affero General Public License
