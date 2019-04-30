@@ -20,7 +20,7 @@ env:
 
 .PHONY: install-deps
 install-deps: env/.install-deps node_modules/.install-deps
-env/.install-deps: requirements.txt requirements-mac.txt requirements-linux.txt | env
+env/.install-deps: requirements.txt requirements-darwin.txt requirements-linux.txt | env
 	$(ENV) pip3 install -r requirements.txt
 	if [ -f requirements-$(UNAME).txt ]; then \
 		$(ENV) pip3 install -r requirements-$(UNAME).txt; \
