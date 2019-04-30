@@ -8,6 +8,7 @@ TEST_FLAGS += -vvv
 
 ENV = . env/bin/activate;
 
+VERSION = $(shell python -c 'import codegra_fs; print(".".join(codegra_fs.version))'
 UNAME = $(shell uname | tr A-Z a-z)
 
 .PHONY: run
@@ -62,9 +63,9 @@ test: install
 	$(ENV) pytest $(TEST_FILE) $(TEST_FLAGS)
 	$(ENV) coverage report -m codegra_fs/cgfs.py
 
-.PHONY: test_quick
-test_quick: TEST_FLAGS += -x
-test_quick: test
+.PHONY: test-quick
+test-quick: TEST_FLAGS += -x
+test-quick: test
 
 .PHONY: check
 check: check-format mypy lint test
@@ -73,7 +74,10 @@ check: check-format mypy lint test
 build: check build-$(UNAME)
 	$(ENV) python3 ./build.py
 
-dist/cgfs: codegra_fs/*.py
+.PHONY: build-quick
+build-quick: build-$(UNAME)
+
+dist/cgfs/cgfs: codegra_fs/*.py
 	$(ENV) pyinstaller \
 		--noconfirm \
 		--onedir \
@@ -82,7 +86,7 @@ dist/cgfs: codegra_fs/*.py
 		--icon static/icons/icon.icns \
 		codegra_fs/cgfs.py
 
-dist/cgapi-consumer: codegra_fs/*.py
+dist/cgapi-consumer/cgapi-consumer: codegra_fs/*.py
 	$(ENV) pyinstaller \
 		--noconfirm \
 		--onedir \
@@ -92,18 +96,17 @@ dist/cgapi-consumer: codegra_fs/*.py
 		codegra_fs/api_consumer.py
 
 .PHONY: build-darwin
-build-darwin: dist/CodeGrade\ Filesystem.pkg
-dist/CodeGrade\ Filesystem.pkg: dist/cgfs dist/cgapi-consumer | build/pkg-scripts/osxfuse.pkg
+build-darwin: dist/cgfs/cgfs dist/cgapi-consumer/cgapi-consumer | build/pkg-scripts/osxfuse.pkg
 	npm run build:mac
 	pkgbuild --root dist/mac \
 		--install-location /Applications \
 		--component-plist build/com.codegrade.codegrade-fs.plist \
 		--scripts build/pkg-scripts \
-		"$@"
+		"dist/CodeGrade Filesystem $(VERSION).pkg"
 
 .PHONY: build-win
 build-win: dist/CodeGrade\ Filesystem.exe
-dist/CodeGrade\ Filesystem.exe: dist/cgfs dist/cgapi-consumer | dist/winfsp.msi
+dist/CodeGrade\ Filesystem.exe: dist/cgfs/cgfs dist/cgapi-consumer/cgapi-consumer | dist/winfsp.msi
 	npm run build:win
 
 dist/winfsp.msi:
