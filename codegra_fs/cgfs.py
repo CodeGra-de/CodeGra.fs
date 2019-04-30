@@ -64,6 +64,11 @@ except:
     FullStat = dict  # type: ignore
     APIHandlerResponse = dict  # type: ignore
 
+try:
+    NoReturn = t.NoReturn
+except:
+    NoReturn = None
+
 
 class FuseContext:
     msg = ''  # type: str
@@ -128,9 +133,7 @@ def getegid() -> int:
     return os.getegid()
 
 
-# FIXME: The python version shipped with Debian stable
-# does not support typing.NoReturn.
-def handle_cgapi_exception(ex) -> None:
+def handle_cgapi_exception(ex) -> NoReturn:
     if ex.code == APICodes.OBJECT_ID_NOT_FOUND.name:
         logger.error(ex.message)
         raise FuseOSError(ENOENT)

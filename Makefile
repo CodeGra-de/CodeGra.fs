@@ -8,6 +8,8 @@ TEST_FLAGS += -vvv
 
 ENV = . env/bin/activate;
 
+UNAME = $(shell uname | tr A-Z a-z)
+
 .PHONY: run
 run: install
 	$(ENV) npm run dev
@@ -19,7 +21,7 @@ env:
 install-deps: env/.install-deps node_modules/.install-deps
 env/.install-deps: requirements.txt requirements-mac.txt | env
 	$(ENV) pip3 install -r requirements.txt
-	if [ "$$(uname)" == 'Darwin' ]; then \
+	if [ "$(UNAME)" == 'darwin' ]; then \
 		$(ENV) pip3 install -r requirements-mac.txt; \
 	fi
 	date >$@
@@ -32,7 +34,7 @@ install: install-deps env/bin/cgfs env/bin/cgapi-consumer
 env/bin/%: setup.py codegra_fs/*.py
 	$(ENV) pip3 install .
 
-.PHONY: myypy
+.PHONY: mypy
 mypy: install-deps
 	$(ENV) mypy $(MYPY_FLAGS)
 
@@ -68,5 +70,45 @@ test_quick: test
 check: check-format mypy lint test
 
 .PHONY: build
-build: check
-	$(ENV) python ./build.py
+build: check build-$(UNAME)
+	$(ENV) python3 ./build.py
+
+dist/cgfs: codegra_fs/*.py
+	$(ENV) pyinstaller \
+		--noconfirm \
+		--onedir \
+		--specpath dist \
+		--name cgfs \
+		--icon static/icons/icon.icns \
+		codegra_fs/cgfs.py
+
+dist/cgapi-consumer: codegra_fs/*.py
+	$(ENV) pyinstaller \
+		--noconfirm \
+		--onedir \
+		--specpath dist \
+		--name cgapi-consumer \
+		--icon static/icons/icon.icns \
+		codegra_fs/api_consumer.py
+
+.PHONY: build-darwin
+build-darwin: dist/CodeGrade\ Filesystem.pkg
+dist/CodeGrade\ Filesystem.pkg: dist/cgfs dist/cgapi-consumer | build/pkg-scripts/osxfuse.pkg
+	npm run build:mac
+	pkgbuild --root dist/mac \
+		--install-location /Applications \
+		--component-plist build/com.codegrade.codegrade-fs.plist \
+		--scripts build/pkg-scripts \
+		"$@"
+
+.PHONY: build-win
+build-win: dist/CodeGrade\ Filesystem.exe
+dist/CodeGrade\ Filesystem.exe: dist/cgfs dist/cgapi-consumer | dist/winfsp.msi
+	npm run build:win
+
+dist/winfsp.msi:
+	curl -L -o "$@" 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
+
+.PHONY: build-linux
+build-linux:
+	npm run build:linux

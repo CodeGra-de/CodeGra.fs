@@ -63,9 +63,7 @@ function createWindow() {
         minHeight: 550,
         useContentSize: true,
         icon:
-            process.platform === 'win32'
-                ? path.join(__static, 'icons', 'ms-icon-blue.ico')
-                : icon,
+            process.platform === 'win32' ? path.join(__static, 'icons', 'ms-icon-blue.ico') : icon,
         webPreferences: {
             webSecurity: !devMode,
         },
