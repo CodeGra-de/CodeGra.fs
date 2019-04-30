@@ -135,5 +135,5 @@ build-linux-deb-backend:
 	git apply --reverse build/ubuntu-deb.patch
 	mv deb_dist/*.deb dist
 	rm -rf deb_dist
-	rm -f codegrade_fs.egg-info
+	rm -rf codegrade_fs.egg-info
 	rm -f codegrade-fs-1.0.0.tar.gz
