@@ -23,11 +23,13 @@ if sys.platform.startswith('win32'):
     ]
 
 setup(
-    name='CodeGra.fs',
+    name='codegrade-fs',
     author='The CodeGrade team',
     author_email='info@codegra.de',
+    maintainer='The CodeGrade team',
+    maintainer_email='info@codegra.de',
     version=version,
-    description='File-system for CodeGrade instances',
+    description='Filesystem for CodeGrade instances',
     install_requires=requires,
     long_description=open('README.md', 'r', encoding='utf-8').read(),
     long_description_content_type="text/markdown",
@@ -37,7 +39,6 @@ setup(
             [
                 'cgfs = codegra_fs.cgfs:main',
                 'cgapi-consumer = codegra_fs.api_consumer:main',
-                'cgfs-qt = codegra_fs.gui:main',
             ]
     },
     classifiers=[

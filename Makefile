@@ -8,7 +8,7 @@ TEST_FLAGS += -vvv
 
 ENV = . env/bin/activate;
 
-VERSION = $(shell python -c 'import codegra_fs; print(".".join(codegra_fs.version))'
+VERSION = $(shell python -c 'import codegra_fs; print(".".join(codegra_fs.version))')
 UNAME = $(shell uname | tr A-Z a-z)
 
 .PHONY: run
@@ -20,8 +20,12 @@ env:
 
 .PHONY: install-deps
 install-deps: env/.install-deps node_modules/.install-deps
-env/.install-deps: requirements.txt requirements-mac.txt | env
+env/.install-deps: requirements.txt requirements-mac.txt requirements-linux.txt | env
 	$(ENV) pip3 install -r requirements.txt
+	case "$(UNAME)" in \
+	darwin) pip install -r requirements-mac.txt ;; \
+	linux) pip install -r requirements-linux.txt ;; \
+	esac
 	if [ "$(UNAME)" -eq 'darwin' ]; then \
 		$(ENV) pip3 install -r requirements-mac.txt; \
 	fi
@@ -115,3 +119,9 @@ dist/winfsp.msi:
 .PHONY: build-linux
 build-linux:
 	npm run build:linux
+	if ! dpkg --status debhelper python3-all >/dev/null; then \
+		sudo apt install debhelper python3-all; \
+	fi
+	python3 setup.py --command-packages=stdeb.command bdist_deb
+	mv deb_dist/*.deb dist
+	rm -rf deb_dist *.egg-info

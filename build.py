@@ -50,13 +50,6 @@ if sys.platform.startswith('win32'):
 
     npm('build:win')
 elif sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
-    # subprocess.check_call(['python3', 'sdist', 'bdist_wheel'])
-    # print(
-    #     """You can now upload this dist to pypi using:
-
-    # `twine upload dist/*`
-    # """
-    # )
     print('Build cgfs with `make build`.')
 else:
-    print('Your platform cannot build cgfs yet')
+    print('Your platform cannot build cgfs yet.')

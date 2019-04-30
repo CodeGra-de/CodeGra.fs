@@ -7,7 +7,7 @@
     "url": "https://codegra.de"
   },
   "description": "The CodeGrade filesystem",
-  "license": "AGPLv3",
+  "license": "AGPLv3-only",
   "main": "./dist/electron/main.js",
   "scripts": {
     "build": "npm run build:only && npm run build:package",
@@ -37,7 +37,9 @@
       "static/icons/512x512.png",
       "static/codegra-fs.png"
     ],
-    "asar": false,
+    "asarUnpack": [
+      "resources/node_modules/node-notifier/**"
+    ],
     "mac": {
       "icon": "static/icons/icon.icns",
       "target": "dir",
@@ -88,7 +90,12 @@
     },
     "linux": {
       "icon": "static/icons",
-      "target": "deb",
+      "target": [
+        {
+          "target": "deb",
+          "arch": ["ia32", "x64"]
+        }
+      ],
       "category": "Education"
     },
     "deb": {
@@ -99,10 +106,7 @@
         "libappindicator1",
         "libxtst6",
         "libnss3",
-        "fuse",
-        "python3",
-        "pyton3-requests",
-        "python3-fusepy"
+        "python3-codegrade-fs"
       ]
     }
   },
