@@ -414,6 +414,12 @@ export default {
     }
 }
 
+.card-header,
+.options-list {
+    cursor: default;
+    user-select: none;
+}
+
 .mountpoint {
     cursor: pointer;
     border-radius: $border-radius;
