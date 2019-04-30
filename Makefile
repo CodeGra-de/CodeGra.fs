@@ -26,9 +26,6 @@ env/.install-deps: requirements.txt requirements-mac.txt requirements-linux.txt 
 	darwin) pip install -r requirements-mac.txt ;; \
 	linux) pip install -r requirements-linux.txt ;; \
 	esac
-	if [ "$(UNAME)" -eq 'darwin' ]; then \
-		$(ENV) pip3 install -r requirements-mac.txt; \
-	fi
 	date >$@
 node_modules/.install-deps: package.json
 	npm install
