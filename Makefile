@@ -8,7 +8,7 @@ TEST_FLAGS += -vvv
 
 ENV = . env/bin/activate;
 
-VERSION = $(shell python -c 'import codegra_fs; print(".".join(codegra_fs.version))')
+VERSION = $(shell node -e 'console.log(require("./package.json").version)')
 UNAME = $(shell uname | tr A-Z a-z)
 
 .PHONY: run
