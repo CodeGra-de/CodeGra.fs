@@ -121,7 +121,7 @@ build-linux:
 	if ! dpkg --status debhelper python3-all >/dev/null; then \
 		sudo apt install debhelper python3-all; \
 	fi
-	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb --depends python3-fusepy,python3-requests
+	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb
 	mv deb_dist/*.deb dist
 	rm -rf deb_dist *.egg-info
 	npm run build:linux
