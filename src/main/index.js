@@ -32,7 +32,6 @@ function notify(event, message) {
         new Notification({
             title,
             body: message,
-            icon,
         }).show();
     } else {
         notifier.notify(
