@@ -22,7 +22,7 @@ env:
 install-deps: env/.install-deps node_modules/.install-deps
 env/.install-deps: requirements.txt requirements-mac.txt requirements-linux.txt | env
 	$(ENV) pip3 install -r requirements.txt
-	case "$(UNAME)" in \
+	$(ENV) case "$(UNAME)" in \
 	darwin) pip install -r requirements-mac.txt ;; \
 	linux) pip install -r requirements-linux.txt ;; \
 	esac
@@ -118,10 +118,10 @@ dist/winfsp.msi:
 
 .PHONY: build-linux
 build-linux:
-	npm run build:linux
 	if ! dpkg --status debhelper python3-all >/dev/null; then \
 		sudo apt install debhelper python3-all; \
 	fi
-	python3 setup.py --command-packages=stdeb.command bdist_deb
+	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb --depends python3-fusepy,python3-requests
 	mv deb_dist/*.deb dist
 	rm -rf deb_dist *.egg-info
+	npm run build:linux
