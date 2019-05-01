@@ -104,11 +104,12 @@ dist/mac: dist/cgfs dist/cgapi-consumer
 	npm run build:mac
 
 .PHONY: build-win
-build-win: | dist/winfsp.msi
-	npm run build:win
-
-dist/winfsp.msi:
-	curl -L -o "$@" 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
+# build-win: dist/cgfs dits/cgapi-consumer | dist/winfsp.msi
+# 	npm run build:win
+# dist/winfsp.msi:
+# 	curl -L -o "$@" 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
+build-win:
+	python .\build.py
 
 .PHONY: build-linux
 build-linux: build-linux-deb
