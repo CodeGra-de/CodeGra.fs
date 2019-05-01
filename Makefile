@@ -82,7 +82,6 @@ dist/cgfs: codegra_fs/*.py
 		--onedir \
 		--specpath dist \
 		--name cgfs \
-		--icon static/icons/$(ICON) \
 		codegra_fs/cgfs.py
 
 dist/cgapi-consumer: codegra_fs/*.py
@@ -91,28 +90,21 @@ dist/cgapi-consumer: codegra_fs/*.py
 		--onedir \
 		--specpath dist \
 		--name cgapi-consumer \
-		--icon static/icons/$(ICON) \
 		codegra_fs/api_consumer.py
 
 .PHONY: build-darwin
-build-darwin: | build/pkg-scripts/osxfuse.pkg
-
-dist/CodeGrade\ Filesystem\ $(VERSION).pkg: dist/mac
+build-darwin: dist/mac | build/pkg-scripts/osxfuse.pkg
 	pkgbuild --root dist/mac \
 		--install-location /Applications \
 		--component-plist build/com.codegrade.codegrade-fs.plist \
 		--scripts build/pkg-scripts \
-		"dist/CodeGrade Filesystem $(VERSION).pkg"
+		"dist/CodeGrade\ Filesystem\ $(VERSION).pkg "
 
-dist/mac: ICON=icon.icns
 dist/mac: dist/cgfs dist/cgapi-consumer
 	npm run build:mac
 
 .PHONY: build-win
-build-win: dist/CodeGrade\ Filesystem.exe
-
-dist/CodeGrade\ Filesystem.exe: ICON=static/icons/ms-icon.ico
-dist/CodeGrade\ Filesystem.exe: dist/cgfs dist/cgapi-consumer | dist/winfsp.msi
+build-win: | dist/winfsp.msi
 	npm run build:win
 
 dist/winfsp.msi:
