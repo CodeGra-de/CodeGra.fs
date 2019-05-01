@@ -8,7 +8,7 @@ TEST_FLAGS += -vvv
 
 ENV = . env/bin/activate;
 
-VERSION = $(shell python -c 'import codegra_fs; print(".".join(codegra_fs.version))')
+VERSION = $(shell node -e 'console.log(require("./package.json").version)')
 UNAME = $(shell uname | tr A-Z a-z)
 
 .PHONY: run
@@ -20,12 +20,11 @@ env:
 
 .PHONY: install-deps
 install-deps: env/.install-deps node_modules/.install-deps
-env/.install-deps: requirements.txt requirements-mac.txt requirements-linux.txt | env
+env/.install-deps: requirements.txt requirements-darwin.txt requirements-linux.txt | env
 	$(ENV) pip3 install -r requirements.txt
-	$(ENV) case "$(UNAME)" in \
-	darwin) pip install -r requirements-mac.txt ;; \
-	linux) pip install -r requirements-linux.txt ;; \
-	esac
+	if [ -f requirements-$(UNAME).txt ]; then \
+		$(ENV) pip3 install -r requirements-$(UNAME).txt; \
+	fi
 	date >$@
 node_modules/.install-deps: package.json
 	npm install
@@ -72,53 +71,62 @@ test-quick: test
 check: check-format mypy lint test
 
 .PHONY: build
-build: check build-$(UNAME)
-	$(ENV) python3 ./build.py
+build: install-deps check build-$(UNAME)
 
 .PHONY: build-quick
-build-quick: build-$(UNAME)
+build-quick: install-deps build-$(UNAME)
 
-dist/cgfs/cgfs: codegra_fs/*.py
+dist/cgfs: codegra_fs/*.py
 	$(ENV) pyinstaller \
 		--noconfirm \
 		--onedir \
 		--specpath dist \
 		--name cgfs \
-		--icon static/icons/icon.icns \
 		codegra_fs/cgfs.py
 
-dist/cgapi-consumer/cgapi-consumer: codegra_fs/*.py
+dist/cgapi-consumer: codegra_fs/*.py
 	$(ENV) pyinstaller \
 		--noconfirm \
 		--onedir \
 		--specpath dist \
 		--name cgapi-consumer \
-		--icon static/icons/icon.icns \
 		codegra_fs/api_consumer.py
 
 .PHONY: build-darwin
-build-darwin: dist/cgfs/cgfs dist/cgapi-consumer/cgapi-consumer | build/pkg-scripts/osxfuse.pkg
-	npm run build:mac
+build-darwin: dist/mac | build/pkg-scripts/osxfuse.pkg
 	pkgbuild --root dist/mac \
 		--install-location /Applications \
 		--component-plist build/com.codegrade.codegrade-fs.plist \
 		--scripts build/pkg-scripts \
-		"dist/CodeGrade Filesystem $(VERSION).pkg"
+		"dist/CodeGrade\ Filesystem\ $(VERSION).pkg "
+
+dist/mac: dist/cgfs dist/cgapi-consumer
+	npm run build:mac
 
 .PHONY: build-win
-build-win: dist/CodeGrade\ Filesystem.exe
-dist/CodeGrade\ Filesystem.exe: dist/cgfs/cgfs dist/cgapi-consumer/cgapi-consumer | dist/winfsp.msi
-	npm run build:win
-
-dist/winfsp.msi:
-	curl -L -o "$@" 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
+# build-win: dist/cgfs dits/cgapi-consumer | dist/winfsp.msi
+# 	npm run build:win
+# dist/winfsp.msi:
+# 	curl -L -o "$@" 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
+build-win:
+	python .\build.py
 
 .PHONY: build-linux
-build-linux:
-	if ! dpkg --status debhelper python3-all >/dev/null; then \
-		sudo apt install debhelper python3-all; \
-	fi
-	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb
-	mv deb_dist/*.deb dist
-	rm -rf deb_dist *.egg-info
+build-linux: build-linux-deb
+
+.PHONY: build-linux-deb
+build-linux-deb: build-linux-deb-frontend build-linux-deb-backend
+
+.PHONY: build-linux-deb-frontend
+build-linux-deb-frontend:
 	npm run build:linux
+
+.PHONY: build-linux-deb-backend
+build-linux-deb-backend:
+	git apply build/ubuntu-deb.patch
+	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb
+	git apply --reverse build/ubuntu-deb.patch
+	mv deb_dist/*.deb dist
+	rm -rf deb_dist
+	rm -rf codegrade_fs.egg-info
+	rm -f codegrade-fs-1.0.0.tar.gz

@@ -2212,7 +2212,7 @@ def main() -> None:
         err, url = msg
         if url:
             err = '{}\nYou can download it at {}'.format(err, url)
-        logger.error(msg)
+        logger.error(err)
         sys.exit(2)
 
     argparser = ArgumentParser(
