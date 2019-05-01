@@ -28,6 +28,13 @@ def pyinstaller(module, name):
     )
 
 
+deb download_file(url, dest):
+    if not os.path.exists(dest):
+        r = requests.get(url, allow_redirects=True)
+        r.raise_for_status()
+        open(dest, 'wb').write(r.content)
+
+
 def npm(job):
     subprocess.check_call(
         [
@@ -52,12 +59,10 @@ if sys.platform.startswith('win32'):
     pyinstaller(os.path.join('codegra_fs', 'cgfs.py'), 'cgfs')
     pyinstaller(os.path.join('codegra_fs', 'api_consumer.py'), 'cgapi-consumer')
 
-    winfsp_installer = 'dist/winfsp.msi'
-    if not os.path.exists(winfsp_installer):
-        url = 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
-        r = requests.get(url, allow_redirects=True)
-        r.raise_for_status()
-        open(winfsp_installer, 'wb').write(r.content)
+    download_file(
+        'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi',
+        'dist/winfsp.msi',
+    )
 
     npm('build:win')
 elif sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
