@@ -21,7 +21,7 @@
             Mounted at:
 
             <code class="mountpoint" @click="openPath(displayMountpoint)">
-                {{ displayMountpoint
+                {{ hyphenatedMountpoint
                 }}<icon name="share-square" :scale="0.9" class="text-primary" />
             </code>
         </b-card-header>
@@ -152,6 +152,10 @@ export default {
 
         displayMountpoint() {
             return `${this.config.mountpoint}${path.sep}CodeGrade${path.sep}`;
+        },
+
+        hyphenatedMountpoint() {
+            return this.displayMountpoint.replace(/([\\/._-])/g, '\u00AD$1\u00AD');
         },
 
         args() {
@@ -425,6 +429,7 @@ export default {
     border-radius: $border-radius;
     padding: 3px 5px;
     transition: background-color 250ms ease-out;
+    -webkit-hyphenate-character: '';
 
     &:hover {
         background-color: rgba(0, 0, 0, 0.05);
