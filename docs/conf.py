@@ -24,9 +24,9 @@ from datetime import date
 
 import sphinx_fontawesome
 
-import codegra_fs
-
 sys.path.append("../")
+
+import codegra_fs
 
 # -- General configuration ------------------------------------------------
 
