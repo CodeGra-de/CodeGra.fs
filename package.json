@@ -15,7 +15,8 @@
     "build:package": "electron-builder",
     "build:mac": "npm run build --mac",
     "build:win": "npm run build --win",
-    "build:linux": "npm run build --linux",
+    "build:linux:ia32": "npm run build --linux --ia32",
+    "build:linux:x64": "npm run build --linux --x64",
     "build:clean": "cross-env BUILD_TARGET=clean npm run build:only",
     "dev": "node .electron-vue/dev-runner.js",
     "e2e": "npm run pack && mocha test/e2e",
@@ -93,15 +94,7 @@
     },
     "linux": {
       "icon": "static/icons",
-      "target": [
-        {
-          "target": "deb",
-          "arch": [
-            "ia32",
-            "x64"
-          ]
-        }
-      ],
+      "target": "deb",
       "category": "Education"
     },
     "deb": {

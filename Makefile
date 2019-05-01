@@ -99,21 +99,33 @@ dist/cgapi-consumer: codegra_fs/*.py
 		codegra_fs/api_consumer.py
 
 .PHONY: build-darwin
-build-darwin: dist/mac | build/pkg-scripts/osxfuse.pkg
+build-darwin: dist/CodeGrade\ Filesystem\ $(VERSION).pkg
+
+.PHONY: dist/CodeGrade Filesystem $(VERSION).pkg
+dist/CodeGrade Filesystem $(VERSION).pkg: dist/mac | build/pkg-scripts/osxfuse.pkg
 	pkgbuild --root dist/mac \
 		--install-location /Applications \
 		--component-plist build/com.codegrade.codegrade-fs.plist \
 		--scripts build/pkg-scripts \
-		"dist/CodeGrade Filesystem $(VERSION).pkg"
-	rm -rf dist/mac
+		"$@"
 
+build/pkg-scripts/osxfuse.pkg:
+	@printf 'Download the osxfuse dmg from https://osxfuse.github.io/\n' >&2
+	@printf 'mount it and copy the .pkg file in it to\n' >&2
+	@printf 'build/pkg-scripts/osxfuse.pkg\n' >&2
+	exit 1
+
+.PHONY: dist/mac
 dist/mac: dist/cgfs dist/cgapi-consumer
 	npm run build:mac
 
 .PHONY: build-win
-# build-win: dist/cgfs dits/cgapi-consumer | dist/winfsp.msi
+# build-win: dist/CodeGrade\ Filesystem\ $(VERSION).exe
+# .PHONY: dist/CodeGrade Filesystem $(VERSION).exe
+# dist/CodeGrade Filesystem $(VERSION).exe: dist/cgfs dits/cgapi-consumer | dist/winfsp.msi
 # 	npm run build:win
 # dist/winfsp.msi:
+# 	mkdir -p dist
 # 	curl -L -o "$@" 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
 build-win:
 	python .\build.py
@@ -122,22 +134,30 @@ build-win:
 build-linux: build-linux-deb
 
 .PHONY: build-linux-deb
-build-linux-deb: build-linux-deb-frontend build-linux-deb-backend
+build-linux-deb: dist/codegrade-fs_$(VERSION)_amd64.deb dist/codegrade-fs_$(VERSION)_i386.deb dist/python3-codegrade-fs_$(VERSION)_all.deb
 
-.PHONY: build-linux-deb-frontend
-build-linux-deb-frontend:
-	npm run build:linux
+.PHONY: dist/codegrade-fs_$(VERSION)_amd64.deb
+dist/codegrade-fs_$(VERSION)_amd64.deb:
+	npm run build:linux:x64
 
-.PHONY: build-linux-deb-backend
-build-linux-deb-backend:
+.PHONY: dist/codegrade-fs_$(VERSION)_i386.deb
+dist/codegrade-fs_$(VERSION)_i386.deb:
+	npm run build:linux:ia32
+
+.PHONY: dist/python3-codegrade-fs_$(VERSION)_all.deb
+dist/python3-codegrade-fs_$(VERSION)_all.deb: dist/python3-fusepy_3.0.1-1_all.deb
+	sudo dpkg -i dist/python3-fusepy_3.0.1-1_all.deb
 	git apply build/ubuntu-deb.patch
+	trap 'rm -rf codegrade_fs.egg-info codegrade-fs-$(VERSION).tar.gz; \
+		git apply --reverse build/ubuntu-deb.patch' 0 1 2 3 15; \
 	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb
-	git apply --reverse build/ubuntu-deb.patch
+	mkdir -p dist
 	mv deb_dist/*.deb dist
-	rm -rf deb_dist
-	rm -rf codegrade_fs.egg-info
-	rm -f codegrade-fs-1.0.0.tar.gz
+
+dist/python3-fusepy_3.0.1-1_all.deb:
+	mkdir -p dist
+	curl -L -o "$@" 'http://ftp.us.debian.org/debian/pool/main/p/python-fusepy/python3-fusepy_3.0.1-1_all.deb'
 
 .PHONY: build-docs
 build-docs: install-deps-docs
-	$(ENV) make -C docs html
+	$(ENV) $(MAKE) -C docs html

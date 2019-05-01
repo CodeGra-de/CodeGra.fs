@@ -8,12 +8,13 @@ mount/
 .cov2emacs.log
 /.coverage
 /dist/
+/deb_dist/
 docs/_build/
 .mypy_cache/
 *~
 *.swp
-/build/*
-!/build/*.nsh
+/build/cgfs/
+/build/cgapi-consumer/
 coverage
 node_modules/
 npm-debug.log
