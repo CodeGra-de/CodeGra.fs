@@ -1,7 +1,7 @@
 Installation
 =============
 The CodeGrade Filesystem is an external application that can be installed on
-:fa:`windows` Windows Windows, :fa:`apple` MacOS MacOS and :fa:`linux` GNU/Linux.
+:fa:`windows` Windows, :fa:`apple` MacOS and :fa:`linux` GNU/Linux.
 Follow the installation instructions for your operating system below.
 
 Windows and MacOS
@@ -20,11 +20,21 @@ Dependencies
 --------------
 The supplied installers automatically install all required dependencies for the
 CodeGrade Filesystem to work, these are:
-- [Python 3](https://www.python.org/)
-- [Electron](https://github.com/electron/electron)
-- [FUSE (for MacOS)](https://osxfuse.github.io/)
-- [WinFsp (for Windows)](https://github.com/billziss-gh/winfsp)
-- [requests](http://docs.python-requests.org/en/master/)
-- [fusepy](https://github.com/terencehonles/fusepy)
-- [cffi](https://bitbucket.org/cffi/cffi)
-- [winfspy](https://github.com/Scille/winfspy)
+
+-  `Python 3`_
+-  `Electron`_
+-  `FUSE (for MacOS)`_
+-  `WinFsp (for Windows)`_
+-  `requests`_
+-  `fusepy`_
+-  `cffi`_
+-  `winfspy`_
+
+.. _Python 3: https://www.python.org/
+.. _Electron: https://github.com/electron/electron
+.. _FUSE (for MacOS): https://osxfuse.github.io/
+.. _WinFsp (for Windows): https://github.com/billziss-gh/winfsp
+.. _requests: http://docs.python-requests.org/en/master/
+.. _fusepy: https://github.com/terencehonles/fusepy
+.. _cffi: https://bitbucket.org/cffi/cffi
+.. _winfspy: https://github.com/Scille/winfspy
