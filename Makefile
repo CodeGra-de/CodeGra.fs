@@ -146,7 +146,7 @@ dist/codegrade-fs_$(VERSION)_i386.deb:
 
 .PHONY: dist/python3-codegrade-fs_$(VERSION)_all.deb
 dist/python3-codegrade-fs_$(VERSION)_all.deb: dist/python3-fusepy_3.0.1-1_all.deb
-	sudo dpkg -i dist/python3-fusepy_3.0.1-1_all.deb
+	dpkg -s python3-fusepy || sudo dpkg -i dist/python3-fusepy_3.0.1-1_all.deb
 	git apply build/ubuntu-deb.patch
 	trap 'rm -rf codegrade_fs.egg-info codegrade-fs-$(VERSION).tar.gz; \
 		git apply --reverse build/ubuntu-deb.patch' 0 1 2 3 15; \
