@@ -98,7 +98,7 @@ build-darwin: dist/mac | build/pkg-scripts/osxfuse.pkg
 		--install-location /Applications \
 		--component-plist build/com.codegrade.codegrade-fs.plist \
 		--scripts build/pkg-scripts \
-		"dist/CodeGrade\ Filesystem\ $(VERSION).pkg "
+		"dist/CodeGrade Filesystem $(VERSION).pkg"
 
 dist/mac: dist/cgfs dist/cgapi-consumer
 	npm run build:mac
