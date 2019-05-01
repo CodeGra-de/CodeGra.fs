@@ -60,7 +60,10 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["ia32", "x64"]
+          "arch": [
+            "ia32",
+            "x64"
+          ]
         }
       ],
       "extraFiles": [
@@ -93,7 +96,10 @@
       "target": [
         {
           "target": "deb",
-          "arch": ["ia32", "x64"]
+          "arch": [
+            "ia32",
+            "x64"
+          ]
         }
       ],
       "category": "Education"

@@ -19,15 +19,21 @@ env:
 	virtualenv --python=python3 env
 
 .PHONY: install-deps
-install-deps: env/.install-deps node_modules/.install-deps
-env/.install-deps: requirements.txt requirements-darwin.txt requirements-linux.txt | env
-	$(ENV) pip3 install -r requirements.txt
-	if [ -f requirements-$(UNAME).txt ]; then \
-		$(ENV) pip3 install -r requirements-$(UNAME).txt; \
-	fi
+install-deps: env/.install-deps env/.install-deps-$(UNAME) node_modules/.install-deps
+env/.install-deps: requirements.txt | env
+	$(ENV) pip3 install -r $^
+	date >$@
+env/.install-deps-$(UNAME): requirements-$(UNAME).txt | env
+	$(ENV) pip3 install -r $^
 	date >$@
 node_modules/.install-deps: package.json
 	npm install
+	date >$@
+
+.PHONY: install-deps-docs
+install-deps-docs: env/.install-deps-docs
+env/.install-deps-docs: requirements-docs.txt | env
+	$(ENV) pip3 install -r $^
 	date >$@
 
 .PHONY: install
@@ -98,7 +104,7 @@ build-darwin: dist/mac | build/pkg-scripts/osxfuse.pkg
 		--install-location /Applications \
 		--component-plist build/com.codegrade.codegrade-fs.plist \
 		--scripts build/pkg-scripts \
-		"dist/CodeGrade\ Filesystem\ $(VERSION).pkg "
+		"dist/CodeGrade Filesystem $(VERSION).pkg"
 
 dist/mac: dist/cgfs dist/cgapi-consumer
 	npm run build:mac
@@ -130,3 +136,7 @@ build-linux-deb-backend:
 	rm -rf deb_dist
 	rm -rf codegrade_fs.egg-info
 	rm -f codegrade-fs-1.0.0.tar.gz
+
+.PHONY: build-docs
+build-docs: install-deps-docs
+	$(ENV) make -C docs html
