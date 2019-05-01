@@ -1,13 +1,6 @@
 <template>
     <div class="cgfs-log">
         <b-card-header>
-            Mounted at:
-
-            <code class="mountpoint" @click="openPath(displayMountpoint)">
-                {{ displayMountpoint
-                }}<icon name="share-square" :scale="0.9" class="text-primary" />
-            </code>
-
             <help-popover class="options-list-trigger">
                 <table class="options-list">
                     <tr>
@@ -24,6 +17,13 @@
                     </tr>
                 </table>
             </help-popover>
+
+            Mounted at:
+
+            <code class="mountpoint" @click="openPath(displayMountpoint)">
+                {{ displayMountpoint
+                }}<icon name="share-square" :scale="0.9" class="text-primary" />
+            </code>
         </b-card-header>
 
         <b-card-body ref="output" @scroll="onScroll">
@@ -438,6 +438,7 @@ export default {
 
 .options-list-trigger {
     float: right;
+    margin-left: 0.5rem;
 }
 
 .options-list {
