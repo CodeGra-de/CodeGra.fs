@@ -441,9 +441,15 @@ export default {
     }
 }
 
+.card-header {
+    position: relative;
+    padding-right: 0.25rem + 2 * $card-spacer-x;
+}
+
 .options-list-trigger {
-    float: right;
-    margin-left: 0.5rem;
+    position: absolute;
+    top: $card-spacer-y;
+    right: $card-spacer-x;
 }
 
 .options-list {
