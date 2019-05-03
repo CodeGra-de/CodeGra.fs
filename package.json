@@ -6,6 +6,7 @@
     "email": "info@codegra.de",
     "url": "https://codegra.de"
   },
+  "homepage": "https://codegra.de",
   "description": "The CodeGrade filesystem",
   "license": "AGPLv3-only",
   "main": "./dist/electron/main.js",
