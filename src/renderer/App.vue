@@ -147,16 +147,11 @@ export default {
 }
 
 .loader {
-    position: relative;
     width: 100%;
     flex: 1 1 100vh;
-
-    .fa-icon {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-    }
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .logo,
