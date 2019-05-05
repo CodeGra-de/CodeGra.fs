@@ -135,7 +135,7 @@ dist/codegrade-fs_$(VERSION)_i386.deb:
 	npm run build:linux:ia32
 
 .PHONY: build-linux-deb-backend
- build-linux-deb-backend dist/python3-codegrade-fs_$(VERSION)-1_all.deb
+build-linux-deb-backend: dist/python3-codegrade-fs_$(VERSION)-1_all.deb
 
 .PHONY: dist/python3-codegrade-fs_$(VERSION)-1_all.deb
 dist/python3-codegrade-fs_$(VERSION)-1_all.deb: dist/python3-fusepy_3.0.1-1_all.deb build/deb.patch
