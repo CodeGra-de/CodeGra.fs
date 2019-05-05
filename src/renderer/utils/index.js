@@ -1,6 +1,23 @@
-export function mod(x, n) {
-    const ret = x % n;
-    return ret < 0 ? n + ret : ret;
+export function isInt(x) {
+    return x === parseInt(x, 10);
+}
+
+export function mod(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+        throw new TypeError('mod: arguments must be Numbers.');
+    }
+
+    if (b === 0) {
+        throw new RangeError('mod: modulus cannot be zero.');
+    }
+
+    let ret = a % b;
+
+    if (ret < 0) {
+        ret += b < 0 ? -b : b;
+    }
+
+    return ret;
 }
 
 const uniq = (function IIFE() {

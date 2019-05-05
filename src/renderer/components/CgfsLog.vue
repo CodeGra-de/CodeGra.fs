@@ -87,7 +87,8 @@ import { mapGetters } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/share-square';
 
-import { downloadFile, mod, uniq } from '@/utils';
+import { downloadFile, uniq } from '@/utils';
+import createCircularBuffer from '@/utils/CircularBuffer';
 import HelpPopover from '@/components/HelpPopover';
 
 const MAX_EVENTS = 2 ** 15;
@@ -96,22 +97,7 @@ const MAX_VISIBLE = 2 ** 10;
 // Circular buffer. We define this outside of the component because if it were
 // reactive, performance would drop by insane amounts because Vue makes the
 // entire thing reactive recursively.
-const events = {
-    list: Array(MAX_EVENTS),
-    index: 0,
-    size: 0,
-
-    get(i) {
-        const index = mod(this.index - this.size + i, MAX_EVENTS);
-        return this.list[index];
-    },
-
-    add(event) {
-        this.list[this.index] = event;
-        this.index = (this.index + 1) % MAX_EVENTS;
-        this.size = Math.min(MAX_EVENTS, this.size + 1);
-    },
-};
+const events = createCircularBuffer(MAX_EVENTS);
 
 export default {
     name: 'cgfs-log',
@@ -280,7 +266,7 @@ export default {
                     `<a target="_blank" href="${url}">${url}</a>${trailing || ''}`,
             );
 
-            events.add({
+            events.push({
                 message: html,
                 variant,
                 original,
@@ -289,7 +275,7 @@ export default {
 
             // Reset to 0 first to force Vue update.
             this.eventSize = 0;
-            this.eventSize = events.size;
+            this.eventSize = events.fill;
             this.scrollToLastEvent();
 
             if (
@@ -335,12 +321,9 @@ export default {
         },
 
         exportLog() {
-            const log = [];
-            for (let i = 0; i < events.size; i++) {
-                log.push(events.get(i));
-            }
+            const log = JSON.stringify(events.toList());
             const filename = `cgfs-log-${new Date().toISOString()}.json`;
-            downloadFile(JSON.stringify(log), filename, 'application/json');
+            downloadFile(log, filename, 'application/json');
         },
 
         openLink(event) {
@@ -356,8 +339,7 @@ export default {
     },
 
     mounted() {
-        events.index = 0;
-        events.size = 0;
+        events.reset();
         this.start();
 
         window.addEventListener('beforeunload', this.stop);

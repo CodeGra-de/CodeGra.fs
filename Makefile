@@ -68,6 +68,7 @@ test: install
 	$(ENV) coverage erase
 	$(ENV) pytest $(TEST_FILE) $(TEST_FLAGS)
 	$(ENV) coverage report -m codegra_fs/cgfs.py
+	npm run unit
 
 .PHONY: test-quick
 test-quick: TEST_FLAGS += -x
