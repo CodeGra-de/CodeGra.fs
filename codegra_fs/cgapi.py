@@ -191,10 +191,12 @@ class CGAPI():
         self.access_token = access_token
 
         self.s = requests.Session()
-        self.s.headers.update({
-            'Authorization': 'Bearer ' + access_token,
-            'User-Agent': USER_AGENT,
-        })
+        self.s.headers.update(
+            {
+                'Authorization': 'Bearer ' + access_token,
+                'User-Agent': USER_AGENT,
+            }
+        )
         self.s.get = make_request_method(self.s.get)  # type: ignore
         self.s.patch = make_request_method(self.s.patch)  # type: ignore
         self.s.post = make_request_method(self.s.post)  # type: ignore
