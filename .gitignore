@@ -15,6 +15,7 @@ docs/_build/
 *.swp
 /build/cgfs/
 /build/cgapi-consumer/
+/build/deb.patch
 coverage
 node_modules/
 npm-debug.log
