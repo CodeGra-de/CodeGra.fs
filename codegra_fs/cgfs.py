@@ -2210,7 +2210,7 @@ def login(args: argparse.Namespace) -> t.Optional[CGAPI]:
             )
     except CGAPIException as e:
         logger.critical('Login failed: {}'.format(e.description))
-    except Exception:
+    except Exception as e:
         logger.critical('Login failed unexpectedly: {}'.format(str(e)))
         logger.debug(traceback.format_exc())
     return None
