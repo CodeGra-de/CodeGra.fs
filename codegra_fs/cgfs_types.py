@@ -15,8 +15,8 @@ PartialStat = TypedDict(
 
 
 class FullStat(PartialStat, total=True):
-    st_nlink  # type: int
-    st_mode  # type: int
+    st_nlink: int
+    st_mode: int
 
 
 __APIHandlerResponse = TypedDict(
@@ -29,5 +29,5 @@ __APIHandlerResponse = TypedDict(
 
 
 class APIHandlerResponse(__APIHandlerResponse, total=False):
-    error  # type: str
-    data  # type: str
+    error: str
+    data: str
