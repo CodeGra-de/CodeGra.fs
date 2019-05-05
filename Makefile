@@ -30,12 +30,6 @@ node_modules/.install-deps: package.json
 	npm install
 	date >$@
 
-.PHONY: install-deps-docs
-install-deps-docs: env/.install-deps-docs
-env/.install-deps-docs: requirements-docs.txt | env
-	$(ENV) pip3 install -r $^
-	date >$@
-
 .PHONY: install
 install: install-deps env/bin/cgfs env/bin/cgapi-consumer
 env/bin/%: setup.py codegra_fs/*.py
@@ -120,13 +114,6 @@ dist/mac: dist/cgfs dist/cgapi-consumer
 	npm run build:mac
 
 .PHONY: build-win
-# build-win: dist/CodeGrade\ Filesystem\ $(VERSION).exe
-# .PHONY: dist/CodeGrade Filesystem $(VERSION).exe
-# dist/CodeGrade Filesystem $(VERSION).exe: dist/cgfs dits/cgapi-consumer | dist/winfsp.msi
-# 	npm run build:win
-# dist/winfsp.msi:
-# 	mkdir -p dist
-# 	curl -L -o "$@" 'https://github.com/billziss-gh/winfsp/releases/download/v1.4.19049/winfsp-1.4.19049.msi'
 build-win:
 	python .\build.py
 
@@ -134,7 +121,10 @@ build-win:
 build-linux: build-linux-deb
 
 .PHONY: build-linux-deb
-build-linux-deb: dist/codegrade-fs_$(VERSION)_amd64.deb dist/codegrade-fs_$(VERSION)_i386.deb dist/python3-codegrade-fs_$(VERSION)_all.deb
+build-linux-deb: build-linux-deb-frontend build-linux-deb-backend
+
+.PHONY: build-linux-deb-frontend
+build-linux-deb-frontend: dist/codegrade-fs_$(VERSION)_amd64.deb dist/codegrade-fs_$(VERSION)_i386.deb
 
 .PHONY: dist/codegrade-fs_$(VERSION)_amd64.deb
 dist/codegrade-fs_$(VERSION)_amd64.deb:
@@ -144,20 +134,32 @@ dist/codegrade-fs_$(VERSION)_amd64.deb:
 dist/codegrade-fs_$(VERSION)_i386.deb:
 	npm run build:linux:ia32
 
-.PHONY: dist/python3-codegrade-fs_$(VERSION)_all.deb
-dist/python3-codegrade-fs_$(VERSION)_all.deb: dist/python3-fusepy_3.0.1-1_all.deb
+.PHONY: build-linux-deb-backend
+ build-linux-deb-backend dist/python3-codegrade-fs_$(VERSION)-1_all.deb
+
+.PHONY: dist/python3-codegrade-fs_$(VERSION)-1_all.deb
+dist/python3-codegrade-fs_$(VERSION)-1_all.deb: dist/python3-fusepy_3.0.1-1_all.deb build/deb.patch
 	dpkg -s python3-fusepy || sudo dpkg -i dist/python3-fusepy_3.0.1-1_all.deb
-	git apply build/ubuntu-deb.patch
+	git apply build/deb.patch
 	trap 'rm -rf codegrade_fs.egg-info codegrade-fs-$(VERSION).tar.gz; \
-		git apply --reverse build/ubuntu-deb.patch' 0 1 2 3 15; \
+		git apply --reverse build/deb.patch' 0 1 2 3 15; \
 	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb
 	mkdir -p dist
 	mv deb_dist/*.deb dist
+
+build/deb.patch: codegra_fs/*.py
+	build/make-deb-patch.sh
 
 dist/python3-fusepy_3.0.1-1_all.deb:
 	mkdir -p dist
 	curl -L -o "$@" 'http://ftp.us.debian.org/debian/pool/main/p/python-fusepy/python3-fusepy_3.0.1-1_all.deb'
 
-.PHONY: build-docs
-build-docs: install-deps-docs
+.PHONY: docs
+docs: install-deps-docs
 	$(ENV) $(MAKE) -C docs html
+
+.PHONY: install-deps-docs
+install-deps-docs: env/.install-deps-docs
+env/.install-deps-docs: requirements-docs.txt | env
+	$(ENV) pip3 install -r $^
+	date >$@
