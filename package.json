@@ -39,9 +39,7 @@
       "static/icons/512x512.png",
       "static/codegra-fs.png"
     ],
-    "asarUnpack": [
-      "resources/node_modules/node-notifier/**"
-    ],
+    "asar": false,
     "mac": {
       "icon": "static/icons/icon.icns",
       "target": "dir",

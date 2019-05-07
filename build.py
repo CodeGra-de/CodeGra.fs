@@ -28,7 +28,7 @@ def pyinstaller(module, name):
     )
 
 
-deb download_file(url, dest):
+def download_file(url, dest):
     if not os.path.exists(dest):
         r = requests.get(url, allow_redirects=True)
         r.raise_for_status()
