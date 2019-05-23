@@ -97,7 +97,7 @@ dist/cgapi-consumer: codegra_fs/*.py
 build-darwin: dist/CodeGrade\ Filesystem\ $(VERSION).pkg
 
 .PHONY: dist/CodeGrade Filesystem $(VERSION).pkg
-dist/CodeGrade Filesystem $(VERSION).pkg: dist/mac | build/pkg-scripts/osxfuse.pkg
+dist/CodeGrade\ Filesystem\ $(VERSION).pkg: dist/mac | build/pkg-scripts/osxfuse.pkg
 	pkgbuild --root dist/mac \
 		--install-location /Applications \
 		--component-plist build/com.codegrade.codegrade-fs.plist \
