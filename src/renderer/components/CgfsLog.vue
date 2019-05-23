@@ -248,6 +248,10 @@ export default {
                 return;
             }
 
+            if (process.platform === 'darwin' && event.message.match(/^\/.DS_Store/)) {
+                return;
+            }
+
             const variant = {
                 DEBUG: 'secondary',
                 INFO: 'info',
