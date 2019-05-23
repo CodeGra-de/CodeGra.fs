@@ -248,7 +248,7 @@ export default {
                 return;
             }
 
-            if (process.platform === 'darwin' && event.message.match(/^\/.DS_Store/)) {
+            if (process.platform === 'darwin' && event.message.match(/^[^\n]*\/\.DS_Store:/)) {
                 return;
             }
 
