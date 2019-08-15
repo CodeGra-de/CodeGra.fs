@@ -112,7 +112,7 @@ export default {
             true,
         );
 
-        this.$http.get('https://codegra.de/.cgfs.json').then(({ data }) => {
+        this.$http.get(`https://codegra.de/.cgfs.json?cache=${Date.now()}`).then(({ data }) => {
             this.newestVersion = data.version;
             updateInstitutions(data.institutions);
             this.loading = false;
