@@ -39,8 +39,9 @@ main() {
         exit 1
     fi
 
-    if ! is_distro "Debian" && ! is_distro "Ubuntu"; then
-        err_echo "For now only Ubuntu and Debian are supported"
+    if ! is_distro "Debian" && ! is_distro "Ubuntu" && ! is_distro 'Linux Mint'; then
+        err_echo "For now only Ubuntu, Linux Mint, and Debian are supported"
+        err_echo "Please check our github repository at https://github.com/CodeGra-de/CodeGra.fs to install it manually"
         exit 2
     fi
 
