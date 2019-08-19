@@ -57,13 +57,17 @@ check-format: install-deps
 	npm run check-format
 
 .PHONY: test
-test: install test_no_install
-
-.PHONY: test_no_install
-test_no_install:
+test: install
 	$(ENV) coverage erase
 	$(ENV) pytest $(TEST_FILE) $(TEST_FLAGS)
 	$(ENV) coverage report -m codegra_fs/cgfs.py
+	npm run unit
+
+.PHONY: travis_test
+travis_test:
+	coverage erase
+	pytest $(TEST_FILE) $(TEST_FLAGS)
+	coverage report -m codegra_fs/cgfs.py
 	npm run unit
 
 .PHONY: test-quick
