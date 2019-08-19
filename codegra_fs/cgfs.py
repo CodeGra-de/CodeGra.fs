@@ -68,7 +68,7 @@ except:
 try:
     NoReturn = t.NoReturn
 except:
-    NoReturn = None
+    NoReturn = None  # type: ignore
 
 
 class FuseContext:

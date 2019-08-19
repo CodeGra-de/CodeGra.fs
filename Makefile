@@ -41,8 +41,7 @@ mypy: install-deps
 
 .PHONY: lint
 lint: install-deps
-	# Remove the "|| true" when pylint succeeds
-	$(ENV) pylint $(PYLINT_FLAGS) || true
+	$(ENV) pylint $(PYLINT_FLAGS)
 	npm run lint
 
 .PHONY: format
