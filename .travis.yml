@@ -37,7 +37,7 @@ addons:
 before_install:
   - export PYENV_ROOT="$HOME/.custom_pyenv"
   - mkdir "$PYENV_ROOT"
-  - sudo apt-get install -qq pkg-config fuse lxc lxc-dev lxcfs libvirt0 libssl-dev git
+  - sudo apt-get install -qq pkg-config fuse lxc lxc-dev lxcfs libvirt0 libssl-dev git libnotify4 gconf2 gconf-service libappindicator1 libxtst6 libnss3
   - sudo modprobe fuse
   - sudo chmod 666 /dev/fuse
   - sudo chown root:$USER /etc/fuse.conf
@@ -75,7 +75,10 @@ before_script:
   - sleep 6
 
 script:
-  - make test
+  - python coverage erase
+  - python pytest test/ -vvvvvv
+  - coverage report -m codegra_fs/cgfs.py
+  - npm run unit
   - pip install mypy
   - if [[ $PYENV_VERSION = "3.5.5" ]]; then > codegra_fs/cgfs_types.py; fi
   - mypy codegra_fs
