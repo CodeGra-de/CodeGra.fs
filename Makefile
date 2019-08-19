@@ -65,10 +65,10 @@ test: install
 
 .PHONY: travis_test
 travis_test:
+	npm run unit
 	coverage erase
 	pytest $(TEST_FILE) $(TEST_FLAGS)
 	coverage report -m codegra_fs/cgfs.py
-	npm run unit
 
 .PHONY: test-quick
 test-quick: TEST_FLAGS += -x

@@ -33,16 +33,34 @@ addons:
     packages:
       - jq
       - flex
+      - pkg-config
+      - fuse
+      - lxc
+      - lxc-dev
+      - lxcfs
+      - libvirt0
+      - libssl-dev
+      - git
+      - libnotify4
+      - gconf2
+      - gconf-service
+      - libappindicator1
+      - libxtst6
+      - libnss3
+      - xvfb
+      - libgtk2.0-0
+      - libxss1
 
 before_install:
   - export PYENV_ROOT="$HOME/.custom_pyenv"
   - mkdir "$PYENV_ROOT"
-  - sudo apt-get install -qq pkg-config fuse lxc lxc-dev lxcfs libvirt0 libssl-dev git libnotify4 gconf2 gconf-service libappindicator1 libxtst6 libnss3 xvfb libgtk2.0-0 libxss1
   - sudo modprobe fuse
   - sudo chmod 666 /dev/fuse
   - sudo chown root:$USER /etc/fuse.conf
 
 install:
+  - export DISPLAY=':99.0'
+  - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
   - pip install -U wheel
   - pip install celery[redis]
   - git clone https://github.com/CodeGra-de/CodeGra.de.git backend
