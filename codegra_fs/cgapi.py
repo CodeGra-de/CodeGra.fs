@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import os
 import typing as t
 import logging
 from enum import IntEnum
@@ -8,9 +9,17 @@ from urllib.parse import quote
 
 import requests
 
-DEFAULT_CGAPI_BASE_URL = 'https://codegra.de/api/v1'
+import codegra_fs
+
+DEFAULT_CGAPI_BASE_URL = os.getenv(
+    'CGAPI_BASE_URL', 'https://codegra.de/api/v1'
+)
 
 T_CALL = t.TypeVar('T_CALL', bound=t.Callable)
+
+USER_AGENT = 'CodeGradeFS/{}'.format(
+    '.'.join(map(str, codegra_fs.__version__))
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +45,14 @@ def make_request_method(fun: T_CALL) -> T_CALL:
 
 
 class APIRoutes():
-    def __init__(self, base, owner='auto'):
+    def __init__(self, base: t.Optional[str], fixed: bool = False):
+        if base is None:
+            base = DEFAULT_CGAPI_BASE_URL
+
         while base and base[-1] == '/':  # pragma: no cover
             base = base[:-1]
 
-        self.owner = owner
+        self.owner = 'student' if fixed else 'auto'
         self.base = base
 
     def get_login(self):
@@ -102,9 +114,7 @@ class APIRoutes():
         return (
             '{base}/code/{file_id}?operation='
             'rename&new_path={new_path}'
-        ).format(
-            base=self.base, file_id=file_id, new_path=quote(new_path)
-        )
+        ).format(base=self.base, file_id=file_id, new_path=quote(new_path))
 
     def get_feedbacks(self, assignment_id):
         return '{base}/assignments/{assignment_id}/feedbacks/'.format(
@@ -112,21 +122,18 @@ class APIRoutes():
         )
 
     def get_feedback(self, file_id):
-        return ('{base}/code/{file_id}?type=feedback').format(
-            base=self.base, file_id=file_id
-        )
+        return ('{base}/code/{file_id}?type=feedback'
+                ).format(base=self.base, file_id=file_id)
 
     def add_feedback(self, file_id, line):
-        return ('{base}/code/{file_id}/comments/{line}').format(
-            base=self.base, file_id=file_id, line=line
-        )
+        return ('{base}/code/{file_id}/comments/{line}'
+                ).format(base=self.base, file_id=file_id, line=line)
 
     delete_feedback = add_feedback
 
     def get_assignment(self, assignment_id):
-        return ('{base}/assignments/{assignment_id}').format(
-            base=self.base, assignment_id=assignment_id
-        )
+        return ('{base}/assignments/{assignment_id}'
+                ).format(base=self.base, assignment_id=assignment_id)
 
 
 class APICodes(IntEnum):
@@ -175,46 +182,74 @@ class CGAPIException(Exception):
 class CGAPI():
     def __init__(
         self,
-        username: str,
-        password: str,
-        base: t.Optional[str] = None,
-        fixed: bool = False
+        routes: APIRoutes,
+        user: t.Mapping,
+        access_token: str,
     ) -> None:
-        owner = 'student' if fixed else 'auto'
-        self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL, owner)
+        self.routes = routes
+        self.user = user
+        self.access_token = access_token
 
-        r = requests.post(
-            self.routes.get_login(),
-            json={
-                'username': username,
-                'password': password,
+        self.s = requests.Session()
+        self.s.headers.update(
+            {
+                'Authorization': 'Bearer ' + access_token,
+                'User-Agent': USER_AGENT,
             }
         )
-
-        self._handle_response_error(r)
-        try:
-            json = r.json()
-        except:
-            raise Exception(
-                'Could not get json from server, maybe wrong url? Url should'
-                ' end with "/api/v1/" and start with "https://"'
-            )
-
-        self.user = json['user']
-        self.access_token = json['access_token']
-        self.s = requests.Session()
-        self.fixed = fixed
-
-        self.s.headers = {
-            'Authorization': 'Bearer ' + self.access_token,
-        }
         self.s.get = make_request_method(self.s.get)  # type: ignore
         self.s.patch = make_request_method(self.s.patch)  # type: ignore
         self.s.post = make_request_method(self.s.post)  # type: ignore
         self.s.delete = make_request_method(self.s.delete)  # type: ignore
         self.s.put = make_request_method(self.s.put)  # type: ignore
 
-    def _handle_response_error(self, request):
+    @classmethod
+    def from_username_and_password(
+        cls, username: str, password: str, base: str, fixed: bool = False
+    ) -> 'CGAPI':
+        routes = APIRoutes(base, fixed)
+
+        r = requests.post(
+            routes.get_login(),
+            headers={'User-Agent': USER_AGENT},
+            json={
+                'username': username,
+                'password': password
+            },
+        )
+
+        cls._handle_response_error(r)
+        try:
+            json = r.json()
+        except:
+            raise CGAPIException(r)
+
+        return cls(routes, json['user'], json['access_token'])
+
+    @classmethod
+    def from_access_token(
+        cls, access_token: str, base: str, fixed: bool = False
+    ) -> 'CGAPI':
+        routes = APIRoutes(base, fixed)
+
+        r = requests.get(
+            routes.get_login(),
+            headers={
+                'Authorization': 'Bearer ' + access_token,
+                'User-Agent': USER_AGENT,
+            },
+        )
+
+        cls._handle_response_error(r)
+        try:
+            user = r.json()
+        except:
+            raise CGAPIException(r)
+
+        return cls(routes, user, access_token)
+
+    @staticmethod
+    def _handle_response_error(request):
         if request.status_code >= 400:
             raise CGAPIException(request)
 

@@ -24,9 +24,9 @@ from datetime import date
 
 import sphinx_fontawesome
 
-import codegra_fs
-
 sys.path.append("../")
+
+import codegra_fs
 
 # -- General configuration ------------------------------------------------
 
@@ -72,7 +72,7 @@ author = 'CodeGrade Team'
 #
 # The short X.Y version.
 
-version = '.'.join(map(str, codegra_fs.__version__))
+version = 'v' + '.'.join(map(str, codegra_fs.__version__))
 # The full version, including alpha/beta/rc tags.
 release = version
 

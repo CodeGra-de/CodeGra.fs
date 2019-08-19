@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    = -W
-SPHINXBUILD   = python3 -msphinx
+SPHINXBUILD   = python3 -m sphinx
 SPHINXPROJ    = CodeGradefs
 SOURCEDIR     = .
 BUILDDIR      = _build

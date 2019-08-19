@@ -1,0 +1,40 @@
+@import "custom";
+@import "~bootstrap/scss/bootstrap";
+@import "~bootstrap-vue/dist/bootstrap-vue";
+@import "~vue-multiselect/dist/vue-multiselect.min.css";
+
+#app {
+    .multiselect {
+        color: inherit;
+
+        &__tags {
+            border-color: $input-border-color;
+            border-top-left-radius: $input-border-radius;
+            border-top-right-radius: $input-border-radius;
+        }
+
+        &:not(&--active) &__tags {
+            border-bottom-left-radius: $input-border-radius;
+            border-bottom-right-radius: $input-border-radius;
+        }
+
+        &__content-wrapper {
+            border-color: $input-border-color;
+            border-bottom-left-radius: $input-border-radius;
+            border-bottom-right-radius: $input-border-radius;
+        }
+
+        &__option--highlight {
+            &, &::after {
+                background-color: map-get($theme-colors, "primary");
+            }
+        }
+
+        &__placeholder {
+            color: $input-placeholder-color;
+            font-size: $font-size-base;
+            padding: 0 0 0 5px;
+            margin: -2px 0 0 0;
+        }
+    }
+}

@@ -33,7 +33,10 @@ def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
         if sys.platform.startswith('win32'):
             winfsp_version = _get_fuse_version_info()
             if winfsp_version < (1, 4):
-                return 'You need at least WinFsp version 1.4 (currently in beta).', 'https://github.com/billziss-gh/winfsp/releases'
+                return (
+                    'You need at least WinFsp version 1.4 (currently in beta).',
+                    'https://github.com/billziss-gh/winfsp/releases'
+                )
         return None
 
     if sys.platform.startswith('darwin'):
@@ -84,3 +87,9 @@ def name_of_user(user: t.Dict[str, t.Any]) -> str:
 
 def format_datestring(datestring: str) -> str:
     return datestring.replace('T', ' ').split('.')[0]
+
+
+def maybe_strip_trailing_newline(s: str) -> str:
+    if s and s[-1] == '\n':
+        s = s[:-1]
+    return s
