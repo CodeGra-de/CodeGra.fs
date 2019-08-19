@@ -57,7 +57,10 @@ check-format: install-deps
 	npm run check-format
 
 .PHONY: test
-test: install
+test: install test_no_install
+
+.PHONY: test_no_install
+test_no_install:
 	$(ENV) coverage erase
 	$(ENV) pytest $(TEST_FILE) $(TEST_FLAGS)
 	$(ENV) coverage report -m codegra_fs/cgfs.py
