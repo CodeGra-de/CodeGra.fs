@@ -37,7 +37,7 @@ addons:
 before_install:
   - export PYENV_ROOT="$HOME/.custom_pyenv"
   - mkdir "$PYENV_ROOT"
-  - sudo apt-get install -qq pkg-config fuse
+  - sudo apt-get install -qq pkg-config fuse lxc lxc-dev lxcfs libvirt0 libssl-dev git
   - sudo modprobe fuse
   - sudo chmod 666 /dev/fuse
   - sudo chown root:$USER /etc/fuse.conf
