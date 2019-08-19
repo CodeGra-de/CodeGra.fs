@@ -1,20 +1,9 @@
 Installation
 =============
 The CodeGrade Filesystem is an external application that can be installed on
-:fa:`windows` Windows, :fa:`apple` MacOS and :fa:`linux` GNU/Linux.
-Follow the installation instructions for your operating system below.
-
-Windows and MacOS
-------------------
-Installing the CodeGrade Filesystem on a Windows or MacOS system can be done
-using the installers. Follow the instructions in the installers to successfully
-install the CodeGrade Filesystem.
-
-GNU/Linux
-----------
-TODO: Add commands for apt repos
-Installing the CodeGrade Filesystem can be done using the package manager in
-your Linux distro. In Ubuntu `apt-get install codegrade-fs`.
+:fa:`windows` Windows, :fa:`apple` MacOS and :fa:`linux` GNU/Linux.  To install
+it go to `The CodeGrade website <https://codegra.de/filesystem/>`__ and follow
+the instructions there.
 
 Dependencies
 --------------

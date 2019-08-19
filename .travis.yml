@@ -21,7 +21,7 @@ cache:
 matrix:
   include:
     - python: "3.7" # 3.7 development branch
-      env: PYENV_VERSION="3.5.0"
+      env: PYENV_VERSION="3.5.5"
     - python: "3.7" # 3.7 development branch
       env: PYENV_VERSION="3.6.0"
     - python: "3.7" # 3.7 development branch
@@ -95,7 +95,7 @@ before_script:
 script:
   - make travis_test
   - pip install mypy
-  - if [[ $PYENV_VERSION = "3.5.0" ]]; then > codegra_fs/cgfs_types.py; fi
+  - if [[ $PYENV_VERSION = "3.5.5" ]]; then > codegra_fs/cgfs_types.py; fi
   - mypy codegra_fs
   - npm run lint
   - pip install -r requirements-docs.txt || true

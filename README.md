@@ -35,18 +35,8 @@ CodeGrade Filesystem.
 
 ## Installation
 The CodeGrade Filesystem is an external application that can be installed on
-Windows, MacOS and GNU/Linux. Follow the install instructions for your operating
-system below.
-
-### Windows and MacOS
-Installing the CodeGrade Filesystem on a Windows or MacOS system can be done
-using the installers. Follow the instructions in the installers to successfully
-install the CodeGrade Filesystem.
-
-### GNU/Linux
-<!-- TODO: Add commands for apt repos -->
-Installing the CodeGrade Filesystem can be done using the package manager in
-your Linux distro. In Ubuntu `apt-get install codegrade-fs`.
+Windows, MacOS and GNU/Linux. To install it go to [The CodeGrade
+website](https://codegra.de/filesystem/) and follow the instructions there.
 
 ### Dependencies
 The supplied installers automatically install all required dependencies for the
@@ -117,6 +107,25 @@ for [emacs](https://github.com/CodeGra-de/CodeGra.el),
 [atom](https://github.com/CodeGra-de/CodeGra.atom) and
 [vim](https://github.com/CodeGra-de/CodeGra.vim) and more are being created
 upon request.
+
+## Privacy
+You can use CodeGra.fs for any CodeGrade instance. The application does a
+version check at every startup, this is done by doing a request to
+`https://codegra.de/.cgfs.json` and to `https://codegra.de/.cgfs.version`. We do
+not collect any personal information at these routes. It is currently not
+possible to disable this version check.
+
+## Support
+Please report any issues by creating a GitHub issue
+[here](https://github.com/CodeGra-de/CodeGra.fs/issues/new), if possible please
+include link to uploaded a log output when encountering the bug using the
+`verbose` mode (use the `--verbose` command line flag, or click 'verbose' in the
+GUI). You can upload logs to any pastebin like website, for example
+[glot.io](https://glot.io/new/plaintext).
+
+Commercial support of CodeGrade Filesystem is available and included in a
+commercial CodeGrade instance. We would love to provide more information, please
+send an e-mail to support@codegra.de!
 
 ## License
 CodeGra.fs as a whole is licensed under the [GNU Affero General Public License
