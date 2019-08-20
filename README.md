@@ -108,25 +108,6 @@ for [emacs](https://github.com/CodeGra-de/CodeGra.el),
 [vim](https://github.com/CodeGra-de/CodeGra.vim) and more are being created
 upon request.
 
-## Privacy
-You can use CodeGra.fs for any CodeGrade instance. The application does a
-version check at every startup, this is done by doing a request to
-`https://codegra.de/.cgfs.json` and to `https://codegra.de/.cgfs.version`. We do
-not collect any personal information at these routes. It is currently not
-possible to disable this version check.
-
-## Support
-Please report any issues by creating a GitHub issue
-[here](https://github.com/CodeGra-de/CodeGra.fs/issues/new), if possible please
-include link to uploaded a log output when encountering the bug using the
-`verbose` mode (use the `--verbose` command line flag, or click 'verbose' in the
-GUI). You can upload logs to any pastebin like website, for example
-[glot.io](https://glot.io/new/plaintext).
-
-Commercial support of CodeGrade Filesystem is available and included in a
-commercial CodeGrade instance. We would love to provide more information, please
-send an e-mail to support@codegra.de!
-
 ## License
 CodeGra.fs as a whole is licensed under the [GNU Affero General Public License
 v3.0 (AGPL-3.0-only)](https://www.gnu.org/licenses/agpl-3.0.html). All license

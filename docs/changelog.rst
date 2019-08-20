@@ -1,10 +1,28 @@
 Changelog
 ==========
 
+Version 1.0.0
+--------------
+**Released**: August 19th, 2019
+
+**Features & Updates**
+
+- Update frontend `(#42)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/42>`__: Update the frontend of
+  the CodeGrade Filesystem with Electron. Make more intuitive, easier to select
+  institute and add better error notifications.
+- Add Windows and MacOS installers `(#42)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/42>`__: Add installers for
+  Windows and MacOS to make installing the Filesystem easier and to
+  automatically install all dependencies.
+- Add Debian/Ubuntu install script `(#42)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/42>`__: Add a script to
+  install the CodeGrade Filesystem and all dependencies on Debian / Ubuntu.
+
 Version 0.5.0
 -------------
 
-**Released**: Februari 14th, 2019
+**Released**: February 14th, 2019
 
 **Features & Updates**
 
