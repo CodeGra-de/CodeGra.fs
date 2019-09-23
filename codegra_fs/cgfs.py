@@ -139,7 +139,7 @@ def handle_cgapi_exception(ex) -> NoReturn:
         logger.error(ex.message)
         raise FuseOSError(ENOENT)
 
-    logger.error(ex.message, extra={'notify': 'critical'}, exc_info=True)
+    logger.error(ex.message, extra={'notify': 'critical'})
     if ex.code == APICodes.INCORRECT_PERMISSION.name:
         raise FuseOSError(EPERM)
     else:
@@ -1633,6 +1633,8 @@ class CGFS(LoggingMixIn, Operations):
         except CGAPIException as e:  # pragma: no cover
             handle_cgapi_exception(e)
 
+        submissions.sort(key=lambda s: s['created_at'])
+
         def get_assignee_id(sub):
             if isinstance(sub['assignee'], dict):
                 return sub['assignee']['id']
@@ -2498,7 +2500,6 @@ def main() -> None:
             },
         }
     )
-
     check_version()
 
     cgapi = login(args)

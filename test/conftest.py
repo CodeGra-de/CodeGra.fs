@@ -66,8 +66,8 @@ def mount(
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
         os.environ['CGFS_TESTING'] = 'True'
         args = [
-            'coverage', 'run', '-a', './codegra_fs/cgfs.py', '--verbose',
-            username, mount_dir
+            'coverage', 'run', '-a', './codegra_fs/cgfs.py',
+            username, mount_dir, '-v'
         ]
         stdin = None
 
@@ -93,6 +93,7 @@ def mount(
         if ascii_only:
             args.append('--ascii-only')
 
+        print('Mounting:', ' '.join(args))
         proc = subprocess.Popen(
             args, stdin=stdin, stdout=sys.stdout, stderr=sys.stderr
         )
@@ -101,6 +102,7 @@ def mount(
         while not os.path.isfile(check_dir):
             time.sleep(i)
             i *= 2
+        print(os.listdir(mount_dir))
 
     def do_umount():
         subprocess.check_call(['fusermount', '-u', mount_dir])
@@ -163,6 +165,18 @@ def teacher_jwt():
         json={
             'username': 'robin',
             'password': 'Robin'
+        }
+    )
+    return req.json()['access_token']
+
+
+@pytest.fixture
+def student2_jwt():
+    req = requests.post(
+        'http://localhost:5000/api/v1/login',
+        json={
+            'username': 'student2',
+            'password': 'Student2'
         }
     )
     return req.json()['access_token']

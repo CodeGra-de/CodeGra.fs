@@ -377,52 +377,65 @@ def test_write_to_directory(sub_done):
 
 
 def test_difficult_assigned_to(
-    mount, teacher_jwt, student_jwt, teacher_id, ta_id, assig_open
+    mount, teacher_jwt, student_jwt, teacher_id, ta_id, assig_open,
+    student2_jwt
 ):
     assig_id = open(join(assig_open, '.cg-assignment-id')).read().strip()
 
-    old = requests.post(
-        'http://localhost:5000/api/v1/assignments/{}/submission'.
-        format(assig_id),
-        headers={
-            'Authorization': 'Bearer ' + student_jwt
-        },
-        files=dict(file=open('./test_data/multiple_dir_archive.zip', 'rb'))
-    ).json()
-    new = requests.post(
-        'http://localhost:5000/api/v1/assignments/{}/submission'.
-        format(assig_id),
-        files=dict(file=open('./test_data/multiple_dir_archive.zip', 'rb')),
-        headers={
-            'Authorization': 'Bearer ' + student_jwt
-        },
-    ).json()
-    print(old, new)
+    def submit(jwt):
+        req = requests.post(
+            'http://localhost:5000/api/v1/assignments/{}/submission'.
+            format(assig_id),
+            headers={'Authorization': 'Bearer ' + jwt},
+            files=dict(
+                file=open('./test_data/multiple_dir_archive.zip', 'rb')
+            )
+        )
 
-    requests.patch(
-        'http://localhost:5000/api/v1/submissions/{}/grader'.format(old["id"]),
-        json={'user_id': ta_id},
-        headers={'Authorization': 'Bearer ' + teacher_jwt},
-    )
+        req.raise_for_status()
+        return req.json()
 
-    requests.patch(
-        'http://localhost:5000/api/v1/submissions/{}/grader'.format(new["id"]),
-        json={'user_id': teacher_id},
-        headers={'Authorization': 'Bearer ' + teacher_jwt},
-    )
+    def assign(sub, user_id):
+        requests.patch(
+            'http://localhost:5000/api/v1/submissions/{}/grader'.format(
+                sub["id"]
+            ),
+            json={
+                'user_id': user_id
+            },
+            headers={
+                'Authorization': 'Bearer ' + teacher_jwt
+            },
+        ).raise_for_status
+
+    sub2 = submit(student2_jwt)
+    old = submit(student_jwt)
+    new = submit(student_jwt)
+    print(sub2, old, new)
+
+    assign(sub2, ta_id)
+    assign(old, ta_id)
+    assign(new, teacher_id)
 
     mount(assigned_to_me=True)
-    assert all([l[0] == '.' for l in ls(assig_open)])
+    # We do not expect to see any submission. A submission is assigned to us,
+    # but it is not the newest of the student, so we do not show it.
+    print(ls(assig_open))
+    assert not any(['Student1' in l for l in ls(assig_open)])
+    assert any(['Student2' in l for l in ls(assig_open)])
     mount(assigned_to_me=False)
     assert ls(assig_open)
 
+    # Now we assign the newest submission to us, so we expect to see it.
     requests.patch(
         'http://localhost:5000/api/v1/submissions/{}/grader'.format(new["id"]),
         json={'user_id': ta_id},
         headers={'Authorization': 'Bearer ' + teacher_jwt},
     )
     mount(assigned_to_me=True)
-    assert len([l for l in ls(assig_open) if l[0] != '.']) == 1
+    print(ls(assig_open))
+    assert any(['Student1' in l for l in ls(assig_open)])
+    assert any(['Student2' in l for l in ls(assig_open)])
 
 
 def test_double_assignment(mount, teacher_jwt, assig_open):
