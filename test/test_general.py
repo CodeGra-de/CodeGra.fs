@@ -509,3 +509,58 @@ def test_double_course(mount, admin_jwt, mount_dir):
     mount()
 
     assert len([l for l in ls(mount_dir) if l.startswith(course_name)]) == 2
+
+
+@pytest.mark.parametrize(
+    'username,password', [['admin', 'admin']], indirect=True
+)
+def test_courses_non_ascii(mount, admin_jwt, mount_dir):
+    n_id = str(uuid.uuid4())
+    course_name1 = 'ASCII_New_Course-{}-*'.format(n_id)
+    course_name2 = 'ASCII_New_Course-{}-:'.format(n_id)
+    res_course_name = 'ASCII_New_Course-{}'.format(n_id)
+    print(n_id)
+
+    requests.patch(
+        'http://localhost:5000/api/v1/roles/4',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'value': True,
+            'permission': 'can_create_courses'
+        }
+    ).raise_for_status()
+
+    requests.post(
+        'http://localhost:5000/api/v1/courses/',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'name': course_name1
+        }
+    ).raise_for_status()
+
+    time.sleep(1)
+
+    requests.post(
+        'http://localhost:5000/api/v1/courses/',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'name': course_name2
+        }
+    ).raise_for_status()
+
+    mount()
+
+    assert course_name1 in ls(mount_dir)
+    assert course_name2 in ls(mount_dir)
+
+    mount(ascii_only=True)
+
+    assert len(
+        [l for l in ls(mount_dir) if l.startswith(res_course_name)]
+    ) == 2

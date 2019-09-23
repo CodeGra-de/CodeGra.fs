@@ -57,7 +57,9 @@ def mount(
     r_assigned_to_me = assigned_to_me
     del assigned_to_me
 
-    def do_mount(fixed=r_fixed, assigned_to_me=r_assigned_to_me):
+    def do_mount(
+        fixed=r_fixed, assigned_to_me=r_assigned_to_me, ascii_only=False
+    ):
         global password_pass
         nonlocal proc
 
@@ -88,6 +90,8 @@ def mount(
             args.append('--rubric-edit')
         if assigned_to_me:
             args.append('--assigned-to-me')
+        if ascii_only:
+            args.append('--ascii-only')
 
         proc = subprocess.Popen(
             args, stdin=stdin, stdout=sys.stdout, stderr=sys.stderr
@@ -106,9 +110,13 @@ def mount(
             proc.kill()
             proc.wait()
 
-    def do_remount(fixed=r_fixed, assigned_to_me=r_assigned_to_me):
+    def do_remount(
+        fixed=r_fixed, assigned_to_me=r_assigned_to_me, ascii_only=False
+    ):
         do_umount()
-        do_mount(fixed=fixed, assigned_to_me=assigned_to_me)
+        do_mount(
+            fixed=fixed, assigned_to_me=assigned_to_me, ascii_only=ascii_only
+        )
 
     do_mount()
     yield do_remount
