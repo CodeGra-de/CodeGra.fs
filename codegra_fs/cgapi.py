@@ -62,9 +62,11 @@ class APIRoutes():
     def get_courses(self):
         return '{base}/courses/?extended=true'.format(base=self.base)
 
-    def get_submissions(self, assignment_id):
-        return '{base}/assignments/{assignment_id}/submissions/'.format(
-            base=self.base, assignment_id=assignment_id
+    def get_submissions(self, assignment_id, latest_only):
+        return '{base}/assignments/{assignment_id}/submissions/{args}'.format(
+            base=self.base,
+            assignment_id=assignment_id,
+            args='?latest_only' if latest_only else '',
         )
 
     def get_files(self, submission_id: int) -> str:
@@ -266,8 +268,10 @@ class CGAPI():
 
         return r.json()
 
-    def get_submissions(self, assignment_id):
-        url = self.routes.get_submissions(assignment_id=assignment_id)
+    def get_submissions(self, assignment_id, latest_only=False):
+        url = self.routes.get_submissions(
+            assignment_id=assignment_id, latest_only=latest_only
+        )
         r = self.s.get(url)
 
         self._handle_response_error(r)

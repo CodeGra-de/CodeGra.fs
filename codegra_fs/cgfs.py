@@ -1627,7 +1627,9 @@ class CGFS(LoggingMixIn, Operations):
         assert cgapi is not None
 
         try:
-            submissions = cgapi.get_submissions(assignment.id)
+            submissions = cgapi.get_submissions(
+                assignment.id, latest_only=self.latest_only
+            )
         except CGAPIException as e:  # pragma: no cover
             handle_cgapi_exception(e)
 
