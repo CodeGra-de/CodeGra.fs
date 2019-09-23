@@ -60,6 +60,8 @@ const OPTIONS = {
             revision: false,
             assigned: true,
             latest: true,
+            asciiOnly: false,
+            isoTimestamps: false,
         },
         options: [
             {
@@ -79,6 +81,17 @@ const OPTIONS = {
                 label: 'Latest submissions only',
                 help:
                     'Show only the most recent submissions of each student, rather than all their submissions.',
+            },
+            {
+                key: 'asciiOnly',
+                label: 'ASCII only',
+                help:
+                    'Replace non ASCII characters and some invalid ASCII characters by an underscore. This is useful for legacy applications',
+            },
+            {
+                key: 'isoTimestamps',
+                label: 'Use ISO8061 timestamps for dates in filenames',
+                help: 'Use ISO8061 as format for the timestamps in filenames',
             },
         ],
     },

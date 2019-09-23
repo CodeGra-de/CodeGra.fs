@@ -139,7 +139,7 @@ def handle_cgapi_exception(ex) -> NoReturn:
         logger.error(ex.message)
         raise FuseOSError(ENOENT)
 
-    logger.error(ex.message, extra={'notify': 'critical'})
+    logger.error(ex.message, extra={'notify': 'critical'}, exc_info=True)
     if ex.code == APICodes.INCORRECT_PERMISSION.name:
         raise FuseOSError(EPERM)
     else:
@@ -426,6 +426,77 @@ class HelpFile(SpecialFile):
 
     def flush(self) -> None:
         pass
+
+
+def _get_feedbacks(api: CGAPI, submission_id: int,
+                   feedback_type: str) -> t.List[str]:
+    feedbacks = api.get_submission_feedbacks(submission_id)[feedback_type]
+    files = api.get_submission_files(submission_id)
+    file_lookup = {}
+
+    def make_file_lookup(f: t.Dict[str, t.Any], path: str) -> None:
+        new_path = os.path.join(path, f['name'])
+        file_lookup[str(f['id'])] = new_path
+        for sub in f.get('entries', []):
+            make_file_lookup(sub, new_path)
+
+    make_file_lookup(files, '/')
+    res = []
+    for file_id, line_feedback in feedbacks.items():
+        file_id = str(file_id)
+        for line, feedback in sorted(line_feedback.items()):
+            line = str(line)
+            res.append(
+                '{f_name}:{line}:0: {feedback}'.format(
+                    f_name=file_lookup.get(file_id, file_id),
+                    line=line,
+                    feedback=feedback,
+                )
+            )
+
+    return res
+
+
+class ImmutableCachedSpecialFile(SpecialFile):
+    def __init__(self, name: str) -> None:
+        super(ImmutableCachedSpecialFile, self).__init__(name=name)
+        self._cached_data = None  # type: t.Optional[bytes]
+        self.mode = create_permission(True, False, True)
+
+    @abc.abstractmethod
+    def get_online_data(self) -> bytes:
+        raise NotImplementedError
+
+    def get_data(self) -> bytes:
+        if self._cached_data is None:
+            self._cached_data = self.get_online_data()
+        return self._cached_data
+
+
+class LinterFeedbackFile(ImmutableCachedSpecialFile):
+    def __init__(self, api: CGAPI, submission_id: int) -> None:
+        super(LinterFeedbackFile, self).__init__(name='.cg-linter-feedback')
+        self.submission_id = submission_id
+        self.api = api
+
+    def get_online_data(self) -> bytes:
+        feedback = _get_feedbacks(self.api, self.submission_id, 'linter')
+        if not feedback:
+            return b''
+        return b'\n'.join(f.encode('utf-8') for f in feedback) + b'\n'
+
+
+class LineFeedbackFile(ImmutableCachedSpecialFile):
+    def __init__(self, api: CGAPI, submission_id: int) -> None:
+        super(LineFeedbackFile, self).__init__(name='.cg-line-feedback')
+        self.submission_id = submission_id
+        self.api = api
+
+    def get_online_data(self) -> bytes:
+        feedback = _get_feedbacks(self.api, self.submission_id, 'user')
+        if not feedback:
+            return b''
+        return b'\n'.join(f.encode('utf-8') for f in feedback) + b'\n'
 
 
 class CachedSpecialFile(SpecialFile, t.Generic[T]):
@@ -1420,6 +1491,8 @@ class CGFS(LoggingMixIn, Operations):
         fixed: bool = False,
         rubric_append_only: bool = True,
         assigned_only: bool = False,
+        ascii_only: bool = False,
+        iso_timestamps: bool = False,
     ) -> None:
         self.latest_only = latest_only
         self.fixed = fixed
@@ -1428,6 +1501,8 @@ class CGFS(LoggingMixIn, Operations):
         self._lock = threading.RLock()
         self._open_files = {}  # type: t.Dict[FileHandle, SingleFile]
         self.assigned_only = assigned_only
+        self.iso_timestamps = iso_timestamps
+        self.ascii_only = ascii_only
 
         self._tmpdir = tmpdir
 
@@ -1473,12 +1548,20 @@ class CGFS(LoggingMixIn, Operations):
         path = os.path.abspath(path)
         return path[len(self.mountpoint):]
 
+    def _get_directory_name(self, name: str) -> str:
+        if self.ascii_only:
+            return codegra_fs.utils.remove_special_chars(name)
+        return name
+
     def load_courses(self) -> None:
         assert cgapi is not None
 
         courses = cgapi.get_courses()
+        for course in courses:
+            course['dir_name'] = self._get_directory_name(course['name'])
+
         for dups in codegra_fs.utils.find_all_dups(
-            courses, lambda x: x['name']
+            courses, lambda x: x['dir_name']
         ):
             end = 4  # type: t.Optional[int]
             if len(dups) != len(set(d['created_at'][:4] for d in dups)):
@@ -1487,25 +1570,41 @@ class CGFS(LoggingMixIn, Operations):
             for dup in dups:
                 date = codegra_fs.utils.format_datestring(
                     dup['created_at'],
+                    use_colons=self.iso_timestamps,
                 )[:end]
-                dup['name'] += ' - ' + date
+                dup['dir_name'] += ' - ' + date
 
         for course in courses:
             assignments = course['assignments']
+            for assig in assignments:
+                assig['dir_name'] = self._get_directory_name(assig['name'])
+
             for dups in codegra_fs.utils.find_all_dups(
-                assignments, lambda x: x['name']
+                assignments, lambda x: x['dir_name']
             ):
                 for dup in dups:
-                    dup['name'] += ' - ' + codegra_fs.utils.format_datestring(
-                        dup['created_at']
+                    dup['dir_name'] = '{dir_name} - {date}'.format(
+                        dir_name=dup['dir_name'],
+                        date=codegra_fs.utils.format_datestring(
+                            dup['created_at'],
+                            use_colons=self.iso_timestamps,
+                        ),
                     )
 
-            course_dir = Directory(course, type=DirTypes.COURSE)
+            course_dir = Directory(
+                course,
+                name=course['dir_name'],
+                type=DirTypes.COURSE,
+            )
             course_dir.getattr()
             self.files.insert(course_dir)
 
             for assig in assignments:
-                assig_dir = Directory(assig, type=DirTypes.ASSIGNMENT)
+                assig_dir = Directory(
+                    assig,
+                    name=assig['dir_name'],
+                    type=DirTypes.ASSIGNMENT,
+                )
                 assig_dir.getattr()
                 course_dir.insert(assig_dir)
                 assig_dir.insert(AssignmentSettingsFile(cgapi, assig['id']))
@@ -1557,9 +1656,13 @@ class CGFS(LoggingMixIn, Operations):
 
             sub_dir = Directory(
                 sub,
-                name=(
-                    codegra_fs.utils.name_of_user(sub['user']) + ' - ' +
-                    codegra_fs.utils.format_datestring(sub['created_at'])
+                name='{name} - {date}'.format(
+                    name=self._get_directory_name(
+                        codegra_fs.utils.name_of_user(sub['user'])
+                    ),
+                    date=codegra_fs.utils.format_datestring(
+                        sub['created_at'], use_colons=self.iso_timestamps
+                    )
                 ),
                 type=DirTypes.SUBMISSION,
                 writable=True
@@ -1569,18 +1672,17 @@ class CGFS(LoggingMixIn, Operations):
             sub_dir.insert(RubricSelectFile(cgapi, sub['id'], sub['user']))
             sub_dir.insert(GradeFile(cgapi, sub['id']))
             sub_dir.insert(FeedbackFile(cgapi, sub['id']))
-
-            if sub['user'].get('group') is not None:
-                members = [
-                    codegra_fs.utils.name_of_user(m).encode('utf-8')
-                    for m in sub['user']['group']['members']
-                ]
-                sub_dir.insert(
-                    SpecialFile(
-                        '.cg-group-members',
-                        b'\n'.join(members) + b'\n',
+            sub_dir.insert(LineFeedbackFile(cgapi, sub['id']))
+            sub_dir.insert(LinterFeedbackFile(cgapi, sub['id']))
+            sub_dir.insert(
+                SpecialFile(
+                    '.cg-group-members',
+                    data=b'\n'.join(
+                        u.encode() for u in
+                        codegra_fs.utils.get_members_of_user(sub['user'])
                     )
                 )
+            )
 
             assignment.insert(sub_dir)
 
@@ -2109,6 +2211,8 @@ def create_and_mount_fs(
     latest_only: bool,
     mountpoint: str,
     rubric_append_only: bool,
+    ascii_only: bool,
+    iso_timestamps: bool,
 ) -> None:
     global cgapi
 
@@ -2150,6 +2254,8 @@ def create_and_mount_fs(
                 tmpdir=tmpdir,
                 rubric_append_only=rubric_append_only,
                 assigned_only=assigned_only,
+                ascii_only=ascii_only,
+                iso_timestamps=iso_timestamps,
             )
             FUSE(
                 fs,
@@ -2359,6 +2465,18 @@ def main() -> None:
         ),
         help='Display version.',
     )
+    argparser.add_argument(
+        '--ascii-only',
+        dest='ascii_only',
+        action='store_true',
+        help=constants.ascii_only_help,
+    )
+    argparser.add_argument(
+        '--use-iso-timestamps',
+        dest='iso_timestamps',
+        action='store_true',
+        help='Display dates as UTC ISO8601 timestamps',
+    )
     args = argparser.parse_args()
 
     if args.gui_mode:
@@ -2409,6 +2527,8 @@ def main() -> None:
             latest_only=args.latest_only,
             mountpoint=mountpoint,
             rubric_append_only=args.rubric_append_only,
+            ascii_only=args.ascii_only,
+            iso_timestamps=args.iso_timestamps,
         )
     finally:
         if sys.platform != 'win32':

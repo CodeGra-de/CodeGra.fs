@@ -59,3 +59,6 @@ examples:
                         manager. This is safer than above as your password will
                         not be saved to your history file.
 """
+
+ascii_only_help = """Replace all non ASCII characters in directories generated
+by CGFS with question marks."""

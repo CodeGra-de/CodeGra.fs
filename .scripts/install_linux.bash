@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: AGPL-3.0-only
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 err_echo() {
     (>&2 echo "$@")
@@ -26,7 +26,7 @@ install_deps() {
 download_file() {
     local url="$1" dst="$2"
     if ! wget --quiet "$url" -O "$dst"; then
-        err_echo "Failed to download file"
+        err_echo "Failed to download file: $url"
         exit 10
     fi
 }
