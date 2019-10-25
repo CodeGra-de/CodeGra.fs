@@ -2228,7 +2228,8 @@ def create_and_mount_fs(
             ' grading scripts!'
         )
 
-    with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as tmpdir:
+    TD = tempfile.TemporaryDirectory  # type: t.Type[tempfile.TemporaryDirectory[str]]
+    with TD(dir=tempfile.gettempdir()) as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
         kwargs = {}  # type: t.Dict[str, str]
         if sys.platform.startswith('win32'):
