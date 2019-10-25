@@ -760,7 +760,9 @@ class RubricSelectFile(CachedSpecialFile[t.List[str]]):
                     sel.append(self.lookup[i])
                 except KeyError:
                     raise ParseException(
-                        'Item on line {} ({}) not found!'.format(i, line)
+                        'Item on line {} ({}) not found!'.format(
+                            i, line.decode('utf8', 'replace')
+                        )
                     )
 
         return sel
