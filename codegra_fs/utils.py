@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+import re
 import sys
 import typing as t
+import datetime
 from collections import defaultdict
 
 import requests
@@ -79,17 +81,39 @@ def find_all_dups(
 
 
 def name_of_user(user: t.Dict[str, t.Any]) -> str:
-    if user.get('group') is not None:
-        return 'Group "{}"'.format(user['group']['name'])
-    else:
+    if user.get('group') is None:
         return user['name']
+    else:
+        return 'Group "{}"'.format(user['group']['name'])
 
 
-def format_datestring(datestring: str) -> str:
-    return datestring.replace('T', ' ').split('.')[0]
+def get_members_of_user(user: t.Dict[str, t.Any]) -> t.List[str]:
+    if user.get('group') is None:
+        return [user['name']]
+    return [member['name'] for member in user['group']['members']]
+
+
+def format_datestring(datestring: str, use_colons: bool) -> str:
+    datestring = datestring.replace('T', ' ').split('.')[0]
+    if use_colons:
+        return datestring
+    d = datetime.datetime.strptime(datestring, '%Y-%m-%d %H:%M:%S')
+    return '{0:%Y}-{0:%m}-{0:%d} {0:%H}h {0:%M}m {0:%S}s'.format(d)
 
 
 def maybe_strip_trailing_newline(s: str) -> str:
     if s and s[-1] == '\n':
         s = s[:-1]
+    return s
+
+
+_WINDOWS_ILLEGAL_CHARS_RE = re.compile(r'[<>:"/\\|\?\*]')
+
+
+def remove_special_chars(s: str) -> str:
+    """Remove special characters from ...
+    """
+    s = s.encode('ascii', 'replace').decode('ascii')
+    if re.search(_WINDOWS_ILLEGAL_CHARS_RE, s):
+        return re.sub(_WINDOWS_ILLEGAL_CHARS_RE, '-', s)
     return s

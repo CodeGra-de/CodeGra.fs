@@ -50,9 +50,9 @@
                 v-model="internal[suboption.key]"
                 class="form-control"
             >
-                {{ suboption.label }}
-
                 <help-popover v-if="suboption.help" :help="suboption.help" />
+
+                {{ suboption.label }}
             </b-form-checkbox>
         </b-input-group>
 
@@ -64,9 +64,9 @@
                 :value="suboption.value"
                 class="form-control"
             >
-                {{ suboption.label }}
-
                 <help-popover v-if="suboption.help" :help="suboption.help" />
+
+                {{ suboption.label }}
             </b-form-radio>
         </b-input-group>
     </b-form-group>
@@ -161,8 +161,9 @@ export default {
 .input-group.radio {
     flex-direction: column;
 
-    .form-control {
+    .custom-control {
         width: 100%;
+        height: auto;
 
         &:first-child {
             border-bottom-left-radius: 0;

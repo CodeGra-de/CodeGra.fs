@@ -36,7 +36,11 @@ def test_list_courses(mount_dir):
     ]:
         assert isdir(mount_dir, course)
 
-    assert set(ls(mount_dir)) == set(
+    ls_res = [
+        x for x in ls(mount_dir)
+        if not x.startswith('ASCII_') and not x.startswith('New_Assig-')
+    ]
+    assert set(ls_res) == set(
         [
             'Besturingssystemen', 'Programmeertalen',
             'Project Software Engineering', '.api.socket', '.cg-mode'

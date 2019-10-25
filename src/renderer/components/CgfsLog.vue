@@ -5,15 +5,23 @@
                 <table class="options-list">
                     <tr>
                         <td>Revision mode</td>
-                        <td>{{ config.options.revision ? 'Enabled' : 'Disabled' }}</td>
+                        <td>{{ readableBool(config.options.revision) }}</td>
                     </tr>
                     <tr>
                         <td>Assigned to me</td>
-                        <td>{{ config.options.assigned ? 'Enabled' : 'Disabled' }}</td>
+                        <td>{{ readableBool(config.options.assigned) }}</td>
                     </tr>
                     <tr>
                         <td>Latest submissions only</td>
-                        <td>{{ config.options.latest ? 'Enabled' : 'Disabled' }}</td>
+                        <td>{{ readableBool(config.options.latest) }}</td>
+                    </tr>
+                    <tr>
+                        <td>ASCII only filenames</td>
+                        <td>{{ readableBool(config.options.asciiOnly) }}</td>
+                    </tr>
+                    <tr>
+                        <td>ISO8061 timestamps</td>
+                        <td>{{ readableBool(config.options.isoTimestamps) }}</td>
                     </tr>
                 </table>
             </help-popover>
@@ -166,6 +174,14 @@ export default {
                 args.push('--all-submissions');
             }
 
+            if (conf.options.asciiOnly) {
+                args.push('--ascii-only');
+            }
+
+            if (conf.options.isoTimestamps) {
+                args.push('--use-iso-timestamps');
+            }
+
             if (!conf.options.revision) {
                 args.push('--fixed');
             }
@@ -188,6 +204,10 @@ export default {
     },
 
     methods: {
+        readableBool(opt) {
+            return opt ? 'Enabled' : 'Disabled';
+        },
+
         start() {
             this.addEvent('Starting...', 'info');
 
