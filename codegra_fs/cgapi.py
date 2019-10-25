@@ -5,6 +5,7 @@ import os
 import typing as t
 import logging
 from enum import IntEnum
+from time import sleep
 from urllib.parse import quote
 
 import requests
@@ -61,9 +62,11 @@ class APIRoutes():
     def get_courses(self):
         return '{base}/courses/?extended=true'.format(base=self.base)
 
-    def get_submissions(self, assignment_id):
-        return '{base}/assignments/{assignment_id}/submissions/'.format(
-            base=self.base, assignment_id=assignment_id
+    def get_submissions(self, assignment_id, latest_only):
+        return '{base}/assignments/{assignment_id}/submissions/{args}'.format(
+            base=self.base,
+            assignment_id=assignment_id,
+            args='?latest_only' if latest_only else '',
         )
 
     def get_files(self, submission_id: int) -> str:
@@ -115,6 +118,11 @@ class APIRoutes():
             '{base}/code/{file_id}?operation='
             'rename&new_path={new_path}'
         ).format(base=self.base, file_id=file_id, new_path=quote(new_path))
+
+    def get_submission_feedbacks(self, submission_id):
+        return '{base}/submissions/{submission_id}/feedbacks/'.format(
+            base=self.base, submission_id=submission_id
+        )
 
     def get_feedbacks(self, assignment_id):
         return '{base}/assignments/{assignment_id}/feedbacks/'.format(
@@ -260,8 +268,10 @@ class CGAPI():
 
         return r.json()
 
-    def get_submissions(self, assignment_id):
-        url = self.routes.get_submissions(assignment_id=assignment_id)
+    def get_submissions(self, assignment_id, latest_only=False):
+        url = self.routes.get_submissions(
+            assignment_id=assignment_id, latest_only=latest_only
+        )
         r = self.s.get(url)
 
         self._handle_response_error(r)
@@ -352,6 +362,14 @@ class CGAPI():
         url = self.routes.select_rubricitems(submission_id)
         r = self.s.patch(url, json={'items': items})
         self._handle_response_error(r)
+
+    def get_submission_feedbacks(self, submission_id):
+        url = self.routes.get_submission_feedbacks(submission_id)
+        r = self.s.get(url)
+
+        self._handle_response_error(r)
+
+        return r.json()
 
     def get_feedbacks(self, assignment_id):
         url = self.routes.get_feedbacks(assignment_id)
