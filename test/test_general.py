@@ -72,19 +72,22 @@ def test_create_symlink(sub_done):
     assert isdir(sub_done, 'wowsers')
 
 
-def test_create_invalid_file(mount_dir):
-    with pytest.raises(PermissionError):
-        with open(join(mount_dir, 'file'), 'w+') as f:
-            f.write('hello\n')
+def test_create_file_outside_submissions(mount_dir):
+    with open(join(mount_dir, 'file'), 'w+') as f:
+        f.write('hello\n')
+    with open(join(mount_dir, 'file'), 'r') as f:
+        assert f.read() == 'hello\n'
+
+    with open(
+        join(
+            mount_dir,
+            [l for l in ls(mount_dir) if isdir(mount_dir, l)][0], 'file'
+        ), 'w+'
+    ) as f:
+        f.write('hello\n')
 
     with pytest.raises(PermissionError):
-        with open(
-            join(
-                mount_dir,
-                [l for l in ls(mount_dir) if isdir(mount_dir, l)][0], 'file'
-            ), 'w+'
-        ) as f:
-            f.write('hello\n')
+        mkdir(mount_dir, 'dir')
 
 
 def test_delete_invalid_file(mount_dir):
@@ -348,6 +351,11 @@ def test_renaming_submission(sub_done, sub_done2, assig_done):
     with pytest.raises(PermissionError):
         rename([sub_done, 'hello'], [sub_done2, 'hello'])
 
+    with pytest.raises(PermissionError):
+        new = [x for x in sub_done.split('/')]
+        new[-1] += new[-1]
+        rename([sub_done], ['/'.join(new)])
+
 
 def test_removing_xattrs(sub_done):
     fname = join(sub_done, 'hello')
@@ -377,52 +385,65 @@ def test_write_to_directory(sub_done):
 
 
 def test_difficult_assigned_to(
-    mount, teacher_jwt, student_jwt, teacher_id, ta_id, assig_open
+    mount, teacher_jwt, student_jwt, teacher_id, ta_id, assig_open,
+    student2_jwt
 ):
     assig_id = open(join(assig_open, '.cg-assignment-id')).read().strip()
 
-    old = requests.post(
-        'http://localhost:5000/api/v1/assignments/{}/submission'.
-        format(assig_id),
-        headers={
-            'Authorization': 'Bearer ' + student_jwt
-        },
-        files=dict(file=open('./test_data/multiple_dir_archive.zip', 'rb'))
-    ).json()
-    new = requests.post(
-        'http://localhost:5000/api/v1/assignments/{}/submission'.
-        format(assig_id),
-        files=dict(file=open('./test_data/multiple_dir_archive.zip', 'rb')),
-        headers={
-            'Authorization': 'Bearer ' + student_jwt
-        },
-    ).json()
-    print(old, new)
+    def submit(jwt):
+        req = requests.post(
+            'http://localhost:5000/api/v1/assignments/{}/submission'.
+            format(assig_id),
+            headers={'Authorization': 'Bearer ' + jwt},
+            files=dict(
+                file=open('./test_data/multiple_dir_archive.zip', 'rb')
+            )
+        )
 
-    requests.patch(
-        'http://localhost:5000/api/v1/submissions/{}/grader'.format(old["id"]),
-        json={'user_id': ta_id},
-        headers={'Authorization': 'Bearer ' + teacher_jwt},
-    )
+        req.raise_for_status()
+        return req.json()
 
-    requests.patch(
-        'http://localhost:5000/api/v1/submissions/{}/grader'.format(new["id"]),
-        json={'user_id': teacher_id},
-        headers={'Authorization': 'Bearer ' + teacher_jwt},
-    )
+    def assign(sub, user_id):
+        requests.patch(
+            'http://localhost:5000/api/v1/submissions/{}/grader'.format(
+                sub["id"]
+            ),
+            json={
+                'user_id': user_id
+            },
+            headers={
+                'Authorization': 'Bearer ' + teacher_jwt
+            },
+        ).raise_for_status
+
+    sub2 = submit(student2_jwt)
+    old = submit(student_jwt)
+    new = submit(student_jwt)
+    print(sub2, old, new)
+
+    assign(sub2, ta_id)
+    assign(old, ta_id)
+    assign(new, teacher_id)
 
     mount(assigned_to_me=True)
-    assert all([l[0] == '.' for l in ls(assig_open)])
+    # We do not expect to see any submission. A submission is assigned to us,
+    # but it is not the newest of the student, so we do not show it.
+    print(ls(assig_open))
+    assert not any(['Student1' in l for l in ls(assig_open)])
+    assert any(['Student2' in l for l in ls(assig_open)])
     mount(assigned_to_me=False)
     assert ls(assig_open)
 
+    # Now we assign the newest submission to us, so we expect to see it.
     requests.patch(
         'http://localhost:5000/api/v1/submissions/{}/grader'.format(new["id"]),
         json={'user_id': ta_id},
         headers={'Authorization': 'Bearer ' + teacher_jwt},
     )
     mount(assigned_to_me=True)
-    assert len([l for l in ls(assig_open) if l[0] != '.']) == 1
+    print(ls(assig_open))
+    assert any(['Student1' in l for l in ls(assig_open)])
+    assert any(['Student2' in l for l in ls(assig_open)])
 
 
 def test_double_assignment(mount, teacher_jwt, assig_open):
@@ -509,3 +530,58 @@ def test_double_course(mount, admin_jwt, mount_dir):
     mount()
 
     assert len([l for l in ls(mount_dir) if l.startswith(course_name)]) == 2
+
+
+@pytest.mark.parametrize(
+    'username,password', [['admin', 'admin']], indirect=True
+)
+def test_courses_non_ascii(mount, admin_jwt, mount_dir):
+    n_id = str(uuid.uuid4())
+    course_name1 = 'ASCII_New_Course-{}-*'.format(n_id)
+    course_name2 = 'ASCII_New_Course-{}-:'.format(n_id)
+    res_course_name = 'ASCII_New_Course-{}'.format(n_id)
+    print(n_id)
+
+    requests.patch(
+        'http://localhost:5000/api/v1/roles/4',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'value': True,
+            'permission': 'can_create_courses'
+        }
+    ).raise_for_status()
+
+    requests.post(
+        'http://localhost:5000/api/v1/courses/',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'name': course_name1
+        }
+    ).raise_for_status()
+
+    time.sleep(1)
+
+    requests.post(
+        'http://localhost:5000/api/v1/courses/',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'name': course_name2
+        }
+    ).raise_for_status()
+
+    mount()
+
+    assert course_name1 in ls(mount_dir)
+    assert course_name2 in ls(mount_dir)
+
+    mount(ascii_only=True)
+
+    assert len(
+        [l for l in ls(mount_dir) if l.startswith(res_course_name)]
+    ) == 2
