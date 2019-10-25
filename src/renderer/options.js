@@ -86,12 +86,12 @@ const OPTIONS = {
                 key: 'asciiOnly',
                 label: 'ASCII only',
                 help:
-                    'Replace non ASCII characters and some invalid ASCII characters by an underscore. This is useful for legacy applications',
+                    'Replace non ASCII characters and some invalid ASCII characters by an underscore. This is useful for legacy applications.',
             },
             {
                 key: 'isoTimestamps',
-                label: 'Use ISO8061 timestamps for dates in filenames',
-                help: 'Use ISO8061 as format for the timestamps in filenames',
+                label: 'ISO8061 dates',
+                help: 'Use ISO8061 as format for the timestamps in filenames. Disabling this option can be useful for legacy applications.',
             },
         ],
     },
