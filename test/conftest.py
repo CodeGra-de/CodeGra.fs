@@ -57,15 +57,17 @@ def mount(
     r_assigned_to_me = assigned_to_me
     del assigned_to_me
 
-    def do_mount(fixed=r_fixed, assigned_to_me=r_assigned_to_me):
+    def do_mount(
+        fixed=r_fixed, assigned_to_me=r_assigned_to_me, ascii_only=False
+    ):
         global password_pass
         nonlocal proc
 
         os.environ['CGAPI_BASE_URL'] = 'http://localhost:5000/api/v1'
         os.environ['CGFS_TESTING'] = 'True'
         args = [
-            'coverage', 'run', '-a', './codegra_fs/cgfs.py', '--verbose',
-            username, mount_dir
+            'coverage', 'run', '-a', './codegra_fs/cgfs.py',
+            username, mount_dir, '-v'
         ]
         stdin = None
 
@@ -88,7 +90,10 @@ def mount(
             args.append('--rubric-edit')
         if assigned_to_me:
             args.append('--assigned-to-me')
+        if ascii_only:
+            args.append('--ascii-only')
 
+        print('Mounting:', ' '.join(args))
         proc = subprocess.Popen(
             args, stdin=stdin, stdout=sys.stdout, stderr=sys.stderr
         )
@@ -97,6 +102,7 @@ def mount(
         while not os.path.isfile(check_dir):
             time.sleep(i)
             i *= 2
+        print(os.listdir(mount_dir))
 
     def do_umount():
         subprocess.check_call(['fusermount', '-u', mount_dir])
@@ -106,9 +112,13 @@ def mount(
             proc.kill()
             proc.wait()
 
-    def do_remount(fixed=r_fixed, assigned_to_me=r_assigned_to_me):
+    def do_remount(
+        fixed=r_fixed, assigned_to_me=r_assigned_to_me, ascii_only=False
+    ):
         do_umount()
-        do_mount(fixed=fixed, assigned_to_me=assigned_to_me)
+        do_mount(
+            fixed=fixed, assigned_to_me=assigned_to_me, ascii_only=ascii_only
+        )
 
     do_mount()
     yield do_remount
@@ -155,6 +165,18 @@ def teacher_jwt():
         json={
             'username': 'robin',
             'password': 'Robin'
+        }
+    )
+    return req.json()['access_token']
+
+
+@pytest.fixture
+def student2_jwt():
+    req = requests.post(
+        'http://localhost:5000/api/v1/login',
+        json={
+            'username': 'student2',
+            'password': 'Student2'
         }
     )
     return req.json()['access_token']
