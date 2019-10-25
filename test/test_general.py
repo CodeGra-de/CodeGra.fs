@@ -72,19 +72,22 @@ def test_create_symlink(sub_done):
     assert isdir(sub_done, 'wowsers')
 
 
-def test_create_invalid_file(mount_dir):
-    with pytest.raises(PermissionError):
-        with open(join(mount_dir, 'file'), 'w+') as f:
-            f.write('hello\n')
+def test_create_file_outside_submissions(mount_dir):
+    with open(join(mount_dir, 'file'), 'w+') as f:
+        f.write('hello\n')
+    with open(join(mount_dir, 'file'), 'r') as f:
+        assert f.read() == 'hello\n'
+
+    with open(
+        join(
+            mount_dir,
+            [l for l in ls(mount_dir) if isdir(mount_dir, l)][0], 'file'
+        ), 'w+'
+    ) as f:
+        f.write('hello\n')
 
     with pytest.raises(PermissionError):
-        with open(
-            join(
-                mount_dir,
-                [l for l in ls(mount_dir) if isdir(mount_dir, l)][0], 'file'
-            ), 'w+'
-        ) as f:
-            f.write('hello\n')
+        mkdir(mount_dir, 'dir')
 
 
 def test_delete_invalid_file(mount_dir):
