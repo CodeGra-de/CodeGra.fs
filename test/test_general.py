@@ -351,6 +351,11 @@ def test_renaming_submission(sub_done, sub_done2, assig_done):
     with pytest.raises(PermissionError):
         rename([sub_done, 'hello'], [sub_done2, 'hello'])
 
+    with pytest.raises(PermissionError):
+        new = [x for x in sub_done.split('/')]
+        new[-1] += new[-1]
+        rename([sub_done], ['/'.join(new)])
+
 
 def test_removing_xattrs(sub_done):
     fname = join(sub_done, 'hello')

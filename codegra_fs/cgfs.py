@@ -2013,13 +2013,6 @@ class CGFS(LoggingMixIn, Operations):
 
         file = self.get_file(old_parts[-1], start=old_parent)  # type: BaseFile
 
-        if isinstance(file, Directory) and file.type != DirTypes.REGDIR:
-            logger.error(
-                'Special directories cannot be renamed',
-                extra={'notify': 'normal'}
-            )
-            raise FuseOSError(EPERM)
-
         if isinstance(file, SpecialFile):
             logger.error(
                 'Special files cannot be renamed.',
@@ -2030,6 +2023,13 @@ class CGFS(LoggingMixIn, Operations):
         if new_parts[-1] in new_parent.children:
             logger.error('File already exists.')
             raise FuseOSError(EEXIST)
+
+        if isinstance(file, Directory) and file.type != DirTypes.REGDIR:
+            logger.error(
+                'Special directories cannot be renamed',
+                extra={'notify': 'normal'}
+            )
+            raise FuseOSError(EPERM)
 
         if not isinstance(file, (TempDirectory, TempFile)):
             old_submission = self.get_submission(old)
