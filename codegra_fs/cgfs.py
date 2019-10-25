@@ -1810,10 +1810,6 @@ class CGFS(LoggingMixIn, Operations):
         assert fname not in parent.children
 
         if len(parts) <= 3 or self.fixed:
-            # logger.error(
-            #     'Creating files outside submissions is not supported.',
-            # )
-            # raise FuseOSError(EPERM)
             file = TempFile(fname, self._tmpdir)  # type: SingleFile
         else:
             submission = self.get_submission(path)
@@ -2228,8 +2224,7 @@ def create_and_mount_fs(
             ' grading scripts!'
         )
 
-    TD = tempfile.TemporaryDirectory  # type: t.Type[tempfile.TemporaryDirectory[str]]
-    with TD(dir=tempfile.gettempdir()) as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
         sockfile = tempfile.NamedTemporaryFile().name
         kwargs = {}  # type: t.Dict[str, str]
         if sys.platform.startswith('win32'):
