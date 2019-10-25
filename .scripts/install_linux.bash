@@ -31,6 +31,14 @@ download_file() {
     fi
 }
 
+_pip() {
+    if hash pip3; then
+        sudo pip3 "$@"
+    else
+        sudo pip "$@"
+    fi
+}
+
 main() {
     local tmpdir
 
@@ -71,6 +79,11 @@ main() {
         download_file "https://codegra.de/static/fs/ubuntu/python3-codegrade-fs_${VERSION}-1_all.deb" "$tmpdir/backend.deb"
     fi
     download_file "https://codegra.de/static/fs/linux/codegrade-fs_${VERSION}_$(get_arch).deb" "$tmpdir/frontend.deb"
+
+    if _pip list | grep -- 'CodeGra.fs'; then
+        printf "\\nRemoving old versions\\n"
+        _pip uninstall -y CodeGra.fs
+    endif
 
     printf "\\nInstalling our version of fusepy\\n"
     sudo dpkg -i "$tmpdir/fusepy.deb"
