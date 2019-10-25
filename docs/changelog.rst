@@ -1,6 +1,19 @@
 Changelog
 ==========
 
+Version 1.1.1
+--------------
+**Released**: October 28th, 2019
+
+**Features & Updates**
+
+- Make it easier to use cgfs with legacy applications `(#47)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/42>`__: This Format dates
+  differently. The ISO8061 date format uses colons, but colons are disallowed on
+  some Windows systems. The new "ISO dates" option makes CGFS use the old
+  format. Also adds option "ASCII only". The former replaces any non-ASCII
+  character in filenames with a `-`.
+
 Version 1.0.0
 --------------
 **Released**: August 19th, 2019
