@@ -23,10 +23,23 @@ matrix:
   include:
     - python: "3.7" # 3.7 development branch
       env: PYENV_VERSION="3.5.5"
+      os: linux
     - python: "3.7" # 3.7 development branch
       env: PYENV_VERSION="3.6.0"
+      os: linux
     - python: "3.7" # 3.7 development branch
       env: PYENV_VERSION="3.7.0"
+      os: linux
+
+jobs:
+  include:
+    - stage: deploy
+      os: osx
+      osx_image: xcode6.4
+      env: PYENV_VERSION="3.7.0"
+      script:
+        - echo hello
+        - pwd
 
 
 addons:
