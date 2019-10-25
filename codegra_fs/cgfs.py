@@ -1803,27 +1803,22 @@ class CGFS(LoggingMixIn, Operations):
     def _create(self, path: str, mode: int) -> FileHandle:
         set_fuse_context('%s: Could not create file', path)
         parts = self.split_path(path)
-        if len(parts) <= 3:
-            logger.error(
-                'Creating files outside submissions is not supported.',
-            )
-            raise FuseOSError(EPERM)
-
         parent = self.get_dir(parts[:-1])
         fname = parts[-1]
-
         assert fname not in parent.children
 
-        submission = self.get_submission(path)
-        assert isinstance(submission.tld, str)
-
-        query_path = submission.tld + '/' + '/'.join(parts[3:])
-
-        assert cgapi is not None
-
-        if self.fixed:
+        if len(parts) <= 3 or self.fixed:
+            # logger.error(
+            #     'Creating files outside submissions is not supported.',
+            # )
+            # raise FuseOSError(EPERM)
             file = TempFile(fname, self._tmpdir)  # type: SingleFile
         else:
+            submission = self.get_submission(path)
+            assert isinstance(submission.tld, str)
+
+            query_path = submission.tld + '/' + '/'.join(parts[3:])
+            assert cgapi is not None
             try:
                 fdata = cgapi.create_file(submission.id, query_path)
             except CGAPIException as e:
@@ -1921,6 +1916,13 @@ class CGFS(LoggingMixIn, Operations):
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
 
+        if len(parts) < 4:
+            logger.error(
+                'You can not create directories outside submissions',
+                extra={'notify': 'normal'}
+            )
+            raise FuseOSError(EPERM)
+
         # Fuse should handle this but better safe than sorry
         if dname in parent.children:  # pragma: no cover
             logger.error('File already exists.')
@@ -2005,7 +2007,18 @@ class CGFS(LoggingMixIn, Operations):
         set_fuse_context('%s -> %s: Renaming file failed', old, new)
         old_parts = self.split_path(old)
         old_parent = self.get_dir(old_parts[:-1])
+
+        new_parts = self.split_path(new)
+        new_parent = self.get_dir(new_parts[:-1])
+
         file = self.get_file(old_parts[-1], start=old_parent)  # type: BaseFile
+
+        if isinstance(file, Directory) and file.type != DirTypes.REGDIR:
+            logger.error(
+                'Special directories cannot be renamed',
+                extra={'notify': 'normal'}
+            )
+            raise FuseOSError(EPERM)
 
         if isinstance(file, SpecialFile):
             logger.error(
@@ -2014,41 +2027,20 @@ class CGFS(LoggingMixIn, Operations):
             )
             raise FuseOSError(EPERM)
 
-        new_parts = self.split_path(new)
-        new_parent = self.get_dir(new_parts[:-1])
-
         if new_parts[-1] in new_parent.children:
             logger.error('File already exists.')
             raise FuseOSError(EEXIST)
 
-        if len(old_parts) < 4:
-            logger.error(
-                'File is not part of a submission, but you can only rename'
-                ' files within submissions.',
-                extra={'notify': 'normal'},
-            )
-            raise FuseOSError(EPERM)
-
-        if len(new_parts) < 4:
-            logger.error(
-                'File is not part of a submission, but you can only rename'
-                ' files within submissions.',
-                extra={'notify': 'normal'},
-            )
-            raise FuseOSError(EPERM)
-
-        submission = self.get_submission(old)
-        if submission.id != self.get_submission(new).id:
-            logger.error(
-                'Files cannot be moved between submissions.',
-                extra={'notify': 'normal'},
-            )
-            raise FuseOSError(EPERM)
-
-        assert isinstance(submission.tld, str)
-        new_query_path = submission.tld + '/' + '/'.join(new_parts[3:]) + '/'
-
         if not isinstance(file, (TempDirectory, TempFile)):
+            old_submission = self.get_submission(old)
+            new_submission = self.get_submission(new)
+            if old_submission.id != new_submission.id:
+                logger.error(
+                    'Files cannot be moved between submissions.',
+                    extra={'notify': 'normal'},
+                )
+                raise FuseOSError(EPERM)
+
             if self.fixed:
                 logger.error(
                     'Files can only be renamed in revision mode.',
@@ -2057,14 +2049,19 @@ class CGFS(LoggingMixIn, Operations):
                 raise FuseOSError(EPERM)
 
             assert cgapi is not None
+
+            assert isinstance(old_submission.tld, str)
+            new_query_path = (
+                old_submission.tld + '/' + '/'.join(new_parts[3:]) + '/'
+            )
             try:
                 res = cgapi.rename_file(file.id, new_query_path)
             except CGAPIException as e:
                 handle_cgapi_exception(e)
 
             file.id = res['id']
-        file.name = new_parts[-1]
 
+        file.name = new_parts[-1]
         old_parent.pop(old_parts[-1])
         new_parent.insert(file)
 
