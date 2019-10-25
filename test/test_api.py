@@ -6,9 +6,9 @@ import tarfile
 import subprocess
 import urllib.request
 
+import pytest
 import requests
 
-import pytest
 from helpers import (
     ls, rm, join, chmod, chown, isdir, mkdir, rm_rf, rmdir, isfile, rename,
     symlink
@@ -36,8 +36,8 @@ def password():
         (
             b'# Header\nDescription\n----\n- (1.0) Item - Desc\n', (
                 [('Header', 'Description', [(1.0, 'Item', 'Desc')])],
-                '# \[{id}\] Header\n  Description\n-+\n- '
-                '\[{id}\] \(1\.0\) Item - Desc\n'
+                '# \\[{id}\\] Header\n  Description\n-+\n- '
+                '\\[{id}\\] \\(1\\.0\\) Item - Desc\n'
             )
         ),
         (
@@ -48,8 +48,8 @@ def password():
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (4.0, 'Item2', 'Desc2')]
                     )
-                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
-                ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n'
+                ], '# \\[{id}\\] Header\n  Description\n-+\n- \\[{id}\\] \\(1\\.0\\)'
+                ' Item - Desc\n- \\[{id}\\] \\(4\\.0\\) Item2 - Desc2\n'
             )
         ),
         (
@@ -65,9 +65,9 @@ def password():
                             (2.5, 'I', 'D\nC\n\nA\n\n\nM'),
                         ]
                     )
-                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
-                ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n\n#'
-                ' \[{id}\] Header 2\n  Description 2\n-+\n- \[{id}\] \(2\.5\) I'
+                ], '# \\[{id}\\] Header\n  Description\n-+\n- \\[{id}\\] \\(1\\.0\\)'
+                ' Item - Desc\n- \\[{id}\\] \\(4\\.0\\) Item2 - Desc2\n\n#'
+                ' \\[{id}\\] Header 2\n  Description 2\n-+\n- \\[{id}\\] \\(2\\.5\\) I'
                 ' - D\n  C\n  \n  A\n  \n  \n  M\n'
             )
         ),
@@ -160,16 +160,16 @@ def test_get_set_rubric(
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (4.0, 'Item2', 'Desc2')]
                     )
-                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
-                ' Item - Desc\n- \[{id}\] \(4\.0\) Item2 - Desc2\n'
+                ], '# \\[{id}\\] Header\n  Description\n-+\n- \\[{id}\\] \\(1\\.0\\)'
+                ' Item - Desc\n- \\[{id}\\] \\(4\\.0\\) Item2 - Desc2\n'
             ), '- (5.0) Item4 - Desc4\n', (
                 [
                     (
                         'Header', 'Description',
                         [(1.0, 'Item', 'Desc'), (5.0, 'Item4', 'Desc4')]
                     )
-                ], '# \[{id}\] Header\n  Description\n-+\n- \[{id}\] \(1\.0\)'
-                ' Item - Desc\n- \[{id}\] \(5\.0\) Item4 - Desc4\n'
+                ], '# \\[{id}\\] Header\n  Description\n-+\n- \\[{id}\\] \\(1\\.0\\)'
+                ' Item - Desc\n- \\[{id}\\] \\(5\\.0\\) Item4 - Desc4\n'
             )
         ),
     ]
@@ -410,7 +410,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 
     res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
-    assert json.loads(res) == [
+    assert json.loads(res.decode('utf8')) == [
         {
             'line': 5,
             'col': 0,
@@ -423,7 +423,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ) == b''
     res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
-    assert json.loads(res) == [
+    assert json.loads(res.decode('utf8')) == [
         {
             'line': 1,
             'col': 0,
@@ -440,7 +440,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ) == b''
     res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
-    assert json.loads(res) == [
+    assert json.loads(res.decode('utf8')) == [
         {
             'line': 1,
             'col': 0,
@@ -460,7 +460,10 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
     ]).returncode == 2
 
     # Don't change after a wrong delete
-    assert res == subprocess.check_output(['cgapi-consumer', 'get-comment', f])
+    assert json.loads(res.decode('utf8')) == json.loads(
+        subprocess.check_output(['cgapi-consumer', 'get-comment',
+                                 f]).decode('utf8')
+    )
 
     assert subprocess.check_output(
         [
@@ -473,7 +476,7 @@ def test_socket_api(sub_done, assig_done, shell_id, teacher_jwt):
 
     res = subprocess.check_output(['cgapi-consumer', 'get-comment', f])
     assert b'\n' not in res[:-1]
-    assert json.loads(res) == [
+    assert json.loads(res.decode('utf8')) == [
         {
             'line': 1,
             'col': 0,

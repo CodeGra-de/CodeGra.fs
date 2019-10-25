@@ -1,5 +1,6 @@
 language: python
 sudo: required
+dist: xenial
 notifications:
   email: false
 
@@ -13,32 +14,65 @@ branches:
     - master
 
 cache:
-  pip: true
-  apt: true
+  - pip: true
+  - apt: true
+  - directories:
+    - "$HOME/.pyenv_cache"
 
 matrix:
   include:
-    - python: "3.7" # 3.6 development branch
-      os: linux
-    - python: "3.5"
-      os: linux
-    - python: "3.6" # 3.6 development branch
-      os: osx
+    - python: "3.7" # 3.7 development branch
+      env: PYENV_VERSION="3.5.5"
+    - python: "3.7" # 3.7 development branch
+      env: PYENV_VERSION="3.6.0"
+    - python: "3.7" # 3.7 development branch
+      env: PYENV_VERSION="3.7.0"
+
+
+addons:
+  apt:
+    packages:
+      - jq
+      - flex
+      - pkg-config
+      - fuse
+      - lxc
+      - lxc-dev
+      - lxcfs
+      - libvirt0
+      - libssl-dev
+      - git
+      - libnotify4
+      - gconf2
+      - gconf-service
+      - libappindicator1
+      - libxtst6
+      - libnss3
+      - xvfb
+      - libgtk2.0-0
+      - libxss1
 
 before_install:
-  - sudo apt-get install -qq pkg-config fuse
-  - if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then brew tap caskroom/cask; brew cask install osxfuse; sudo /bin/cp -RfX /usr/local/opt/osxfuse/Library/Filesystems/osxfusefs.fs /Library/Filesystems; sudo chmod +s /Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo modprobe fuse; sudo chmod 666 /dev/fuse; sudo chown root:$USER /etc/fuse.conf; fi
+  - export PYENV_ROOT="$HOME/.custom_pyenv"
+  - mkdir "$PYENV_ROOT"
+  - sudo modprobe fuse
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
 
 install:
+  - export DISPLAY=':99.0'
+  - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
   - pip install -U wheel
-  - pip install coveralls pytest-cov
-  - pip install codecov
-  - pip install .
-  - which cgfs
   - pip install celery[redis]
   - git clone https://github.com/CodeGra-de/CodeGra.de.git backend
   - pip install -r backend/requirements.txt
+  - export PYTHON_NEW="$(which python)"
+  - wget https://github.com/praekeltfoundation/travis-pyenv/releases/download/0.4.0/setup-pyenv.sh
+  - source setup-pyenv.sh
+  - pip install coveralls pytest-cov codecov
+  - pip install .
+  - npm ci
+  - which cgfs
 
 before_script:
   - pwd
@@ -47,20 +81,27 @@ before_script:
   - echo -e '\n[Celery]\nbroker_url = redis://localhost:6379/0\n' >> backend/config.ini
   - mkdir -p backend/uploads
   - mkdir -p backend/mirror_uploads
-  - python --version
+  - $PYTHON_NEW --version
   - export PYTHONPATH="$PYTHONPATH:$(pwd)"
   - export DEBUG=true
   - psql -c 'create database travis_ci_test;' -U postgres
-  - export PYTHON=python
+  - export PYTHON=$PYTHON_NEW
   - cd backend
   - make db_upgrade
   - make test_data
-  - make start_dev_server > ../server.log 2>&1 &
+  - ( deactivate && source $(dirname $PYTHON_NEW)/activate && make start_dev_server > ../server.log 2>&1 & )
   - cd ..
   - sleep 6
 
 script:
-  - make test
+  - make travis_test
+  - pip install mypy
+  - if [[ $PYENV_VERSION = "3.5.5" ]]; then > codegra_fs/cgfs_types.py; fi
+  - mypy codegra_fs
+  - npm run lint
+  - pip install -r requirements-docs.txt || true
+  - ( cd docs; make html )
+  - travis-sphinx build --source=docs/
 
 after_script:
   cat server.log
@@ -68,3 +109,4 @@ after_script:
 after_success:
   - coveralls
   - codecov
+  - travis-sphinx deploy -c fs-docs.codegra.de

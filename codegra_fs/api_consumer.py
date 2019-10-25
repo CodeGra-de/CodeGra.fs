@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import os
 import sys
 import json
 import socket
+import typing as t
 
 
-def print_usage():
+def json_loads(s: t.Union[bytes, str]) -> t.Dict[str, t.Any]:
+    if sys.version_info >= (3, 6):
+        return json.loads(s)
+    return json.loads(s if isinstance(s, str) else s.decode('utf8'))
+
+
+def print_usage() -> None:
     print(
         (
             'Usage:\n'
@@ -20,7 +29,7 @@ def print_usage():
     )
 
 
-def recv(s):
+def recv(s: socket.socket) -> str:
     message = b''
 
     while True:
@@ -32,7 +41,7 @@ def recv(s):
     return message.decode()
 
 
-def is_file(s, file):
+def is_file(s: socket.socket, file: str) -> int:
     s.send(
         bytes(
             json.dumps({
@@ -41,25 +50,26 @@ def is_file(s, file):
             }).encode('utf8')
         )
     )
-    if json.loads(recv(s))['ok']:
+    if json_loads(recv(s))['ok']:
         return 0
     else:
         return 2
 
 
-def get_comments(s, file):
+def get_comments(s: socket.socket, file: str) -> int:
     s.send(
         bytes(
-            json.
-            dumps({
-                'op': 'get_feedback',
-                'file': os.path.abspath(file),
-            }).encode('utf8')
+            json.dumps(
+                {
+                    'op': 'get_feedback',
+                    'file': os.path.abspath(file),
+                }
+            ).encode('utf8')
         )
     )
     message = recv(s)
 
-    out = json.loads(message)
+    out = json_loads(message)
     if out['ok']:
         res = []
         for key, val in out['data'].items():
@@ -72,7 +82,7 @@ def get_comments(s, file):
         return 2
 
 
-def delete_comment(s, file, line):
+def delete_comment(s: socket.socket, file: str, line: int) -> int:
     s.send(
         bytes(
             json.dumps(
@@ -84,13 +94,13 @@ def delete_comment(s, file, line):
             ).encode('utf8')
         )
     )
-    if json.loads(recv(s))['ok']:
+    if json_loads(recv(s))['ok']:
         return 0
     else:
         return 2
 
 
-def set_comment(s, file, line, message):
+def set_comment(s: socket.socket, file: str, line: int, message: str) -> int:
     s.send(
         bytes(
             json.dumps(
@@ -103,19 +113,33 @@ def set_comment(s, file, line, message):
             ).encode('utf8')
         )
     )
-    if json.loads(recv(s))['ok']:
+    if json_loads(recv(s))['ok']:
         return 0
     else:
         return 2
 
 
-def main():
-    path = '/'
+def split_path(path: str) -> t.List[str]:
+    path = os.path.normpath(os.path.abspath(path))
+    res = []  # type: t.List[str]
+    while path:
+        new_path, part = os.path.split(path)
+        if new_path == path:
+            res.append(new_path)
+            break
+        res.append(part)
+        path = new_path
+    res.reverse()
+    return res
+
+
+def main() -> None:
     if len(sys.argv) < 3:
         print_usage()
         sys.exit(1)
 
-    for p in os.path.abspath(sys.argv[2]).split('/'):
+    path = ''
+    for p in split_path(sys.argv[2]):
         if not p:
             continue
         path = os.path.join(path, p)
@@ -125,8 +149,15 @@ def main():
         print('Socket not found', file=sys.stderr)
         sys.exit(3)
 
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect(open(os.path.join(path, '.api.socket'), 'r').read())
+    with open(os.path.join(path, '.api.socket'), 'r') as f:
+        socketfile_content = f.read().strip()
+
+    if sys.platform.startswith('win32'):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('localhost', int(socketfile_content)))
+    else:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(socketfile_content)
 
     try:
         if sys.argv[1] == 'set-comment':

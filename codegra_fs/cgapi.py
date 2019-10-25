@@ -1,20 +1,58 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: AGPL-3.0-only
 
+import os
+import typing as t
 import logging
 from enum import IntEnum
 from urllib.parse import quote
 
 import requests
 
-DEFAULT_CGAPI_BASE_URL = 'https://codegra.de/api/v1'
+import codegra_fs
+
+DEFAULT_CGAPI_BASE_URL = os.getenv(
+    'CGAPI_BASE_URL', 'https://codegra.de/api/v1'
+)
+
+T_CALL = t.TypeVar('T_CALL', bound=t.Callable)
+
+USER_AGENT = 'CodeGradeFS/{}'.format(
+    '.'.join(map(str, codegra_fs.__version__))
+)
+
+logger = logging.getLogger(__name__)
+
+
+def make_request_method(fun: T_CALL) -> T_CALL:
+    def meth(*args, **kwargs):
+        try:
+            return fun(*args, **kwargs, timeout=3)
+        except requests.exceptions.ConnectionError:
+            try:
+                sleep(1)
+                return fun(*args, **kwargs, timeout=3)
+            except requests.exceptions.ConnectionError as e:
+                raise CGAPIException(
+                    {
+                        'message': str(e),
+                        'description': str(e),
+                        'code': 500,
+                    }
+                )
+
+    return t.cast(T_CALL, meth)
 
 
 class APIRoutes():
-    def __init__(self, base, owner='auto'):
+    def __init__(self, base: t.Optional[str], fixed: bool = False):
+        if base is None:
+            base = DEFAULT_CGAPI_BASE_URL
+
         while base and base[-1] == '/':  # pragma: no cover
             base = base[:-1]
 
-        self.owner = owner
+        self.owner = 'student' if fixed else 'auto'
         self.base = base
 
     def get_login(self):
@@ -28,7 +66,7 @@ class APIRoutes():
             base=self.base, assignment_id=assignment_id
         )
 
-    def get_files(self, submission_id):
+    def get_files(self, submission_id: int) -> str:
         return ('{base}/submissions/{submission_id}'
                 '/files/?owner={owner}').format(
                     base=self.base,
@@ -36,7 +74,7 @@ class APIRoutes():
                     owner=self.owner,
                 )
 
-    def get_file(self, submission_id, path):
+    def get_file(self, submission_id: int, path: str) -> str:
         return (
             '{base}/submissions/{submission_id}/'
             'files/?path={path}&owner={owner}'
@@ -76,9 +114,7 @@ class APIRoutes():
         return (
             '{base}/code/{file_id}?operation='
             'rename&new_path={new_path}'
-        ).format(
-            base=self.base, file_id=file_id, new_path=quote(new_path)
-        )
+        ).format(base=self.base, file_id=file_id, new_path=quote(new_path))
 
     def get_feedbacks(self, assignment_id):
         return '{base}/assignments/{assignment_id}/feedbacks/'.format(
@@ -86,21 +122,18 @@ class APIRoutes():
         )
 
     def get_feedback(self, file_id):
-        return ('{base}/code/{file_id}?type=feedback').format(
-            base=self.base, file_id=file_id
-        )
+        return ('{base}/code/{file_id}?type=feedback'
+                ).format(base=self.base, file_id=file_id)
 
     def add_feedback(self, file_id, line):
-        return ('{base}/code/{file_id}/comments/{line}').format(
-            base=self.base, file_id=file_id, line=line
-        )
+        return ('{base}/code/{file_id}/comments/{line}'
+                ).format(base=self.base, file_id=file_id, line=line)
 
     delete_feedback = add_feedback
 
     def get_assignment(self, assignment_id):
-        return ('{base}/assignments/{assignment_id}').format(
-            base=self.base, assignment_id=assignment_id
-        )
+        return ('{base}/assignments/{assignment_id}'
+                ).format(base=self.base, assignment_id=assignment_id)
 
 
 class APICodes(IntEnum):
@@ -126,7 +159,13 @@ class APICodes(IntEnum):
 
 class CGAPIException(Exception):
     def __init__(self, response):
-        data = response.json()
+        try:
+            data = response.json()
+        except:
+            raise Exception(
+                'Could not get json from server, maybe wrong url? Url should'
+                ' end with "/api/v1/" and start with "https://"'
+            )
         super().__init__(data['message'])
 
         self.status_code = response.status_code
@@ -141,31 +180,76 @@ class CGAPIException(Exception):
 
 
 class CGAPI():
-    def __init__(self, username, password, base=None, fixed=False):
-        owner = 'student' if fixed else 'auto'
-        self.routes = APIRoutes(base or DEFAULT_CGAPI_BASE_URL, owner)
+    def __init__(
+        self,
+        routes: APIRoutes,
+        user: t.Mapping,
+        access_token: str,
+    ) -> None:
+        self.routes = routes
+        self.user = user
+        self.access_token = access_token
 
-        r = requests.post(
-            self.routes.get_login(),
-            json={
-                'username': username,
-                'password': password,
+        self.s = requests.Session()
+        self.s.headers.update(
+            {
+                'Authorization': 'Bearer ' + access_token,
+                'User-Agent': USER_AGENT,
             }
         )
+        self.s.get = make_request_method(self.s.get)  # type: ignore
+        self.s.patch = make_request_method(self.s.patch)  # type: ignore
+        self.s.post = make_request_method(self.s.post)  # type: ignore
+        self.s.delete = make_request_method(self.s.delete)  # type: ignore
+        self.s.put = make_request_method(self.s.put)  # type: ignore
 
-        self._handle_response_error(r)
-        json = r.json()
+    @classmethod
+    def from_username_and_password(
+        cls, username: str, password: str, base: str, fixed: bool = False
+    ) -> 'CGAPI':
+        routes = APIRoutes(base, fixed)
 
-        self.user = json['user']
-        self.access_token = json['access_token']
-        self.s = requests.Session()
-        self.fixed = fixed
+        r = requests.post(
+            routes.get_login(),
+            headers={'User-Agent': USER_AGENT},
+            json={
+                'username': username,
+                'password': password
+            },
+        )
 
-        self.s.headers = {
-            'Authorization': 'Bearer ' + self.access_token,
-        }
+        cls._handle_response_error(r)
+        try:
+            json = r.json()
+        except:
+            raise CGAPIException(r)
 
-    def _handle_response_error(self, request):
+        return cls(routes, json['user'], json['access_token'])
+
+    @classmethod
+    def from_access_token(
+        cls, access_token: str, base: str, fixed: bool = False
+    ) -> 'CGAPI':
+        routes = APIRoutes(base, fixed)
+
+        r = requests.get(
+            routes.get_login(),
+            headers={
+                'Authorization': 'Bearer ' + access_token,
+                'User-Agent': USER_AGENT,
+            },
+        )
+
+        cls._handle_response_error(r)
+        try:
+            user = r.json()
+        except:
+            raise CGAPIException(r)
+
+        return cls(routes, user, access_token)
+
+    @staticmethod
+    def _handle_response_error(request):
         if request.status_code >= 400:
             raise CGAPIException(request)
 
@@ -216,7 +300,7 @@ class CGAPI():
 
         return r.json()
 
-    def get_file(self, file_id):
+    def get_file(self, file_id: int) -> bytes:
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.get(url)
 
@@ -224,7 +308,7 @@ class CGAPI():
 
         return r.content
 
-    def patch_file(self, file_id, buf):
+    def patch_file(self, file_id: int, buf: bytes) -> t.Dict[str, t.Any]:
         url = self.routes.get_file_buf(file_id=file_id)
         r = self.s.patch(url, data=buf)
 
@@ -319,13 +403,21 @@ class CGAPI():
 
         return r.json()
 
-    def set_submission(self, submission_id, grade=None, feedback=None):
+    def set_submission(
+        self,
+        submission_id: int,
+        grade: t.Union[None, float, str] = None,
+        feedback: t.Optional[bytes] = None
+    ):
         url = self.routes.set_submission(submission_id)
-        d = {}
+        d = {}  # type: t.Dict[str, t.Union[bytes, float, None]]
         if grade is not None:
-            d['grade'] = grade
-        if grade == 'delete':
-            d['grade'] = None
+            if grade == 'delete':
+                d['grade'] = None
+            else:
+                assert not isinstance(grade, str)
+                d['grade'] = grade
+
         if feedback is not None:
             d['feedback'] = feedback
         r = self.s.patch(url, json=d)

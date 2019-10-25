@@ -20,8 +20,10 @@ def password(request):
 def teacher_id(username, password):
     req = requests.post(
         'http://localhost:5000/api/v1/login',
-        json={'username': username,
-              'password': password}
+        json={
+            'username': username,
+            'password': password
+        }
     )
     return req.json()['user']['id']
 
@@ -76,10 +78,13 @@ def test_list_assigned_submissions(mount, mount_dir, teacher_jwt, teacher_id):
     for assig in ls(mount_dir, course):
         for sub in ls(mount_dir, course, assig):
             if 'Student1' in sub:
-                with open(join(mount_dir, course, assig, sub, '.cg-submission-id')) as f:
+                with open(
+                    join(mount_dir, course, assig, sub, '.cg-submission-id')
+                ) as f:
                     sub_id = f.read().strip()
                 r = requests.patch(
-                    f'http://localhost:5000/api/v1/submissions/{sub_id}/grader',
+                    'http://localhost:5000/api/v1/submissions/{}/grader'.
+                    format(sub_id),
                     json={'user_id': teacher_id},
                     headers={
                         'Authorization': 'Bearer ' + teacher_jwt,

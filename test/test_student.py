@@ -1,4 +1,5 @@
 import pytest
+
 from helpers import ls, rm, join, isdir, mkdir, rm_rf, rmdir, isfile
 
 
@@ -104,7 +105,6 @@ def test_write_and_read_files(mount_dir, sub_open, sub_done):
     assert isfile(sub_done, 'dir', 'single_file_work')
     with open(join(sub_done, 'dir', 'single_file_work'), 'r') as f:
         assert f.read() == old
-
 
 
 def test_delete_files(mount_dir, sub_open, sub_done):
