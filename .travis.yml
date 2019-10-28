@@ -43,7 +43,8 @@ matrix:
         - echo hello
         - pwd
         - brew update
-        - brew upgrade node
+        - brew upgrade npm
+        - npm install -g npm@latest
         - brew upgrade python
         - python3 -m venv env
         - source env/bin/activate
