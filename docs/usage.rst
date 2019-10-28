@@ -19,7 +19,7 @@ in with your CodeGrade username and password.
 Some advanced options are available to further customise your CodeGrade mount:
 
 - **Location:** The mount location defaults to the *Desktop*, but can be set anywhere else. A ``CodeGrade`` mount-folder will automatically be created in the selected directory.
-- **Revision mode:** (Previously fixed mode) Turn on to sync all edits, deletions and additions of files in submissions, these will then be visible to the students as *Teacher Revisions*. Disabling will still allow adding files, however these files will not be synced with CodeGrade or shown to the student.
+- **Revision mode:** *(Previously fixed mode)* Turn on to sync all edits, deletions and additions of files in submissions, these will then be visible to the students as *Teacher Revisions*. Disabling will still allow adding files, however these files will not be synced with CodeGrade or shown to the student.
 - **Assigned to me:** Only show submissions that are assigned to you. Only has effect if submissions are actually assigned and you are one of the assignees.
 - **Latest submissions only:** Only show the most recent submission of each students. On by default, turn off to see all attempts by the student.
 - **Notifications:** Verbosity of the notifications. Defaults to *All*, choose *Critical only* to only see critical notifications and use *Debug* to also log all notifications.

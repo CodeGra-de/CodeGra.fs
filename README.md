@@ -109,22 +109,22 @@ for [emacs](https://github.com/CodeGra-de/CodeGra.el),
 upon request.
 
 ## Privacy
-You can use CodeGra.fs for any CodeGrade instance. The application does a
-version check at every startup, this is done by doing a request to
-`https://codegra.de/.cgfs.json` and to `https://codegra.de/.cgfs.version`. We do
-not collect any personal information at these routes. It is currently not
-possible to disable this version check.
+You can use the CodeGrade FileSystem for any CodeGrade instance. The
+application does a version check at every startup, this is done by doing a
+request to `https://codegra.de/.cgfs.json` and to
+`https://codegra.de/.cgfs.version`. We do not collect any personal information
+at these routes. It is currently not possible to disable this version check.
 
 ## Support
 Please report any issues by creating a GitHub issue
 [here](https://github.com/CodeGra-de/CodeGra.fs/issues/new), if possible please
 include link to uploaded a log output when encountering the bug using the
 `verbose` mode (use the `--verbose` command line flag, or click 'verbose' in the
-GUI). You can upload logs to any pastebin like website, for example
+GUI). You can upload logs to any pastebin-like website, for example
 [glot.io](https://glot.io/new/plaintext).
 
 Commercial support of CodeGrade Filesystem is available and included in a
-commercial CodeGrade instance. We would love to provide more information, please
+commercial CodeGrade license. We would love to provide more information, please
 send an e-mail to support@codegra.de!
 
 ## License

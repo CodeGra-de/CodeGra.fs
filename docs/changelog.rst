@@ -1,10 +1,41 @@
 Changelog
 ==========
 
+Version 1.1.1
+--------------
+**Released**: October 28th, 2019
+
+**Features & Updates**
+
+- Make it easier to use cgfs with legacy applications `(#47)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/42>`__: This Format dates
+  differently. The ISO8061 date format uses colons, but colons are disallowed on
+  some Windows systems. The new "ISO dates" option makes CGFS use the old
+  format. Also adds option "ASCII only". The former replaces any non-ASCII
+  character in filenames with a `-`.
+
+Version 1.0.0
+--------------
+**Released**: August 19th, 2019
+
+**Features & Updates**
+
+- Update frontend `(#42)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/42>`__: Update the frontend of
+  the CodeGrade Filesystem with Electron. Make more intuitive, easier to select
+  institute and add better error notifications.
+- Add Windows and MacOS installers `(#42)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/42>`__: Add installers for
+  Windows and MacOS to make installing the Filesystem easier and to
+  automatically install all dependencies.
+- Add Debian/Ubuntu install script `(#42)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/42>`__: Add a script to
+  install the CodeGrade Filesystem and all dependencies on Debian / Ubuntu.
+
 Version 0.5.0
 -------------
 
-**Released**: Februari 14th, 2019
+**Released**: February 14th, 2019
 
 **Features & Updates**
 
