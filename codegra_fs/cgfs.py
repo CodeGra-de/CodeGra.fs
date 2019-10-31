@@ -1914,19 +1914,12 @@ class CGFS(LoggingMixIn, Operations):
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
 
-        if len(parts) < 4:
-            logger.error(
-                'You can not create directories outside submissions',
-                extra={'notify': 'normal'}
-            )
-            raise FuseOSError(EPERM)
-
         # Fuse should handle this but better safe than sorry
         if dname in parent.children:  # pragma: no cover
             logger.error('File already exists.')
             raise FuseOSError(EEXIST)
 
-        if self.fixed:
+        if self.fixed or len(parts) < 4:
             parent.insert(TempDirectory({}, name=dname, writable=True))
         else:
             assert cgapi is not None
