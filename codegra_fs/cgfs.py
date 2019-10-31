@@ -1909,14 +1909,23 @@ class CGFS(LoggingMixIn, Operations):
             return self._mkdir(path, mode)
 
     def _mkdir(self, path: str, mode: int) -> None:
-        set_fuse_context('%s: Making directory failed', path)
+        set_fuse_context('%s', path)
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
 
+        if len(parts) < 4:
+            logger.warning(
+                (
+                    'This directory and all of its contents will not be '
+                    'saved and synchronized.'
+                ),
+                extra={'notify': 'normal'}
+            )
+
         # Fuse should handle this but better safe than sorry
         if dname in parent.children:  # pragma: no cover
-            logger.error('File already exists.')
+            logger.error('Making directory failed: File already exists.')
             raise FuseOSError(EEXIST)
 
         if self.fixed or len(parts) < 4:
