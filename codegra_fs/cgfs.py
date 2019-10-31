@@ -1790,6 +1790,17 @@ class CGFS(LoggingMixIn, Operations):
     ) -> Directory:
         return self.get_file(path, start=start, expect_type=Directory)
 
+    def should_sync(self, parts: t.Sequence[str]) -> bool:
+        try:
+            return (
+                len(parts) >= 4 and
+                self.get_dir(parts[:3]).type == DirTypes.SUBMISSION
+            )
+        except FuseOSError:
+            # If the path is not (in) a submission, just return false, as we
+            # do not want to sync these directories.
+            return False
+
     def chmod(self, path: str, mode: int) -> None:
         logger.error('Changing file permissions is not supported.')
         raise FuseOSError(ENOTSUP)
@@ -1913,8 +1924,9 @@ class CGFS(LoggingMixIn, Operations):
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
+        sync = self.should_sync(parts)
 
-        if len(parts) < 4:
+        if not sync:
             logger.warning(
                 (
                     'This directory and all of its contents will not be '
@@ -1928,7 +1940,7 @@ class CGFS(LoggingMixIn, Operations):
             logger.error('Making directory failed: File already exists.')
             raise FuseOSError(EEXIST)
 
-        if self.fixed or len(parts) < 4:
+        if self.fixed or not sync:
             parent.insert(TempDirectory({}, name=dname, writable=True))
         else:
             assert cgapi is not None
