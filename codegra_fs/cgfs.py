@@ -1790,6 +1790,12 @@ class CGFS(LoggingMixIn, Operations):
     ) -> Directory:
         return self.get_file(path, start=start, expect_type=Directory)
 
+    def should_sync(self, parts: t.List[str]) -> bool:
+        return (
+            len(parts) >= 4 and
+            self.get_dir(parts[:3]).type == DirTypes.SUBMISSION
+        )
+
     def chmod(self, path: str, mode: int) -> None:
         logger.error('Changing file permissions is not supported.')
         raise FuseOSError(ENOTSUP)
@@ -1807,9 +1813,16 @@ class CGFS(LoggingMixIn, Operations):
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         fname = parts[-1]
+        sync = self.should_sync(parts)
         assert fname not in parent.children
 
-        if len(parts) <= 3 or self.fixed:
+        if not sync and not isinstance(parent, TempDirectory):
+            logger.warning(
+                'This file and its contents will not be synchronized.',
+                extra={'notify': 'normal'}
+            )
+
+        if self.fixed or not sync:
             file = TempFile(fname, self._tmpdir)  # type: SingleFile
         else:
             submission = self.get_submission(path)
@@ -1909,24 +1922,27 @@ class CGFS(LoggingMixIn, Operations):
             return self._mkdir(path, mode)
 
     def _mkdir(self, path: str, mode: int) -> None:
-        set_fuse_context('%s: Making directory failed', path)
+        set_fuse_context('%s', path)
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         dname = parts[-1]
+        sync = self.should_sync(parts)
 
-        if len(parts) < 4:
-            logger.error(
-                'You can not create directories outside submissions',
+        if not sync and not isinstance(parent, TempDirectory):
+            logger.warning(
+                (
+                    'This directory and all of its contents will not be '
+                    'synchronized.'
+                ),
                 extra={'notify': 'normal'}
             )
-            raise FuseOSError(EPERM)
 
         # Fuse should handle this but better safe than sorry
         if dname in parent.children:  # pragma: no cover
-            logger.error('File already exists.')
+            logger.error('Making directory failed: File already exists.')
             raise FuseOSError(EEXIST)
 
-        if self.fixed:
+        if self.fixed or not sync:
             parent.insert(TempDirectory({}, name=dname, writable=True))
         else:
             assert cgapi is not None

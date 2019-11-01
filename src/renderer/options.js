@@ -91,7 +91,8 @@ const OPTIONS = {
             {
                 key: 'isoTimestamps',
                 label: 'ISO8061 dates',
-                help: 'Use ISO8061 as format for the timestamps in filenames. Disabling this option can be useful for legacy applications.',
+                help:
+                    'Use ISO8061 as format for the timestamps in filenames. Disabling this option can be useful for legacy applications.',
             },
         ],
     },
