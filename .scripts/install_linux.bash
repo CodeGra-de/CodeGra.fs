@@ -83,7 +83,7 @@ main() {
     if _pip list | grep -- 'CodeGra.fs'; then
         printf "\\nRemoving old versions\\n"
         _pip uninstall -y CodeGra.fs
-    endif
+    fi
 
     printf "\\nInstalling our version of fusepy\\n"
     sudo dpkg -i "$tmpdir/fusepy.deb"
