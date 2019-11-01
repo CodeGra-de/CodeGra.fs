@@ -1790,7 +1790,7 @@ class CGFS(LoggingMixIn, Operations):
     ) -> Directory:
         return self.get_file(path, start=start, expect_type=Directory)
 
-    def should_sync(self, parts: t.Sequence[str]) -> bool:
+    def should_sync(self, parts: t.List[str]) -> bool:
         return (
             len(parts) >= 4 and
             self.get_dir(parts[:3]).type == DirTypes.SUBMISSION
