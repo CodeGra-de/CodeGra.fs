@@ -72,7 +72,7 @@ def test_create_symlink(sub_done):
     assert isdir(sub_done, 'wowsers')
 
 
-def test_create_file_outside_submissions(mount_dir):
+def test_create_file_outside_submissions(mount_dir, mount):
     with open(join(mount_dir, 'file'), 'w+') as f:
         f.write('hello\n')
     with open(join(mount_dir, 'file'), 'r') as f:
@@ -80,14 +80,37 @@ def test_create_file_outside_submissions(mount_dir):
 
     with open(
         join(
-            mount_dir,
-            [l for l in ls(mount_dir) if isdir(mount_dir, l)][0], 'file'
+            mount_dir, [l for l in ls(mount_dir) if isdir(mount_dir, l)][0],
+            'file'
         ), 'w+'
     ) as f:
         f.write('hello\n')
 
-    with pytest.raises(PermissionError):
-        mkdir(mount_dir, 'dir')
+    mkdir(mount_dir, 'dir')
+    mkdir(mount_dir, 'dir', 'hello')
+    mkdir(mount_dir, 'dir', 'hello', 'codegrade')
+    with open(
+        join(mount_dir, 'dir', 'hello', 'codegrade', 'nice_to_meet'), 'w'
+    ) as f:
+        f.write('hello')
+    with pytest.raises(FileExistsError):
+        mkdir(mount_dir, 'dir', 'hello', 'codegrade', 'nice_to_meet')
+    with open(
+        join(mount_dir, 'dir', 'hello', 'codegrade', 'nice_to_meet'), 'r'
+    ) as f:
+        assert f.read() == 'hello'
+
+    with pytest.raises(FileNotFoundError):
+        with open(join(mount_dir, 'dir', 'bye', 'cg'), 'w') as f:
+            pass
+    with pytest.raises(FileNotFoundError):
+        mkdir(mount_dir, 'dir', 'bye', 'cg2')
+
+    assert 'dir' in ls(mount_dir)
+    assert 'file' in ls(mount_dir)
+    mount()
+    assert 'dir' not in ls(mount_dir)
+    assert 'file' not in ls(mount_dir)
 
 
 def test_delete_invalid_file(mount_dir):

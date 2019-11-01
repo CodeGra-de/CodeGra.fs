@@ -1791,15 +1791,10 @@ class CGFS(LoggingMixIn, Operations):
         return self.get_file(path, start=start, expect_type=Directory)
 
     def should_sync(self, parts: t.Sequence[str]) -> bool:
-        try:
-            return (
-                len(parts) >= 4 and
-                self.get_dir(parts[:3]).type == DirTypes.SUBMISSION
-            )
-        except FuseOSError:
-            # If the path is not (in) a submission, just return false, as we
-            # do not want to sync these directories.
-            return False
+        return (
+            len(parts) >= 4 and
+            self.get_dir(parts[:3]).type == DirTypes.SUBMISSION
+        )
 
     def chmod(self, path: str, mode: int) -> None:
         logger.error('Changing file permissions is not supported.')
@@ -1818,9 +1813,16 @@ class CGFS(LoggingMixIn, Operations):
         parts = self.split_path(path)
         parent = self.get_dir(parts[:-1])
         fname = parts[-1]
+        sync = self.should_sync(parts)
         assert fname not in parent.children
 
-        if len(parts) <= 3 or self.fixed:
+        if not sync and not isinstance(parent, TempDirectory):
+            logger.warning(
+                'This file and its contents will not be synchronized.',
+                extra={'notify': 'normal'}
+            )
+
+        if self.fixed or not sync:
             file = TempFile(fname, self._tmpdir)  # type: SingleFile
         else:
             submission = self.get_submission(path)
@@ -1926,11 +1928,11 @@ class CGFS(LoggingMixIn, Operations):
         dname = parts[-1]
         sync = self.should_sync(parts)
 
-        if not sync:
+        if not sync and not isinstance(parent, TempDirectory):
             logger.warning(
                 (
                     'This directory and all of its contents will not be '
-                    'saved and synchronized.'
+                    'synchronized.'
                 ),
                 extra={'notify': 'normal'}
             )
