@@ -437,8 +437,10 @@ def _get_feedbacks(api: CGAPI, submission_id: int,
     def make_file_lookup(f: t.Dict[str, t.Any], path: str) -> None:
         new_path = os.path.join(path, f['name'])
         file_lookup[str(f['id'])] = new_path
-        for sub in f.get('entries', []):
-            make_file_lookup(sub, new_path)
+        entries = f.get('entries', None)
+        if entries is not None:
+            for sub in entries:
+                make_file_lookup(sub, new_path)
 
     make_file_lookup(files, '/')
     res = []
@@ -1696,7 +1698,7 @@ class CGFS(LoggingMixIn, Operations):
 
     def insert_tree(self, dir: Directory, tree: t.Dict[str, t.Any]):
         for item in tree['entries']:
-            if 'entries' in item:
+            if 'entries' in item and item['entries'] is not None:
                 new_dir = Directory(item, writable=True)
                 new_dir.getattr()
                 dir.insert(new_dir)
