@@ -102,6 +102,7 @@ def mount(
         while not os.path.isfile(check_dir):
             time.sleep(i)
             i *= 2
+            assert proc.returncode is None, 'Program exited unexpectedly'
         print(os.listdir(mount_dir))
 
     def do_umount():
