@@ -4,7 +4,7 @@ PYLINT_FLAGS += --rcfile=setup.cfg codegra_fs
 YAPF_FLAGS += --recursive --parallel codegra_fs
 ISORT_FLAGS += --recursive codegra_fs
 TEST_FILE ?= test/
-TEST_FLAGS += -vvv -s
+TEST_FLAGS += -vvv
 
 ENV = . env/bin/activate;
 

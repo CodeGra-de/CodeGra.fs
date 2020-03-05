@@ -23,7 +23,7 @@ matrix:
     - python: "3.7" # 3.7 development branch
       env: PYENV_VERSION="3.5.5"
     - python: "3.7" # 3.7 development branch
-      env: PYENV_VERSION="3.6.0"
+      env: PYENV_VERSION="3.6.1"
     - python: "3.7" # 3.7 development branch
       env: PYENV_VERSION="3.7.0"
 
