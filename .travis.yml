@@ -93,7 +93,7 @@ before_script:
   - sleep 6
 
 script:
-  - make travis_test
+  - timeout -k 5 540 make travis_test
   - pip install mypy
   - if [[ $PYENV_VERSION = "3.5.5" ]]; then > codegra_fs/cgfs_types.py; fi
   - mypy codegra_fs
