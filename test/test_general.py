@@ -608,3 +608,42 @@ def test_courses_non_ascii(mount, admin_jwt, mount_dir):
     assert len(
         [l for l in ls(mount_dir) if l.startswith(res_course_name)]
     ) == 2
+
+
+@pytest.mark.parametrize(
+    'username,password', [['admin', 'admin']], indirect=True
+)
+def test_courses_with_slash(mount, admin_jwt, mount_dir):
+    n_id = uuid.uuid4().hex
+    course_name = 'New/Course_{}'.format(n_id)
+    result_course_name = 'New-Course_{}'.format(n_id)
+    print(n_id)
+
+    requests.patch(
+        'http://localhost:5000/api/v1/roles/4',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'value': True,
+            'permission': 'can_create_courses'
+        }
+    ).raise_for_status()
+
+    requests.post(
+        'http://localhost:5000/api/v1/courses/',
+        headers={
+            'Authorization': 'Bearer ' + admin_jwt
+        },
+        json={
+            'name': course_name
+        }
+    ).raise_for_status()
+
+    time.sleep(1)
+
+    mount()
+    assert result_course_name in ls(mount_dir)
+
+    mount(ascii_only=True)
+    assert result_course_name in ls(mount_dir)

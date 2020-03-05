@@ -1553,7 +1553,7 @@ class CGFS(LoggingMixIn, Operations):
     def _get_directory_name(self, name: str) -> str:
         if self.ascii_only:
             return codegra_fs.utils.remove_special_chars(name)
-        return name
+        return name.replace('/', '-')
 
     def load_courses(self) -> None:
         assert cgapi is not None
