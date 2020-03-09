@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: AGPL-3.0-only
-VERSION="1.1.0"
+VERSION="1.1.2"
 
 err_echo() {
     (>&2 echo "$@")

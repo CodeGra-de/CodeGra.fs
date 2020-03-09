@@ -1,6 +1,16 @@
 Changelog
 ==========
 
+Version 1.1.2
+--------------
+**Released**: March 9th, 2020
+
+**Features & Updates**
+
+- Make it possible to have course names with slashes in them `(#52)
+  <https://github.com/CodeGra-de/CodeGra.fs/pull/52>`__: This makes it possible
+  to display courses with slashes in their names.
+
 Version 1.1.1
 --------------
 **Released**: October 28th, 2019
