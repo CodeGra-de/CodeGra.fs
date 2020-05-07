@@ -147,9 +147,7 @@ build-linux-deb-backend: dist/python3-codegrade-fs_$(VERSION)-1_all.deb
 .PHONY: dist/python3-codegrade-fs_$(VERSION)-1_all.deb
 dist/python3-codegrade-fs_$(VERSION)-1_all.deb: dist/python3-fusepy_3.0.1-1_all.deb build/deb.patch
 	dpkg -s python3-fusepy || sudo dpkg -i dist/python3-fusepy_3.0.1-1_all.deb
-	git apply build/deb.patch
-	trap 'rm -rf codegrade_fs.egg-info codegrade-fs-$(VERSION).tar.gz; \
-		git apply --reverse build/deb.patch' 0 1 2 3 15; \
+	trap 'rm -rf codegrade_fs.egg-info codegrade-fs-$(VERSION).tar.gz;' 0 1 2 3 15; \
 	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb
 	mkdir -p dist
 	mv deb_dist/*.deb dist

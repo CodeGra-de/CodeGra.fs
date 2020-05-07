@@ -14,7 +14,7 @@ if python3 --version | grep '3\.5'; then
 	rm codegra_fs/cgfs_types.py
 fi
 
-git diff --patch >build/deb.patch
+git diff > debian/patches/fix-fusepy
 
 git checkout codegra_fs/cgfs.py codegra_fs/utils.py codegra_fs/cgfs_types.py
 
