@@ -1,0 +1,38 @@
+diff --git a/codegra_fs/cgfs_types.py b/codegra_fs/cgfs_types.py
+index 9d3bda2..e69de29 100644
+--- codegra_fs/cgfs_types.py
++++ codegra_fs/cgfs_types.py
+@@ -1,33 +0,0 @@
+-from mypy_extensions import TypedDict
+-
+-PartialStat = TypedDict(
+-    'PartialStat',
+-    {
+-        'st_size': int,
+-        'st_atime': float,
+-        'st_mtime': float,
+-        'st_ctime': float,
+-        'st_uid': int,
+-        'st_gid': int,
+-    },
+-    total=True,
+-)
+-
+-
+-class FullStat(PartialStat, total=True):
+-    st_nlink: int
+-    st_mode: int
+-
+-
+-__APIHandlerResponse = TypedDict(
+-    '__APIHandlerResponse',
+-    {
+-        'ok': bool,
+-    },
+-    total=True,
+-)
+-
+-
+-class APIHandlerResponse(__APIHandlerResponse, total=False):
+-    error: str
+-    data: str
