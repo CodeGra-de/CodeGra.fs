@@ -55,7 +55,7 @@ except:
 
 try:
     # Python 3.5 doesn't support the syntax below
-    if sys.version_info >= (3, 6):
+    if sys.version_info >= (3, 6) and t.TYPE_CHECKING:
         from codegra_fs.cgfs_types import PartialStat, FullStat, APIHandlerResponse
     else:
         raise Exception

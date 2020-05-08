@@ -84,6 +84,7 @@ before_script:
   - export PYTHONPATH="$PYTHONPATH:$(pwd)"
   - export DEBUG=true
   - psql -c 'create database travis_ci_test;' -U postgres
+  - psql travis_ci_test -c 'create extension citext;' -U postgres
   - export PYTHON=$PYTHON_NEW
   - cd backend
   - make db_upgrade
