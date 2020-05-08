@@ -16,7 +16,7 @@ run: install
 	$(ENV) npm run dev
 
 env:
-	virtualenv --python=python3 env
+	python3 -m venv env
 
 .PHONY: install-deps
 install-deps: env/.install-deps env/.install-deps-$(UNAME) node_modules/.install-deps

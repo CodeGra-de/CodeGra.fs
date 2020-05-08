@@ -24,6 +24,7 @@
 </p>
 
 # CodeGrade Filesystem
+
 The CodeGrade Filesystem is the extension of CodeGrade that allows you to
 test, review and grade all CodeGrade assignments locally from within your
 favourite editor. The Filesystem application mounts a local CodeGrade instance
@@ -34,13 +35,21 @@ We aim to further enhance the grading experience and decrease overhead with the
 CodeGrade Filesystem.
 
 ## Installation
+
 The CodeGrade Filesystem is an external application that can be installed on
 Windows, MacOS and GNU/Linux. To install it go to [The CodeGrade
-website](https://codegra.de/filesystem/) and follow the instructions there.
+website](https://codegra.de/download-codegrade-filesystem/) and follow the
+instructions there.
+
+**NOTE** The filesystem used to be distributed as a package on
+[PyPI](https://pypi.org/). **This package is deprecated and outdated, and it
+should not be used anymore.**
 
 ### Dependencies
-The supplied installers automatically install all required dependencies for the
-CodeGrade Filesystem to work, these are:
+
+The supplied installers automatically install all dependencies for the required
+CodeGrade Filesystem to run, these are:
+
 - [Python 3](https://www.python.org/)
 - [Electron](https://github.com/electron/electron)
 - [FUSE (for MacOS)](https://osxfuse.github.io/)
@@ -50,9 +59,90 @@ CodeGrade Filesystem to work, these are:
 - [cffi](https://bitbucket.org/cffi/cffi)
 - [winfspy](https://github.com/Scille/winfspy)
 
+### Manual build (Debian and Ubuntu)
+
+To manually build the CodeGrade Filesystem, make sure the following
+dependencies are installed:
+
+  - Python 3.5 or greater
+  - Node.js 10.19 or greater (earlier versions _may_ work, but have not been
+    tested)
+
+Then clone the repository, cd into it, and build the installers (the
+`build-quick` make recipe builds without running the test suite):
+
+```
+git clone https://github.com/CodeGra-de/CodeGra.fs
+
+cd CodeGra.fs
+
+make build-quick
+```
+
+**NOTE** `make build-quick` will install a custom version of the package
+`python3-fusepy` on your system.
+
+The `.deb` packages can then be found in the `dist` directory, and should be
+installed in the following order:
+
+1. python3-fusepy_XXX.deb
+2. python3-codegrade-fs_XXX.deb
+3. codegrade-fs_XXX.deb
+
+The filesystem can now be started by running `codegrade-filesystem` on the
+command line.
+
+### Manual build (Mac OSX)
+
+To manually build the CodeGrade Filesystem, make sure the following
+dependencies are installed:
+
+  - Python 3.5 or greater
+  - Node.js 10.19 or greater (earlier versions _may_ work, but have not been
+    tested)
+
+Then clone the repository, cd into it, and build the installer (the
+`build-quick` make recipe builds without running the test suite):
+
+```
+git clone https://github.com/CodeGra-de/CodeGra.fs
+
+cd CodeGra.fs
+
+make build-quick
+```
+
+**NOTE** Manual intervention may be required to download the OXSFuse installer.
+`make build-quick` will show a message with instructions on what to do.
+
+After building the installer `.pkg` can be found in the `dist` directory.
+
+### Manual build (Windows)
+
+To manually build the CodeGrade Filesystem, make sure the following
+dependencies are installed:
+
+  - Python 3.5 or greater
+  - Node.js 10.19 or greater (earlier versions _may_ work, but have not been
+    tested)
+
+Then clone the repository, cd into it, and build the installer:
+
+```
+git clone https://github.com/CodeGra-de/CodeGra.fs
+
+cd CodeGra.fs
+
+python3 ./build.py
+```
+
+After building the installer `.exe` can be found in the `dist` directory.
+
 ## Usage
+
 Open the CodeGrade Filesystem program to mount the CodeGrade server locally.
 Follow the steps below to mount:
+
 1. Select your institution, or select _Other_ to use a custom CodeGrade instance.
 2. Fill in your CodeGrade username and password.
 3. _Optional:_ Select the mount location (default is desktop).
@@ -61,20 +151,23 @@ Follow the steps below to mount:
 6. Click mount to mount the CodeGrade Filesystem.
 
 ### Command line usage __(deprecated)__
+
 Installing the filesystem automatically installs the `cgfs` command, which is
 also used in the back-end of the GUI. Use `cgfs --help` for an overview of the
 options of the `cgfs` command line tool. Using the GUI is highly recommended.
 
 ### Available files
+
 The basic layout of the file-system is `/course/assignment/submission -
 submission_time`. All files that a student submitted can be found in
 the submission folder. Depending on the __Assigned to me__ and __Latest Only__
 options, this shows respectively only the submissions assigned to you and only
 the latest submissions.
 
-The CodeGrade Filesystem also uses a few *special files*, these are files that are not submitted by a student but can be used to control CodeGrade. These files
-are validated on a save, which fails if the file format is not correct. The
-following special files exist:
+The CodeGrade Filesystem also uses a few *special files*, these are files that
+are not submitted by a student but can be used to control CodeGrade. These
+files are validated on a save, which fails if the file format is not correct.
+The following special files exist:
 
 | Name | Editable<a href="#footnote-1-b"><sup id="footnote-1-a">1</sup></a> | Location | Use | Format |
 | ---- | -------- | -------- | --- | ------ |
@@ -109,6 +202,7 @@ for [emacs](https://github.com/CodeGra-de/CodeGra.el),
 upon request.
 
 ## Privacy
+
 You can use the CodeGrade FileSystem for any CodeGrade instance. The
 application does a version check at every startup, this is done by doing a
 request to `https://codegra.de/.cgfs.json` and to
@@ -116,6 +210,7 @@ request to `https://codegra.de/.cgfs.json` and to
 at these routes. It is currently not possible to disable this version check.
 
 ## Support
+
 Please report any issues by creating a GitHub issue
 [here](https://github.com/CodeGra-de/CodeGra.fs/issues/new), if possible please
 include link to uploaded a log output when encountering the bug using the
@@ -128,6 +223,7 @@ commercial CodeGrade license. We would love to provide more information, please
 send an e-mail to support@codegra.de!
 
 ## License
+
 CodeGra.fs as a whole is licensed under the [GNU Affero General Public License
 v3.0 (AGPL-3.0-only)](https://www.gnu.org/licenses/agpl-3.0.html). All license
 identifiers used in this product are SPDX license identifiers.
