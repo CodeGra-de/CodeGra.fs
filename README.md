@@ -64,9 +64,17 @@ CodeGrade Filesystem to run, these are:
 To manually build the CodeGrade Filesystem, make sure the following
 dependencies are installed:
 
-  - Python 3.5 or greater
-  - Node.js 10.19 or greater (earlier versions _may_ work, but have not been
-    tested)
+- `python3` 3.5 or greater
+- `python3-venv`
+- `nodejs` (10.19 or greater, earlier versions _may_ work, but have not been
+  tested)
+- `build-essential`
+- `gconf2`
+- `gconf-service`
+- `libnotify4`
+- `libappindicator1`
+- `libxtst6`
+- `libnss3`
 
 Then clone the repository, cd into it, and build the installers (the
 `build-quick` make recipe builds without running the test suite):
@@ -76,7 +84,7 @@ git clone https://github.com/CodeGra-de/CodeGra.fs
 
 cd CodeGra.fs
 
-make build-quick
+python3 ./build.py
 ```
 
 **NOTE** `make build-quick` will install a custom version of the package
@@ -85,9 +93,9 @@ make build-quick
 The `.deb` packages can then be found in the `dist` directory, and should be
 installed in the following order:
 
-1. python3-fusepy_XXX.deb
-2. python3-codegrade-fs_XXX.deb
-3. codegrade-fs_XXX.deb
+1. `python3-fusepy_XXX.deb`
+2. `python3-codegrade-fs_XXX.deb`
+3. `codegrade-fs_XXX.deb`
 
 The filesystem can now be started by running `codegrade-filesystem` on the
 command line.
@@ -109,7 +117,7 @@ git clone https://github.com/CodeGra-de/CodeGra.fs
 
 cd CodeGra.fs
 
-make build-quick
+python3 ./build.py
 ```
 
 **NOTE** Manual intervention may be required to download the OXSFuse installer.
@@ -132,6 +140,10 @@ Then clone the repository, cd into it, and build the installer:
 git clone https://github.com/CodeGra-de/CodeGra.fs
 
 cd CodeGra.fs
+
+python3 -m venv env
+env/bin/Activate.ps1
+pip3 install -r requirements.txt
 
 python3 ./build.py
 ```
