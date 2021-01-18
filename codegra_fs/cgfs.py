@@ -2301,7 +2301,7 @@ def check_version() -> None:
                         'You are running an outdated version of the CodeGrade'
                         ' Filesystem. Please consider upgrading.\nYou can'
                         ' get the latest version at'
-                        ' https://codegra.de/codegra_fs/latest.'
+                        ' https://www.codegrade.com/download-codegrade-filesystem.'
                     ),
                 ]
             )
