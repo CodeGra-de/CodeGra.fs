@@ -112,10 +112,7 @@ dist/CodeGrade\ Filesystem\ $(VERSION).pkg: dist/mac | build/pkg-scripts/osxfuse
 		"$@"
 
 build/pkg-scripts/osxfuse.pkg:
-	@printf 'Download the osxfuse dmg from https://osxfuse.github.io/\n' >&2
-	@printf 'mount it and copy the .pkg file in it to\n' >&2
-	@printf 'build/pkg-scripts/osxfuse.pkg\n' >&2
-	exit 1
+	bash ./.scripts/get_macfuse.bash
 
 .PHONY: dist/mac
 dist/mac: dist/cgfs dist/cgapi-consumer
