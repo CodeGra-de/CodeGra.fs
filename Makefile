@@ -6,7 +6,8 @@ ISORT_FLAGS += --recursive codegra_fs
 TEST_FILE ?= test/
 TEST_FLAGS += -vvv
 
-ENV = . env/bin/activate;
+ENV_LOC = .env/
+ENV = . $(ENV_LOC)/bin/activate;
 
 VERSION = $(shell node -e 'console.log(require("./package.json").version)')
 UNAME = $(shell uname | tr A-Z a-z)
@@ -16,14 +17,14 @@ run: install
 	$(ENV) npm run dev
 
 env:
-	virtualenv --python=python3 env
+	python3 -m venv $(ENV_LOC)
 
 .PHONY: install-deps
-install-deps: env/.install-deps env/.install-deps-$(UNAME) node_modules/.install-deps
-env/.install-deps: requirements.txt | env
+install-deps: $(ENV_LOC)/.install-deps $(ENV_LOC)/.install-deps-$(UNAME) node_modules/.install-deps
+$(ENV_LOC)/.install-deps: requirements.txt | env
 	$(ENV) pip3 install -r $^
 	date >$@
-env/.install-deps-$(UNAME): requirements-$(UNAME).txt | env
+$(ENV_LOC)/.install-deps-$(UNAME): requirements-$(UNAME).txt | env
 	$(ENV) pip3 install -r $^
 	date >$@
 node_modules/.install-deps: package.json

@@ -22,8 +22,5 @@ jobs:
         with:
           node-version: '12'
 
-      - name: Make python virtual env
-        run: python3 -m venv .env
-
       - name: Build binary
         run: make build-quick
