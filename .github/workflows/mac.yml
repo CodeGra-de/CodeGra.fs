@@ -25,3 +25,8 @@ jobs:
 
       - name: Build binary
         run: make build-quick
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: codegrade_fs
+          path: dist/*.pkg
