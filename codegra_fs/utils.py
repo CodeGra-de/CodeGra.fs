@@ -6,7 +6,6 @@ import datetime
 from collections import defaultdict
 
 import requests
-
 import codegra_fs
 
 T = t.TypeVar('T')
@@ -17,11 +16,11 @@ def _get_fuse_version_info() -> t.Tuple[int, int]:
     if not sys.platform.startswith('win32'):
         return (-1, -1)
 
-    import winfspy  # type: ignore
     import cffi  # type: ignore
+    import winfspy.plumbing  # type: ignore
     ffi = cffi.FFI()
     res = ffi.new('unsigned int *')
-    if winfspy.lib.FspVersion(res) != 0:
+    if winfspy.plumbing.lib.FspVersion(res) != 0:
         return (0, 0)
     return ((res[0] >> 16) & 0xffff, res[0] & 0xffff)
 
@@ -36,7 +35,7 @@ def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
             winfsp_version = _get_fuse_version_info()
             if winfsp_version < (1, 4):
                 return (
-                    'You need at least WinFsp version 1.4 (currently in beta).',
+                    'You need at least WinFsp version 1.4.',
                     'https://github.com/billziss-gh/winfsp/releases'
                 )
         return None

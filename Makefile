@@ -6,27 +6,18 @@ ISORT_FLAGS += --recursive codegra_fs
 TEST_FILE ?= test/
 TEST_FLAGS += -vvv
 
-ENV_LOC = .env/
-ENV = . $(ENV_LOC)/bin/activate;
-
 VERSION = $(shell node -e 'console.log(require("./package.json").version)')
-UNAME = $(shell uname | tr A-Z a-z)
+UNAME = $(shell python ./.scripts/get_os.py)
 
 .PHONY: run
 run: install
-	$(ENV) npm run dev
-
-env:
-	python3 -m venv $(ENV_LOC)
+	npm run dev
 
 .PHONY: install-deps
-install-deps: $(ENV_LOC)/.install-deps $(ENV_LOC)/.install-deps-$(UNAME) node_modules/.install-deps
-$(ENV_LOC)/.install-deps: requirements.txt | env
-	$(ENV) pip3 install -r $^
-	date >$@
-$(ENV_LOC)/.install-deps-$(UNAME): requirements-$(UNAME).txt | env
-	$(ENV) pip3 install -r $^
-	date >$@
+install-deps: node_modules/.install-deps
+	pip install -r requirements.txt
+	pip install -r requirements-$(UNAME).txt
+
 node_modules/.install-deps: package.json
 	npm ci
 	date >$@
@@ -34,34 +25,34 @@ node_modules/.install-deps: package.json
 .PHONY: install
 install: install-deps env/bin/cgfs env/bin/cgapi-consumer
 env/bin/%: setup.py codegra_fs/*.py
-	$(ENV) pip3 install .
+	pip install .
 
 .PHONY: mypy
 mypy: install-deps
-	$(ENV) mypy $(MYPY_FLAGS)
+	mypy $(MYPY_FLAGS)
 
 .PHONY: lint
 lint: install-deps
-	$(ENV) pylint $(PYLINT_FLAGS)
+	pylint $(PYLINT_FLAGS)
 	npm run lint
 
 .PHONY: format
 format: install-deps
-	$(ENV) yapf --in-place $(YAPF_FLAGS)
-	$(ENV) isort $(ISORT_FLAGS)
+	yapf --in-place $(YAPF_FLAGS)
+	isort $(ISORT_FLAGS)
 	npm run format
 
 .PHONY: check-format
 check-format: install-deps
-	$(ENV) yapf --diff $(YAPF_FLAGS)
-	$(ENV) isort --check-only $(ISORT_FLAGS)
+	yapf --diff $(YAPF_FLAGS)
+	isort --check-only $(ISORT_FLAGS)
 	npm run check-format
 
 .PHONY: test
 test: install
-	$(ENV) coverage erase
-	$(ENV) pytest $(TEST_FILE) $(TEST_FLAGS)
-	$(ENV) coverage report -m codegra_fs/cgfs.py
+	coverage erase
+	pytest $(TEST_FILE) $(TEST_FLAGS)
+	coverage report -m codegra_fs/cgfs.py
 	npm run unit
 
 .PHONY: travis_test
@@ -85,7 +76,7 @@ build: install-deps check build-$(UNAME)
 build-quick: install-deps build-$(UNAME)
 
 dist/cgfs: codegra_fs/*.py
-	$(ENV) pyinstaller \
+	pyinstaller \
 		--noconfirm \
 		--onedir \
 		--specpath dist \
@@ -93,7 +84,7 @@ dist/cgfs: codegra_fs/*.py
 		codegra_fs/cgfs.py
 
 dist/cgapi-consumer: codegra_fs/*.py
-	$(ENV) pyinstaller \
+	pyinstaller \
 		--noconfirm \
 		--onedir \
 		--specpath dist \
@@ -146,7 +137,7 @@ build-linux-deb-backend: dist/python3-codegrade-fs_$(VERSION)-1_all.deb
 dist/python3-codegrade-fs_$(VERSION)-1_all.deb: dist/python3-fusepy_3.0.1-1_all.deb build/deb.patch
 	dpkg -s python3-fusepy || sudo dpkg -i dist/python3-fusepy_3.0.1-1_all.deb
 	trap 'rm -rf codegrade_fs.egg-info codegrade-fs-$(VERSION).tar.gz;' 0 1 2 3 15; \
-	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb
+	python setup.py --command-packages=stdeb.command bdist_deb
 	mkdir -p dist
 	mv deb_dist/*.deb dist
 
@@ -159,10 +150,10 @@ dist/python3-fusepy_3.0.1-1_all.deb:
 
 .PHONY: docs
 docs: install-deps-docs
-	$(ENV) $(MAKE) -C docs html
+	$(MAKE) -C docs html
 
 .PHONY: install-deps-docs
 install-deps-docs: env/.install-deps-docs
 env/.install-deps-docs: requirements-docs.txt | env
-	$(ENV) pip3 install -r $^
+	pip install -r $^
 	date >$@

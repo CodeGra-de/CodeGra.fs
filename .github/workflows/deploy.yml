@@ -1,5 +1,5 @@
 ---
-name: "Mac build"
+name: "Build and deploy"
 
 "on":
   push:
@@ -9,7 +9,10 @@ name: "Mac build"
 
 jobs:
   build:
-    runs-on: macos-10.15
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-2019, macos-10.15]
     steps:
       - uses: actions/checkout@v2
 
@@ -28,5 +31,8 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: codegrade_fs
-          path: dist/*.pkg
+          name: ${{ matrix.os }}
+          path: |
+            dist/*.pkg
+            dist/*.exe
+          if-no-files-found: error
