@@ -27,7 +27,7 @@ env/.install-deps-$(UNAME): requirements-$(UNAME).txt | env
 	$(ENV) pip3 install -r $^
 	date >$@
 node_modules/.install-deps: package.json
-	npm install
+	npm ci
 	date >$@
 
 .PHONY: install
