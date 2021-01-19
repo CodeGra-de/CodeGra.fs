@@ -70,16 +70,17 @@ test-quick: test
 check: check-format mypy lint test
 
 .PHONY: build
-build: install-deps check build-$(UNAME)
+build: install check build-$(UNAME)
 
 .PHONY: build-quick
-build-quick: install-deps build-$(UNAME)
+build-quick: install build-$(UNAME)
 
 dist/cgfs: codegra_fs/*.py
 	pyinstaller \
 		--noconfirm \
 		--onedir \
 		--specpath dist \
+		--additional-hooks-dir=./pyinstaller_hooks \
 		--name cgfs \
 		codegra_fs/cgfs.py
 
@@ -88,6 +89,7 @@ dist/cgapi-consumer: codegra_fs/*.py
 		--noconfirm \
 		--onedir \
 		--specpath dist \
+		--additional-hooks-dir=./pyinstaller_hooks \
 		--name cgapi-consumer \
 		codegra_fs/api_consumer.py
 

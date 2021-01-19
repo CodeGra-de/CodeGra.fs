@@ -7,6 +7,7 @@ from collections import defaultdict
 
 import requests
 import codegra_fs
+import packaging.version
 
 T = t.TypeVar('T')
 Y = t.TypeVar('Y')
@@ -63,13 +64,18 @@ def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
 
 
 def newer_version_available() -> bool:
+    my_version = codegra_fs.__version__
+    # The isinstance check is needed for mypy
+    if isinstance(my_version, str) and my_version == 'UNKNOWN':
+        return False
+
     try:
         req = requests.get('https://fs.codegrade.com/.cgfs.json', timeout=2)
         req.raise_for_status()
-        latest = tuple(map(int, req.json()['version']))
+        latest = packaging.version.Version('.'.join(req.json()['version']))
+        return my_version < latest
     except:
         return False
-    return latest > codegra_fs.__version__
 
 
 def find_all_dups(

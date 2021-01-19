@@ -2481,7 +2481,7 @@ def main() -> None:
         dest='version',
         action='version',
         version=(
-            '%(prog)s {}'.format('.'.join(map(str, codegra_fs.__version__)))
+            '%(prog)s {}'.format(codegra_fs.__version__)
         ),
         help='Display version.',
     )

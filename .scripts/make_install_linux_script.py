@@ -26,7 +26,7 @@ is_distro() {
 }
 
 install_deps() {
-    sudo apt-get install -qy wget python3 fuse python3-requests libnotify4 gconf2 gconf-service libappindicator1 libxtst6 libnss3
+    sudo apt-get install -qy wget python3 fuse python3-requests libnotify4 gconf2 gconf-service libappindicator1 libxtst6 libnss3 python3-packaging
 }
 
 download_file() {

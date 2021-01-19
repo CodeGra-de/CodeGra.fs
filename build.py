@@ -5,7 +5,6 @@ import platform
 import subprocess
 
 import requests
-from codegra_fs import __version__
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 os.chdir(BASE_DIR)
@@ -19,6 +18,7 @@ def pyinstaller(module, name):
             'pyinstaller',
             '--noconfirm',
             '--onedir',
+            '--additional-hooks-dir=./pyinstaller_hooks',
             '--specpath',
             'dist',
             '--name',
