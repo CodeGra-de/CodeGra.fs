@@ -63,10 +63,13 @@ def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
 
 
 def newer_version_available() -> bool:
-    req = requests.get('https://codegra.de/.cgfs.version', timeout=2)
-    return req.status_code < 300 and tuple(
-        int(p) for p in req.content.decode('utf8').strip().split('.')
-    ) > codegra_fs.__version__
+    try:
+        req = requests.get('https://fs.codegrade.com/.cgfs.json', timeout=2)
+        req.raise_for_status()
+        latest = tuple(map(int, req.json()['version']))
+    except:
+        return False
+    return latest > codegra_fs.__version__
 
 
 def find_all_dups(

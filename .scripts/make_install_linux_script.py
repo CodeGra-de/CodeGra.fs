@@ -6,7 +6,7 @@ BASE = os.path.join(os.path.dirname(__file__), '..')
 
 TEMPLATE = """
 #!/bin/bash
-BASE_URL="https://codegradefs.s3-eu-west-1.amazonaws.com/v{{VERSION}}"
+BASE_URL="https://fs.codegrade.com/v{{VERSION}}/linux"
 
 err_echo() {
     (>&2 echo "$@")
@@ -78,13 +78,9 @@ main() {
     trap '[[ -n $tmpdir ]] && rm -rf "$tmpdir"' 0 1 2 3 15
 
     printf "\\\\nDownloading all needed files\\\\n"
-    download_file "${BASE_URL}/linux/python3-fusepy_NEWEST-1_all.deb" "$tmpdir/fusepy.deb"
-    if is_distro "Debian"; then
-        download_file "${BASE_URL}/debian/python3-codegrade-fs_all.deb" "$tmpdir/backend.deb"
-    else
-        download_file "${BASE_URL}/ubuntu/python3-codegrade-fs_all.deb" "$tmpdir/backend.deb"
-    fi
-    download_file "${BASE_URL}/linux/codegrade-fs_$(get_arch).deb" "$tmpdir/frontend.deb"
+    download_file "${BASE_URL}/python3-fusepy.deb" "$tmpdir/fusepy.deb"
+    download_file "${BASE_URL}/python3-codegrade-fs_all.deb" "$tmpdir/backend.deb"
+    download_file "${BASE_URL}/codegrade-fs_$(get_arch).deb" "$tmpdir/frontend.deb"
 
     if _pip list | grep -- 'CodeGra.fs'; then
         printf "\\\\nRemoving old versions\\\\n"

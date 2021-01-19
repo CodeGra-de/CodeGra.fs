@@ -16,7 +16,7 @@ assignees."""
 mountpoint_help = """Mountpoint for the file system. This should be an existing
 empty directory."""
 
-password_help = """Your CodeGra.de password, don't pass this option if you want
+password_help = """Your CodeGrade password, don't pass this option if you want
 to pass your password over stdin. You can also use the `CGFS_PASSWORD`
 environment variable to pass your password."""
 

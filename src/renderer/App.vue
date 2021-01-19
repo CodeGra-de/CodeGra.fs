@@ -43,6 +43,7 @@
 <script>
 // eslint-disable-next-line
 import { shell } from 'electron';
+import * as semver from 'semver';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/circle-notch';
@@ -70,17 +71,10 @@ export default {
             if (this.newestVersion === null) {
                 return false;
             }
-            const [major, minor, patch] = __VERSION__.split('.').map(p => parseInt(p, 10));
-            const [newMajor, newMinor, newPatch] = this.newestVersion.map(p => parseInt(p, 10));
-            if (newMajor === major) {
-                if (newMinor === minor) {
-                    return newPatch > patch;
-                } else {
-                    return newMinor > minor;
-                }
-            } else {
-                return newMajor > major;
-            }
+
+            const myVersion = semver.coerce(__VERSION__);
+            const newVersion = semver.parse(this.newestVersion.join('.'));
+            return semver.lt(myVersion, newVersion);
         },
 
         newestVersionHelp() {
@@ -120,7 +114,7 @@ export default {
             true,
         );
 
-        this.$http.get(`https://codegra.de/.cgfs.json?cache=${Date.now()}`).then(({ data }) => {
+        this.$http.get(`https://fs.codegrade.com/.cgfs.json?cache=${Date.now()}`).then(({ data }) => {
             this.newestVersion = data.version;
             updateInstitutions(data.institutions);
             this.loading = false;
