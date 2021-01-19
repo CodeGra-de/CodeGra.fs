@@ -12,22 +12,39 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-2019, macos-10.15]
+        os: [windows-2019, macos-10.15, ubuntu-18.04]
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Setup Python for Ubuntu
+        run: |
+          sudo apt-get install -y \
+            python3 python3-dev python3-pip python3-venv python3-all \
+            dh-python debhelper devscripts dput software-properties-common \
+            python3-distutils python3-setuptools python3-wheel python3-stdeb
+        if: startsWith(matrix.os, 'ubuntu')
+
+      - name: Setup Python for not Ubuntu
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
+        if: startsWith(matrix.os, 'ubuntu') == false
 
       - name: Install node
         uses: actions/setup-node@v2
         with:
           node-version: '12'
 
-      - name: Build binary
+      - name: Build binary for ubuntu
+        run: |
+          python3 -m venv env
+          source env/bin/activate
+          make build-quick
+        if: startsWith(matrix.os, 'ubuntu')
+
+      - name: Build binary for not ubuntu
         run: make build-quick
+        if: startsWith(matrix.os, 'ubuntu') == false
 
       - uses: actions/upload-artifact@v2
         with:
@@ -35,4 +52,6 @@ jobs:
           path: |
             dist/*.pkg
             dist/*.exe
+            dist/*.bash
+            dist/*.deb
           if-no-files-found: error

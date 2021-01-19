@@ -115,6 +115,7 @@ build-win:
 
 .PHONY: build-linux
 build-linux: build-linux-deb
+	python .scripts/make_install_linux_script.py
 
 .PHONY: build-linux-deb
 build-linux-deb: build-linux-deb-frontend build-linux-deb-backend

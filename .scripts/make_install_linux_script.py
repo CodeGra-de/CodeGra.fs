@@ -1,6 +1,12 @@
+#!/usr/bin/env python
+import os
+import json
+
+BASE = os.path.join(os.path.dirname(__file__), '..')
+
+TEMPLATE = """
 #!/bin/bash
-# SPDX-License-Identifier: AGPL-3.0-only
-VERSION="1.1.2"
+BASE_URL="https://codegradefs.s3-eu-west-1.amazonaws.com/v{{VERSION}}"
 
 err_echo() {
     (>&2 echo "$@")
@@ -26,7 +32,7 @@ install_deps() {
 download_file() {
     local url="$1" dst="$2"
     if ! wget --quiet "$url" -O "$dst"; then
-        err_echo "Failed to download file: $url"
+        err_echo "Failed to download file: ${url}, please check if a new version is available on https://codegrade.com/download-codegrade-filesystem"
         exit 10
     fi
 }
@@ -63,7 +69,7 @@ main() {
     echo "Updating package list"
     sudo apt update -q
 
-    printf "\\nInstalling dependencies\\n"
+    printf "\\\\nInstalling dependencies\\\\n"
     if ! install_deps; then
         err_echo "Failed to install dependencies"
         exit 4
@@ -71,30 +77,45 @@ main() {
     tmpdir="$(mktemp -d)"
     trap '[[ -n $tmpdir ]] && rm -rf "$tmpdir"' 0 1 2 3 15
 
-    printf "\\nDownloading all needed files\\n"
-    download_file "https://codegra.de/static/fs/linux/python3-fusepy_NEWEST-1_all.deb" "$tmpdir/fusepy.deb"
+    printf "\\\\nDownloading all needed files\\\\n"
+    download_file "${BASE_URL}/linux/python3-fusepy_NEWEST-1_all.deb" "$tmpdir/fusepy.deb"
     if is_distro "Debian"; then
-        download_file "https://codegra.de/static/fs/debian/python3-codegrade-fs_${VERSION}-1_all.deb" "$tmpdir/backend.deb"
+        download_file "${BASE_URL}/debian/python3-codegrade-fs_all.deb" "$tmpdir/backend.deb"
     else
-        download_file "https://codegra.de/static/fs/ubuntu/python3-codegrade-fs_${VERSION}-1_all.deb" "$tmpdir/backend.deb"
+        download_file "${BASE_URL}/ubuntu/python3-codegrade-fs_all.deb" "$tmpdir/backend.deb"
     fi
-    download_file "https://codegra.de/static/fs/linux/codegrade-fs_${VERSION}_$(get_arch).deb" "$tmpdir/frontend.deb"
+    download_file "${BASE_URL}/linux/codegrade-fs_$(get_arch).deb" "$tmpdir/frontend.deb"
 
     if _pip list | grep -- 'CodeGra.fs'; then
-        printf "\\nRemoving old versions\\n"
+        printf "\\\\nRemoving old versions\\\\n"
         _pip uninstall -y CodeGra.fs
     fi
 
-    printf "\\nInstalling our version of fusepy\\n"
+    printf "\\\\nInstalling our version of fusepy\\\\n"
     sudo dpkg -i "$tmpdir/fusepy.deb"
-    printf "\\nInstalling the backend of the CodeGrade Filesystem\\n"
+    printf "\\\\nInstalling the backend of the CodeGrade Filesystem\\\\n"
     sudo dpkg -i "$tmpdir/backend.deb"
-    printf "\\nInstalling the frontend of the CodeGrade Filesystem\\n"
+    printf "\\\\nInstalling the frontend of the CodeGrade Filesystem\\\\n"
     sudo dpkg -i "$tmpdir/frontend.deb"
     rm -rf "$tmpdir"
     tmpdir=""
 
-    printf "\\nDone installing the file system\\n"
+    printf "\\\\nDone installing the file system\\\\n"
 }
 
 main
+""".lstrip()
+
+
+def main():
+    with open(os.path.join(BASE, 'package.json'), 'r') as f:
+        version = json.load(f)['version']
+
+    dist_dir = os.path.join(BASE, 'dist')
+    os.makedirs(dist_dir, exist_ok=True)
+    with open(os.path.join(dist_dir, 'install_linux.bash'), 'w') as f:
+        f.write(TEMPLATE.replace('{{VERSION}}', version))
+
+
+if __name__ == '__main__':
+    main()
