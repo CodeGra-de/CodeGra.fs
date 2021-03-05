@@ -9,7 +9,6 @@ from time import sleep
 from urllib.parse import quote
 
 import requests
-
 import codegra_fs
 
 DEFAULT_CGAPI_BASE_URL = os.getenv(
@@ -18,9 +17,7 @@ DEFAULT_CGAPI_BASE_URL = os.getenv(
 
 T_CALL = t.TypeVar('T_CALL', bound=t.Callable)
 
-USER_AGENT = 'CodeGradeFS/{}'.format(
-    '.'.join(map(str, codegra_fs.__version__))
-)
+USER_AGENT = 'CodeGradeFS/{}'.format(codegra_fs.__version__)
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +114,9 @@ class APIRoutes():
         return (
             '{base}/code/{file_id}?operation='
             'rename&new_path={new_path}'
-        ).format(base=self.base, file_id=file_id, new_path=quote(new_path))
+        ).format(
+            base=self.base, file_id=file_id, new_path=quote(new_path)
+        )
 
     def get_submission_feedbacks(self, submission_id):
         return '{base}/submissions/{submission_id}/feedbacks/'.format(
@@ -130,18 +129,21 @@ class APIRoutes():
         )
 
     def get_feedback(self, file_id):
-        return ('{base}/code/{file_id}?type=feedback'
-                ).format(base=self.base, file_id=file_id)
+        return ('{base}/code/{file_id}?type=feedback').format(
+            base=self.base, file_id=file_id
+        )
 
     def add_feedback(self, file_id, line):
-        return ('{base}/code/{file_id}/comments/{line}'
-                ).format(base=self.base, file_id=file_id, line=line)
+        return ('{base}/code/{file_id}/comments/{line}').format(
+            base=self.base, file_id=file_id, line=line
+        )
 
     delete_feedback = add_feedback
 
     def get_assignment(self, assignment_id):
-        return ('{base}/assignments/{assignment_id}'
-                ).format(base=self.base, assignment_id=assignment_id)
+        return ('{base}/assignments/{assignment_id}').format(
+            base=self.base, assignment_id=assignment_id
+        )
 
 
 class APICodes(IntEnum):

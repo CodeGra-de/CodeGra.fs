@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
+import os
 import sys
+import json
 
+import packaging.version
 from setuptools import setup
 
-import codegra_fs
-
-version = '.'.join(map(str, codegra_fs.__version__))
+with open(os.path.join(os.path.dirname(__file__), 'package.json')) as f:
+    version = json.load(f)['version']
+    # Make sure we can parse this version
+    packaging.version.Version(version)
 
 if sys.version_info < (3, 5):
     print('Sorry only python 3.5 and up is supported', file=sys.stderr)
@@ -15,6 +19,7 @@ if sys.version_info < (3, 5):
 requires = [
     'requests>=2.20.0',
     'fusepy>3.0.0,<4.0.0',
+    'packaging>=20.8',
 ]
 if sys.platform.startswith('win32'):
     requires += [

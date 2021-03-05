@@ -7,14 +7,15 @@
 
             <b-card-body v-if="newerVersionAvailable" class="alert-section">
                 <b-alert show dismissible variant="info">
-                    A newer version of the CodeGrade Filesystem is available. You can download the
-                    latest version at
+                    A <abbr :title="newestVersionHelp">newer version</abbr>
+                    of the CodeGrade Filesystem is available. You can download
+                    the latest version at
                     <a
                         target="_blank"
-                        href="https://codegra.de/codegra_fs/latest"
+                        href="https://www.codegrade.com/download-codegrade-filesystem"
                         @click="downloadNewVersion"
                     >
-                        codegra.de/codegra_fs/latest</a
+                        www.codegrade.com/download-codegrade-filesystem</a
                     >.
                     <template v-if="jwtToken">
                         Make sure to stop the filesystem before upgrading.
@@ -42,6 +43,7 @@
 <script>
 // eslint-disable-next-line
 import { shell } from 'electron';
+import * as semver from 'semver';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/circle-notch';
@@ -60,6 +62,7 @@ export default {
             jwtToken: '',
             newestVersion: null,
             showNotificationMessage: Notification.permission !== 'granted',
+            myVersion: __VERSION__,
         };
     },
 
@@ -68,17 +71,16 @@ export default {
             if (this.newestVersion === null) {
                 return false;
             }
-            const [major, minor, patch] = __VERSION__.split('.');
-            const [newMajor, newMinor, newPatch] = this.newestVersion;
-            if (newMajor === major) {
-                if (newMinor === minor) {
-                    return newPatch > patch;
-                } else {
-                    return newMinor > minor;
-                }
-            } else {
-                return newMajor > major;
-            }
+
+            const myVersion = semver.coerce(__VERSION__);
+            const newVersion = semver.parse(this.newestVersion.join('.'));
+            return semver.lt(myVersion, newVersion);
+        },
+
+        newestVersionHelp() {
+            const newestVersionString = (this.newestVersion || []).join('.');
+            const myVersion = __VERSION__;
+            return `You are running ${myVersion} and ${newestVersionString} is available.`;
         },
     },
 
@@ -112,7 +114,7 @@ export default {
             true,
         );
 
-        this.$http.get(`https://codegra.de/.cgfs.json?cache=${Date.now()}`).then(({ data }) => {
+        this.$http.get(`https://fs.codegrade.com/.cgfs.json?cache=${Date.now()}`).then(({ data }) => {
             this.newestVersion = data.version;
             updateInstitutions(data.institutions);
             this.loading = false;

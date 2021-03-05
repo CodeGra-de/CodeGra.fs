@@ -1,5 +1,5 @@
 import path from 'path';
-import { app, BrowserWindow, ipcMain, Notification } from 'electron'; // eslint-disable-line
+import { app, BrowserWindow, ipcMain, Notification, Menu } from 'electron'; // eslint-disable-line
 import notifier from 'node-notifier';
 
 /**
@@ -68,8 +68,6 @@ function createWindow() {
         },
     });
 
-    mainWindow.setMenu(null);
-
     mainWindow.loadURL(winURL);
 
     mainWindow.on('closed', () => {
@@ -88,6 +86,32 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
     if (mainWindow === null) {
         createWindow();
+    }
+});
+
+// Callback for the ready event
+app.on('ready', () => {
+    // Check if we are on a MAC
+    if (process.platform === 'darwin') {
+        // Create our menu entries so that we can use MAC shortcuts
+        Menu.setApplicationMenu(Menu.buildFromTemplate([
+            {
+                label: 'Edit',
+                submenu: [
+                    { role: 'undo' },
+                    { role: 'redo' },
+                    { type: 'separator' },
+                    { role: 'cut' },
+                    { role: 'copy' },
+                    { role: 'paste' },
+                    { role: 'pasteandmatchstyle' },
+                    { role: 'delete' },
+                    { role: 'selectall' },
+                ],
+            },
+        ]));
+    } else {
+        Menu.setApplicationMenu(null);
     }
 });
 

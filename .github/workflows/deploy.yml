@@ -1,0 +1,97 @@
+---
+name: "Build and deploy"
+
+"on":
+  push:
+    branches:
+      - master
+      - release/*
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - windows-2019
+          - macos-10.15
+          - ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '12'
+
+      - name: Setup Python for Ubuntu
+        run: |
+          sudo apt-get install -y \
+            python3 python3-dev python3-pip python3-venv python3-all \
+            dh-python debhelper devscripts dput software-properties-common \
+            python3-distutils python3-setuptools python3-wheel python3-stdeb
+        if: startsWith(matrix.os, 'ubuntu')
+
+      - name: Build binary for Ubuntu
+        run: |
+          python3 -m venv env
+          source env/bin/activate
+          make build-quick
+        if: startsWith(matrix.os, 'ubuntu')
+
+      - name: Setup Python for not Ubuntu
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+        if: startsWith(matrix.os, 'ubuntu') == false
+
+      - name: Build binary for not Ubuntu
+        run: make build-quick
+        if: startsWith(matrix.os, 'ubuntu') == false
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}
+          path: |
+            dist/*.pkg
+            dist/*.exe
+            dist/install_linux.bash
+            dist/*.deb
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_S3_FS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_S3_FS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: ./dist
+
+      - name: Set version
+        run: |
+          echo "VERSION=v$(jq --raw-output .version < package.json)" >> $GITHUB_ENV
+          echo "S3_CP=aws s3 cp --acl public-read" >> $GITHUB_ENV
+          echo "S3_SYNC=aws s3 sync --acl public-read" >> $GITHUB_ENV
+
+      - name: Upload fs to S3
+        run: |
+          $S3_CP dist/ubuntu*/install_linux.bash s3://codegradefs/$VERSION/install_linux.bash
+          $S3_CP dist/ubuntu*/python3-fusepy*.deb s3://codegradefs/$VERSION/linux/python3-fusepy.deb
+          $S3_CP dist/ubuntu*/python3-codegrade-fs*_all.deb s3://codegradefs/$VERSION/linux/python3-codegrade-fs_all.deb
+          $S3_CP dist/ubuntu*/codegrade-fs*_amd64.deb s3://codegradefs/$VERSION/linux/codegrade-fs_amd64.deb
+          $S3_CP dist/ubuntu*/codegrade-fs*_i386.deb s3://codegradefs/$VERSION/linux/codegrade-fs_i386.deb
+
+          $S3_CP dist/windows*/*.exe s3://codegradefs/$VERSION/codegrade_filesystem_installer.exe
+          $S3_CP dist/mac*/*.pkg s3://codegradefs/$VERSION/codegrade_filesystem_installer.pkg

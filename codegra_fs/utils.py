@@ -6,8 +6,8 @@ import datetime
 from collections import defaultdict
 
 import requests
-
 import codegra_fs
+import packaging.version
 
 T = t.TypeVar('T')
 Y = t.TypeVar('Y')
@@ -17,11 +17,11 @@ def _get_fuse_version_info() -> t.Tuple[int, int]:
     if not sys.platform.startswith('win32'):
         return (-1, -1)
 
-    import winfspy  # type: ignore
     import cffi  # type: ignore
+    import winfspy.plumbing  # type: ignore
     ffi = cffi.FFI()
     res = ffi.new('unsigned int *')
-    if winfspy.lib.FspVersion(res) != 0:
+    if winfspy.plumbing.lib.FspVersion(res) != 0:
         return (0, 0)
     return ((res[0] >> 16) & 0xffff, res[0] & 0xffff)
 
@@ -36,7 +36,7 @@ def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
             winfsp_version = _get_fuse_version_info()
             if winfsp_version < (1, 4):
                 return (
-                    'You need at least WinFsp version 1.4 (currently in beta).',
+                    'You need at least WinFsp version 1.4.',
                     'https://github.com/billziss-gh/winfsp/releases'
                 )
         return None
@@ -64,10 +64,18 @@ def get_fuse_install_message() -> t.Optional[t.Tuple[str, t.Optional[str]]]:
 
 
 def newer_version_available() -> bool:
-    req = requests.get('https://codegra.de/.cgfs.version', timeout=2)
-    return req.status_code < 300 and tuple(
-        int(p) for p in req.content.decode('utf8').strip().split('.')
-    ) > codegra_fs.__version__
+    my_version = codegra_fs.__version__
+    # The isinstance check is needed for mypy
+    if isinstance(my_version, str) and my_version == 'UNKNOWN':
+        return False
+
+    try:
+        req = requests.get('https://fs.codegrade.com/.cgfs.json', timeout=2)
+        req.raise_for_status()
+        latest = packaging.version.Version('.'.join(req.json()['version']))
+        return my_version < latest
+    except:
+        return False
 
 
 def find_all_dups(

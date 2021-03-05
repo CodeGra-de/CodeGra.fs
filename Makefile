@@ -6,61 +6,53 @@ ISORT_FLAGS += --recursive codegra_fs
 TEST_FILE ?= test/
 TEST_FLAGS += -vvv
 
-ENV = . env/bin/activate;
-
 VERSION = $(shell node -e 'console.log(require("./package.json").version)')
-UNAME = $(shell uname | tr A-Z a-z)
+UNAME = $(shell python ./.scripts/get_os.py)
 
 .PHONY: run
 run: install
-	$(ENV) npm run dev
-
-env:
-	virtualenv --python=python3 env
+	npm run dev
 
 .PHONY: install-deps
-install-deps: env/.install-deps env/.install-deps-$(UNAME) node_modules/.install-deps
-env/.install-deps: requirements.txt | env
-	$(ENV) pip3 install -r $^
-	date >$@
-env/.install-deps-$(UNAME): requirements-$(UNAME).txt | env
-	$(ENV) pip3 install -r $^
-	date >$@
+install-deps: node_modules/.install-deps
+	pip install -r requirements.txt
+	pip install -r requirements-$(UNAME).txt
+
 node_modules/.install-deps: package.json
-	npm install
+	npm ci
 	date >$@
 
 .PHONY: install
 install: install-deps env/bin/cgfs env/bin/cgapi-consumer
 env/bin/%: setup.py codegra_fs/*.py
-	$(ENV) pip3 install .
+	pip install .
 
 .PHONY: mypy
 mypy: install-deps
-	$(ENV) mypy $(MYPY_FLAGS)
+	mypy $(MYPY_FLAGS)
 
 .PHONY: lint
 lint: install-deps
-	$(ENV) pylint $(PYLINT_FLAGS)
+	pylint $(PYLINT_FLAGS)
 	npm run lint
 
 .PHONY: format
 format: install-deps
-	$(ENV) yapf --in-place $(YAPF_FLAGS)
-	$(ENV) isort $(ISORT_FLAGS)
+	yapf --in-place $(YAPF_FLAGS)
+	isort $(ISORT_FLAGS)
 	npm run format
 
 .PHONY: check-format
 check-format: install-deps
-	$(ENV) yapf --diff $(YAPF_FLAGS)
-	$(ENV) isort --check-only $(ISORT_FLAGS)
+	yapf --diff $(YAPF_FLAGS)
+	isort --check-only $(ISORT_FLAGS)
 	npm run check-format
 
 .PHONY: test
 test: install
-	$(ENV) coverage erase
-	$(ENV) pytest $(TEST_FILE) $(TEST_FLAGS)
-	$(ENV) coverage report -m codegra_fs/cgfs.py
+	coverage erase
+	pytest $(TEST_FILE) $(TEST_FLAGS)
+	coverage report -m codegra_fs/cgfs.py
 	npm run unit
 
 .PHONY: travis_test
@@ -78,24 +70,26 @@ test-quick: test
 check: check-format mypy lint test
 
 .PHONY: build
-build: install-deps check build-$(UNAME)
+build: install check build-$(UNAME)
 
 .PHONY: build-quick
-build-quick: install-deps build-$(UNAME)
+build-quick: install build-$(UNAME)
 
 dist/cgfs: codegra_fs/*.py
-	$(ENV) pyinstaller \
+	pyinstaller \
 		--noconfirm \
 		--onedir \
 		--specpath dist \
+		--additional-hooks-dir=./pyinstaller_hooks \
 		--name cgfs \
 		codegra_fs/cgfs.py
 
 dist/cgapi-consumer: codegra_fs/*.py
-	$(ENV) pyinstaller \
+	pyinstaller \
 		--noconfirm \
 		--onedir \
 		--specpath dist \
+		--additional-hooks-dir=./pyinstaller_hooks \
 		--name cgapi-consumer \
 		codegra_fs/api_consumer.py
 
@@ -111,10 +105,7 @@ dist/CodeGrade\ Filesystem\ $(VERSION).pkg: dist/mac | build/pkg-scripts/osxfuse
 		"$@"
 
 build/pkg-scripts/osxfuse.pkg:
-	@printf 'Download the osxfuse dmg from https://osxfuse.github.io/\n' >&2
-	@printf 'mount it and copy the .pkg file in it to\n' >&2
-	@printf 'build/pkg-scripts/osxfuse.pkg\n' >&2
-	exit 1
+	bash ./.scripts/get_macfuse.bash
 
 .PHONY: dist/mac
 dist/mac: dist/cgfs dist/cgapi-consumer
@@ -126,6 +117,7 @@ build-win:
 
 .PHONY: build-linux
 build-linux: build-linux-deb
+	python .scripts/make_install_linux_script.py
 
 .PHONY: build-linux-deb
 build-linux-deb: build-linux-deb-frontend build-linux-deb-backend
@@ -148,7 +140,7 @@ build-linux-deb-backend: dist/python3-codegrade-fs_$(VERSION)-1_all.deb
 dist/python3-codegrade-fs_$(VERSION)-1_all.deb: dist/python3-fusepy_3.0.1-1_all.deb build/deb.patch
 	dpkg -s python3-fusepy || sudo dpkg -i dist/python3-fusepy_3.0.1-1_all.deb
 	trap 'rm -rf codegrade_fs.egg-info codegrade-fs-$(VERSION).tar.gz;' 0 1 2 3 15; \
-	$(ENV) python3 setup.py --command-packages=stdeb.command bdist_deb
+	python setup.py --command-packages=stdeb.command bdist_deb
 	mkdir -p dist
 	mv deb_dist/*.deb dist
 
@@ -161,10 +153,10 @@ dist/python3-fusepy_3.0.1-1_all.deb:
 
 .PHONY: docs
 docs: install-deps-docs
-	$(ENV) $(MAKE) -C docs html
+	$(MAKE) -C docs html
 
 .PHONY: install-deps-docs
 install-deps-docs: env/.install-deps-docs
 env/.install-deps-docs: requirements-docs.txt | env
-	$(ENV) pip3 install -r $^
+	pip install -r $^
 	date >$@
