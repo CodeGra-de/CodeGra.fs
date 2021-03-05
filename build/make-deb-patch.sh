@@ -2,7 +2,7 @@
 
 set -eu
 
-git stash
+git stash || true
 
 for f in codegra_fs/cgfs.py codegra_fs/utils.py; do
 	cp "$f" "$f.2"
@@ -18,4 +18,4 @@ git diff > debian/patches/fix-fusepy
 
 git checkout codegra_fs/cgfs.py codegra_fs/utils.py codegra_fs/cgfs_types.py
 
-git stash pop
+git stash pop || true

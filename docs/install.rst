@@ -2,7 +2,8 @@ Installation
 =============
 The CodeGrade Filesystem is an external application that can be installed on
 :fa:`windows` Windows, :fa:`apple` MacOS and :fa:`linux` Debian/Ubuntu.  To install
-it go to `The CodeGrade website <https://codegra.de/filesystem/>`__ and follow
+it go to `The CodeGrade website
+<https://www.codegrade.com/download-codegrade-filesystem>`__ and follow
 the instructions there.
 
 Dependencies

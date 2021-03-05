@@ -40,10 +40,13 @@ if True:
 
 try:
     import fuse  # type: ignore
-    from fuse import FUSE, Operations, FuseOSError, LoggingMixIn  # type: ignore
+    from fuse import (  # type: ignore
+        FUSE, Operations, FuseOSError, LoggingMixIn
+    )
     if sys.platform.startswith('win32'):
         import cffi
         import winfspy
+        import winfspy.plumbing
 except:
 
     class Operations:  # type: ignore
@@ -56,7 +59,9 @@ except:
 try:
     # Python 3.5 doesn't support the syntax below
     if sys.version_info >= (3, 6) and t.TYPE_CHECKING:
-        from codegra_fs.cgfs_types import PartialStat, FullStat, APIHandlerResponse
+        from codegra_fs.cgfs_types import (
+            FullStat, PartialStat, APIHandlerResponse
+        )
     else:
         raise Exception
 except:
@@ -1383,12 +1388,12 @@ class APIHandler:
             ffi = cffi.FFI()
             in_str = ffi.new('wchar_t[]', f_name)
             out_str = ffi.new('char **')
-            if winfspy.lib.FspPosixMapWindowsToPosixPathEx(
+            if winfspy.plumbing.lib.FspPosixMapWindowsToPosixPathEx(
                 in_str, out_str, True
             ) != 0:
                 return {'ok': False, 'error': 'Winfspy returned an error'}
             f_name = ffi.string(out_str[0]).decode('utf-8')
-            winfspy.lib.FspPosixDeletePath(out_str[0])
+            winfspy.plumbing.lib.FspPosixDeletePath(out_str[0])
         try:
             return self.cgfs.get_file(f_name, expect_type=SingleFile)
         except:
@@ -2301,7 +2306,7 @@ def check_version() -> None:
                         'You are running an outdated version of the CodeGrade'
                         ' Filesystem. Please consider upgrading.\nYou can'
                         ' get the latest version at'
-                        ' https://codegra.de/codegra_fs/latest.'
+                        ' https://www.codegrade.com/download-codegrade-filesystem.'
                     ),
                 ]
             )
@@ -2476,7 +2481,7 @@ def main() -> None:
         dest='version',
         action='version',
         version=(
-            '%(prog)s {}'.format('.'.join(map(str, codegra_fs.__version__)))
+            '%(prog)s {}'.format(codegra_fs.__version__)
         ),
         help='Display version.',
     )

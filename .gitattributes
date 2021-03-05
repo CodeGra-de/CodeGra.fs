@@ -1,0 +1,7 @@
+# Always use lf lineendings
+* text=auto
+
+# Always use lf lineendings for py, js, and vue files
+*.js text eol=lf
+*.vue text eol=lf
+*.py text eol=lf

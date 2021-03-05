@@ -101,7 +101,8 @@ export default {
     watch: {
         internal: {
             handler() {
-                this.$emit('input', this.external);
+                const val = this.external;
+                this.$emit('input', val == null ? {} : val);
             },
             immediate: true,
         },
@@ -134,7 +135,7 @@ export default {
                 case 'directory':
                     return this.internal.path;
                 case 'select':
-                    return this.internal.value;
+                    return this.internal && this.internal.value;
                 default:
                     return this.internal;
             }

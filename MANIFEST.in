@@ -1,3 +1,4 @@
 include debian/patches/fix-cgfs_types
 include debian/patches/fix-fusepy
 include debian/patches/series
+include package.json
